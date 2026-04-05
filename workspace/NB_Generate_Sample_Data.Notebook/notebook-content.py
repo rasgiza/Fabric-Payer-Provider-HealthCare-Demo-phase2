@@ -79,14 +79,14 @@ SPECIALTIES = [
 ]
 
 FACILITIES = [
-    {"id": "FAC001", "name": "Lakeside Main Hospital", "type": "Hospital", "city": "Grand Rapids", "state": "MI", "beds": 450},
-    {"id": "FAC002", "name": "Lakeside Heart Center", "type": "Specialty", "city": "Grand Rapids", "state": "MI", "beds": 120},
-    {"id": "FAC003", "name": "Lakeside Urgent Care North", "type": "Urgent Care", "city": "Traverse City", "state": "MI", "beds": 0},
-    {"id": "FAC004", "name": "Lakeside Cancer Institute", "type": "Specialty", "city": "Ann Arbor", "state": "MI", "beds": 80},
-    {"id": "FAC005", "name": "Lakeside Community Clinic", "type": "Clinic", "city": "Lansing", "state": "MI", "beds": 0},
-    {"id": "FAC006", "name": "Lakeside Children's Hospital", "type": "Hospital", "city": "Detroit", "state": "MI", "beds": 200},
-    {"id": "FAC007", "name": "Lakeside Rehabilitation Center", "type": "Rehab", "city": "Kalamazoo", "state": "MI", "beds": 100},
-    {"id": "FAC008", "name": "Lakeside South Campus", "type": "Hospital", "city": "Toledo", "state": "OH", "beds": 350},
+    {"id": "FAC001", "name": "Lakeside Main Hospital", "type": "Hospital", "city": "Grand Rapids", "state": "MI", "beds": 450, "latitude": 42.9634, "longitude": -85.6681},
+    {"id": "FAC002", "name": "Lakeside Heart Center", "type": "Specialty", "city": "Grand Rapids", "state": "MI", "beds": 120, "latitude": 42.9554, "longitude": -85.6561},
+    {"id": "FAC003", "name": "Lakeside Urgent Care North", "type": "Urgent Care", "city": "Traverse City", "state": "MI", "beds": 0, "latitude": 44.7631, "longitude": -85.6206},
+    {"id": "FAC004", "name": "Lakeside Cancer Institute", "type": "Specialty", "city": "Ann Arbor", "state": "MI", "beds": 80, "latitude": 42.2808, "longitude": -83.7430},
+    {"id": "FAC005", "name": "Lakeside Community Clinic", "type": "Clinic", "city": "Lansing", "state": "MI", "beds": 0, "latitude": 42.7325, "longitude": -84.5555},
+    {"id": "FAC006", "name": "Lakeside Children's Hospital", "type": "Hospital", "city": "Detroit", "state": "MI", "beds": 200, "latitude": 42.3314, "longitude": -83.0458},
+    {"id": "FAC007", "name": "Lakeside Rehabilitation Center", "type": "Rehab", "city": "Kalamazoo", "state": "MI", "beds": 100, "latitude": 42.2917, "longitude": -85.5872},
+    {"id": "FAC008", "name": "Lakeside South Campus", "type": "Hospital", "city": "Toledo", "state": "OH", "beds": 350, "latitude": 41.6528, "longitude": -83.5379},
 ]
 
 ENCOUNTER_TYPES = ["Inpatient", "Outpatient", "Emergency", "Observation", "Telehealth"]
@@ -648,14 +648,14 @@ print(f"  Generated {len(diagnoses_df)} diagnoses")
 # ============================================================================
 
 STATES_CONFIG = {
-    "MI": {"zips": range(48001, 49972), "urban_pct": 0.45, "suburban_pct": 0.35},
-    "NY": {"zips": range(10001, 14976), "urban_pct": 0.55, "suburban_pct": 0.30},
-    "OH": {"zips": range(43001, 45999), "urban_pct": 0.40, "suburban_pct": 0.35},
-    "TX": {"zips": range(75001, 79999), "urban_pct": 0.50, "suburban_pct": 0.30},
-    "CA": {"zips": range(90001, 96162), "urban_pct": 0.55, "suburban_pct": 0.30},
-    "FL": {"zips": range(32003, 34997), "urban_pct": 0.45, "suburban_pct": 0.35},
-    "PA": {"zips": range(15001, 19640), "urban_pct": 0.45, "suburban_pct": 0.35},
-    "IL": {"zips": range(60001, 62999), "urban_pct": 0.50, "suburban_pct": 0.30},
+    "MI": {"zips": range(48001, 49972), "urban_pct": 0.45, "suburban_pct": 0.35, "lat_range": (41.70, 46.00), "lon_range": (-86.80, -82.40)},
+    "NY": {"zips": range(10001, 14976), "urban_pct": 0.55, "suburban_pct": 0.30, "lat_range": (40.50, 45.00), "lon_range": (-79.80, -71.80)},
+    "OH": {"zips": range(43001, 45999), "urban_pct": 0.40, "suburban_pct": 0.35, "lat_range": (38.40, 42.00), "lon_range": (-84.80, -80.50)},
+    "TX": {"zips": range(75001, 79999), "urban_pct": 0.50, "suburban_pct": 0.30, "lat_range": (25.80, 36.50), "lon_range": (-106.60, -93.50)},
+    "CA": {"zips": range(90001, 96162), "urban_pct": 0.55, "suburban_pct": 0.30, "lat_range": (32.50, 42.00), "lon_range": (-124.40, -114.10)},
+    "FL": {"zips": range(32003, 34997), "urban_pct": 0.45, "suburban_pct": 0.35, "lat_range": (24.50, 31.00), "lon_range": (-87.60, -80.00)},
+    "PA": {"zips": range(15001, 19640), "urban_pct": 0.45, "suburban_pct": 0.35, "lat_range": (39.70, 42.30), "lon_range": (-80.50, -74.70)},
+    "IL": {"zips": range(60001, 62999), "urban_pct": 0.50, "suburban_pct": 0.30, "lat_range": (37.00, 42.50), "lon_range": (-91.50, -87.50)},
 }
 
 def generate_sdoh():
@@ -703,6 +703,8 @@ def generate_sdoh():
                 "no_vehicle_pct": no_vehicle,
                 "composite_svi_score": composite,
                 "risk_tier": risk_tier,
+                "latitude": round(random.uniform(*config["lat_range"]), 4),
+                "longitude": round(random.uniform(*config["lon_range"]), 4),
             })
     return pd.DataFrame(sdoh_data)
 
@@ -744,6 +746,83 @@ print(f"  Generated {len(monitors_df)} monitor records")
 # CELL **{"language":"python"}**
 
 # ============================================================================
+# GENERATE HEDIS CARE GAP STATUS PER PATIENT
+# ============================================================================
+# Care gaps are the foundation for the RTI Care Gap Closure use case.
+# When a patient arrives (ADT event), we check their gap status in real-time.
+
+HEDIS_MEASURES = [
+    {"measure_id": "CDC", "measure_name": "Comprehensive Diabetes Care", "description": "HbA1c testing for diabetics", "target_icd": ["E11.9"], "frequency_months": 12, "age_min": 18, "age_max": 75},
+    {"measure_id": "COL", "measure_name": "Colorectal Cancer Screening", "description": "FIT or colonoscopy", "target_icd": [], "frequency_months": 12, "age_min": 45, "age_max": 75},
+    {"measure_id": "BCS", "measure_name": "Breast Cancer Screening", "description": "Mammography for women", "target_icd": [], "frequency_months": 24, "age_min": 50, "age_max": 74},
+    {"measure_id": "SPC", "measure_name": "Statin Therapy - Cholesterol", "description": "LDL-C test for statin users", "target_icd": ["E78.5", "I25.10"], "frequency_months": 12, "age_min": 21, "age_max": 75},
+    {"measure_id": "CBP", "measure_name": "Controlling Blood Pressure", "description": "BP control <140/90", "target_icd": ["I10"], "frequency_months": 12, "age_min": 18, "age_max": 85},
+    {"measure_id": "SPD", "measure_name": "Statin Use in Diabetes", "description": "Statin prescribed for diabetics 40-75", "target_icd": ["E11.9"], "frequency_months": 12, "age_min": 40, "age_max": 75},
+    {"measure_id": "OMW", "measure_name": "Osteoporosis Management in Women", "description": "BMD test or treatment after fracture", "target_icd": ["S72.001A"], "frequency_months": 6, "age_min": 67, "age_max": 85},
+    {"measure_id": "PPC", "measure_name": "Prenatal and Postpartum Care", "description": "Timely prenatal visits", "target_icd": [], "frequency_months": 12, "age_min": 15, "age_max": 44},
+]
+
+def generate_care_gaps(patients_df, diagnoses_df):
+    """Generate care gap status for eligible patients based on their conditions."""
+    care_gaps = []
+
+    # Build patient→diagnoses lookup
+    pt_dx = {}
+    for _, row in diagnoses_df.iterrows():
+        pid = row["patient_id"]
+        if pid not in pt_dx:
+            pt_dx[pid] = set()
+        pt_dx[pid].add(row["icd_code"])
+
+    for _, patient in patients_df.iterrows():
+        pid = patient["patient_id"]
+        dob = datetime.strptime(patient["date_of_birth"], "%Y-%m-%d")
+        age = (datetime.now() - dob).days // 365
+        gender = patient["gender"]
+        dx_set = pt_dx.get(pid, set())
+
+        for measure in HEDIS_MEASURES:
+            # Check age eligibility
+            if age < measure["age_min"] or age > measure["age_max"]:
+                continue
+
+            # Check gender-specific (BCS is female only)
+            if measure["measure_id"] == "BCS" and gender != "F":
+                continue
+
+            # Check condition-specific eligibility
+            if measure["target_icd"]:
+                if not dx_set.intersection(measure["target_icd"]):
+                    continue
+
+            # Simulate gap status: ~30% of eligible patients have open gaps
+            is_gap_open = random.random() < 0.30
+            last_service = None
+            if not is_gap_open:
+                months_ago = random.randint(1, measure["frequency_months"])
+                last_service = (datetime.now() - timedelta(days=months_ago * 30)).strftime("%Y-%m-%d")
+
+            care_gaps.append({
+                "patient_id": pid,
+                "measure_id": measure["measure_id"],
+                "measure_name": measure["measure_name"],
+                "is_gap_open": is_gap_open,
+                "last_service_date": last_service,
+                "due_date": (datetime.now() - timedelta(days=random.randint(-60, 180))).strftime("%Y-%m-%d") if is_gap_open else None,
+                "gap_days_overdue": random.randint(0, 365) if is_gap_open else 0,
+            })
+
+    return pd.DataFrame(care_gaps)
+
+print("Generating HEDIS care gap data...")
+care_gaps_df = generate_care_gaps(patients_df, diagnoses_df)
+print(f"  Generated {len(care_gaps_df)} care gap records")
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
 # WRITE CSV FILES TO ONELAKE (lh_bronze_raw/Files/)
 # ============================================================================
 # Use mssparkutils to write directly to the lakehouse Files area
@@ -777,6 +856,8 @@ write_csv_to_lakehouse(pd.DataFrame(FACILITIES), f"{FILES_BASE}/metadata/facilit
 write_csv_to_lakehouse(pd.DataFrame(MEDICATIONS), f"{FILES_BASE}/metadata/medications_ref.csv")
 write_csv_to_lakehouse(monitors_df, f"{FILES_BASE}/metadata/monitors.csv")
 write_csv_to_lakehouse(sdoh_df, f"{FILES_BASE}/metadata/sdoh_zipcode.csv")
+write_csv_to_lakehouse(pd.DataFrame(HEDIS_MEASURES), f"{FILES_BASE}/metadata/hedis_measures.csv")
+write_csv_to_lakehouse(care_gaps_df, f"{FILES_BASE}/care_gaps.csv")
 
 print("\n✅ All data generated and written to lh_bronze_raw/Files/")
 
@@ -803,5 +884,7 @@ print(f"  Facilities:     {len(FACILITIES):>10,}")
 print(f"  Medications:    {len(MEDICATIONS):>10,}")
 print(f"  Monitors:       {len(monitors_df):>10,}")
 print(f"  SDOH Zips:      {len(sdoh_df):>10,}")
+print(f"  HEDIS Measures: {len(HEDIS_MEASURES):>10,}")
+print(f"  Care Gaps:      {len(care_gaps_df):>10,}")
 print(f"  Date Range:     {DATA_START_DATE.strftime('%Y-%m-%d')} → {DATA_END_DATE.strftime('%Y-%m-%d')}")
 print("=" * 60)

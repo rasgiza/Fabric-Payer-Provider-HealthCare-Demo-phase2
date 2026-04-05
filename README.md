@@ -79,6 +79,7 @@ That's it. The launcher deploys everything automatically.
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent with healthcare knowledge |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **manual UI setup** (see guide below) |
+| **RTI (5 notebooks)** | Event Simulator, Eventhouse Setup, 3 Scoring | Real-Time Intelligence for fraud, care gaps, high-cost trajectory |
 
 ### Data Volumes (Default)
 
@@ -198,6 +199,83 @@ Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the
 
 ---
 
+## Real-Time Intelligence (RTI) — 3 Payer/Provider Use Cases
+
+When `DEPLOY_RTI=True`, the launcher deploys a full RTI stack: **Eventhouse + KQL Database + 3 scoring notebooks** that address high-value payer/provider pain points where batch analytics fall short.
+
+### Use Case 1: Claims Fraud Detection
+
+> **$68B lost to healthcare fraud annually** (NHCAA). Most SIU teams investigate claims weeks after submission — by then, the money is gone.
+
+**NB_RTI_Fraud_Detection** scores every claim in real-time using 4 rule-based signals:
+- **Velocity burst** — Provider submits many claims within a 1-hour window (30 pts max)
+- **Amount outlier** — Claim exceeds 3σ of provider's historical mean (25 pts max)
+- **Geographic anomaly** — Patient location far from provider facility (25 pts max)
+- **Upcoding** — Consistent use of highest E&M code 99215 (20 pts max)
+
+Risk tiers: **CRITICAL** (≥50) → **HIGH** (≥30) → **MEDIUM** (≥15) → **LOW**
+
+**Output:** `rti_fraud_scores` with lat/long for map visuals showing fraud hotspots.
+
+### Use Case 2: Care Gap Closure at Point of Care
+
+> **Payers spend $2-4 per member per month** on outreach for HEDIS gaps. The highest-value moment is when the patient is *already in front of a provider* — but the care team doesn't know about open gaps.
+
+**NB_RTI_Care_Gap_Alerts** fires when an ADT (Admit/Discharge/Transfer) event arrives:
+1. Joins the encounter with the patient's **8 HEDIS measures** (CDC, COL, BCS, SPC, CBP, SPD, OMW, PPC)
+2. Checks for open care gaps and ranks by priority (CRITICAL if diabetes/cancer gap >180 days)
+3. Generates **human-readable alerts** for the care team at the bedside
+
+**Output:** `rti_care_gap_alerts` with facility lat/long for map visuals showing which facilities have the most gap closure opportunities.
+
+### Use Case 3: High-Cost Member Trajectory
+
+> **5% of members drive 50% of total healthcare costs.** Early identification of members *trending toward* high-cost status enables care management intervention before catastrophic events.
+
+**NB_RTI_HighCost_Trajectory** computes rolling windows over claims and encounters:
+- **30-day and 90-day rolling spend** — flags members exceeding $15K/30d or $40K/90d
+- **ED superutilizer detection** — ≥3 emergency visits in 30 days
+- **Readmission tracking** — multiple admits within 30 days
+- **Cost trend** — ACCELERATING / RISING / STABLE / DECLINING
+
+Risk tiers: **CRITICAL** (high spend + frequent ED) → **HIGH** (high spend) → **MEDIUM** (ED/readmit/accelerating) → **LOW**
+
+**Output:** `rti_highcost_alerts` with lat/long for map visuals showing cost hotspots.
+
+### RTI Sample Questions — Data Agent
+
+| # | Question |
+|---|----------|
+| 31 | Which providers have the highest fraud scores? Show the top 10 with their fraud flags and total flagged claim amounts. |
+| 32 | How many claims are in each fraud risk tier (CRITICAL, HIGH, MEDIUM, LOW)? |
+| 33 | Which facilities have the most open care gap alerts? Show the breakdown by HEDIS measure. |
+| 34 | How many patients have CRITICAL care gap alerts? Which measures are most overdue? |
+| 35 | Which members are on an accelerating cost trajectory? Show their 30-day spend, ED visits, and readmission status. |
+| 36 | What is the total flagged claim amount for claims with geographic anomaly fraud patterns? |
+| 37 | Show me the overlap between high-cost members and those with open care gaps. |
+
+### RTI Data Tables
+
+| Table | Description | Rows (Default) |
+|-------|-------------|----------------|
+| `rti_claims_events` | Simulated claim submissions with fraud patterns | ~500 |
+| `rti_adt_events` | ADT events (admit/discharge/transfer) | ~250 |
+| `rti_rx_events` | Prescription fill events | ~166 |
+| `rti_fraud_scores` | Scored claims with risk tiers and fraud flags | ~500 |
+| `rti_care_gap_alerts` | Point-of-care gap closure alerts | varies |
+| `rti_highcost_alerts` | Members on escalating cost trajectory | varies |
+
+### Switching to Live Streaming
+
+By default, the RTI notebooks run in **batch mode** (single batch → Delta tables). To enable continuous streaming:
+
+1. Open **NB_RTI_Setup_Eventhouse** → it creates the Eventhouse + KQL DB + Eventstream
+2. In the Fabric portal, open the Eventstream → add a **Custom App** source → copy the connection string
+3. Open **NB_RTI_Event_Simulator** → set `MODE = "stream"` and paste the connection string
+4. Run — events will flow continuously every 5 seconds
+
+---
+
 ### Sample Questions — Azure AI Foundry Agent
 
 If you've set up the optional **Foundry Orchestrator Agent** (see [FOUNDRY_IQ_SETUP_GUIDE.md](https://github.com/kwamesefah_microsoft/Healthcare-Data-Analytics-Repo/blob/main/FabricDemoHLS/FOUNDRY_IQ_SETUP_GUIDE.md)), it combines the Data Agent's live numbers with 21 clinical knowledge documents and web search. It provides richer, cited responses with clinical context. Copy-paste these:
@@ -286,6 +364,7 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 | `GENERATE_DATA` | `True` | Generate fresh synthetic data |
 | `RUN_PIPELINE` | `True` | Run the full-load pipeline |
 | `UPLOAD_KNOWLEDGE_DOCS` | `True` | Upload knowledge docs for AI agent |
+| `DEPLOY_RTI` | `True` | Deploy Real-Time Intelligence (Eventhouse + scoring notebooks) |
 
 ## Prerequisites
 
@@ -313,6 +392,11 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 │   ├── 06b_Gold_Transform_Load_v2.Notebook/
 │   ├── NB_Generate_Sample_Data.Notebook/
 │   ├── NB_Generate_Incremental_Data.Notebook/
+│   ├── NB_RTI_Event_Simulator.Notebook/
+│   ├── NB_RTI_Setup_Eventhouse.Notebook/
+│   ├── NB_RTI_Fraud_Detection.Notebook/
+│   ├── NB_RTI_Care_Gap_Alerts.Notebook/
+│   ├── NB_RTI_HighCost_Trajectory.Notebook/
 │   ├── PL_Healthcare_Full_Load.DataPipeline/
 │   ├── PL_Healthcare_Master.DataPipeline/
 │   ├── HealthcareDemoHLS.SemanticModel/

@@ -1,0 +1,278 @@
+# Fabric notebook source
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# # RTI Use Case 1: Claims Fraud Detection
+# 
+# Real-time scoring of claims events to detect potential fraud patterns:
+# - **Velocity bursts** — Provider submits many claims in a short window
+# - **Geographic anomaly** — Patient location far from provider facility
+# - **Amount outliers** — Claim amount exceeds 3σ of provider's historical mean
+# - **Upcoding** — Consistent use of highest E&M codes
+# - **Diagnosis pattern** — Unusual diagnosis combinations for specialty
+# 
+# **Input:** `rti_claims_events` (Delta) or `claims_events` (KQL)
+# **Output:** `rti_fraud_scores` (Delta) + `fraud_scores` (KQL)
+# 
+# **Default lakehouse:** `lh_gold_curated`
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# NB_RTI_Fraud_Detection
+# ============================================================================
+# Scores claims events for fraud risk using rule-based + statistical methods.
+# Reads from rti_claims_events (Delta), enriches with provider history,
+# writes scored results to rti_fraud_scores.
+#
+# Default lakehouse: lh_gold_curated
+# ============================================================================
+
+print("NB_RTI_Fraud_Detection: Starting...")
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+from pyspark.sql.types import DoubleType, StringType, ArrayType
+import math
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ---------- Load events and reference data ----------
+print("Loading claims events and reference data...")
+
+df_claims = spark.table("rti_claims_events")
+df_providers = spark.sql("""
+    SELECT provider_id, provider_name, specialty, facility_id
+    FROM dim_provider WHERE is_current = true
+""")
+df_facilities = spark.sql("SELECT facility_id, latitude as fac_lat, longitude as fac_lon FROM dim_facility")
+
+# Historical claim stats for baseline comparison
+df_historical = spark.sql("""
+    SELECT provider_id,
+           AVG(billed_amount) as hist_avg_amount,
+           STDDEV(billed_amount) as hist_std_amount,
+           COUNT(*) as hist_claim_count
+    FROM fact_claim
+    GROUP BY provider_id
+""")
+
+print(f"  Claims events: {df_claims.count()}")
+print(f"  Providers: {df_providers.count()}")
+print(f"  Historical baselines: {df_historical.count()}")
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Fraud Scoring Rules
+# ============================================================================
+
+# Enrich claims with provider and facility data
+df_enriched = (
+    df_claims
+    .join(df_providers, "provider_id", "left")
+    .join(df_facilities, "facility_id", "left")
+    .join(df_historical, "provider_id", "left")
+)
+
+# ---------- Rule 1: Velocity Burst ----------
+# Count claims per provider within 1-hour windows
+window_velocity = Window.partitionBy("provider_id").orderBy("event_timestamp").rangeBetween(-3600, 0)
+
+df_scored = df_enriched.withColumn(
+    "claims_in_window",
+    F.count("claim_id").over(
+        Window.partitionBy("provider_id")
+        .orderBy(F.col("event_timestamp").cast("long"))
+        .rangeBetween(-3600, 0)
+    )
+)
+
+# Velocity score: 0 if ≤5 claims/hr, scales up to 30 points
+df_scored = df_scored.withColumn(
+    "velocity_score",
+    F.when(F.col("claims_in_window") > 5,
+           F.least(F.lit(30), (F.col("claims_in_window") - 5) * 6))
+    .otherwise(0)
+)
+
+# ---------- Rule 2: Amount Outlier ----------
+# Z-score of claim amount vs provider's historical mean
+df_scored = df_scored.withColumn(
+    "amount_zscore",
+    F.when(
+        (F.col("hist_std_amount").isNotNull()) & (F.col("hist_std_amount") > 0),
+        (F.col("claim_amount") - F.col("hist_avg_amount")) / F.col("hist_std_amount")
+    ).otherwise(0)
+)
+
+# Amount score: 0 if z ≤ 2, up to 25 points
+df_scored = df_scored.withColumn(
+    "amount_score",
+    F.when(F.col("amount_zscore") > 2,
+           F.least(F.lit(25), (F.col("amount_zscore") - 2) * 10))
+    .otherwise(0)
+)
+
+# ---------- Rule 3: Geographic Anomaly ----------
+# Haversine approximation between claim lat/lon and facility lat/lon
+df_scored = df_scored.withColumn(
+    "geo_distance_deg",
+    F.sqrt(
+        F.pow(F.col("latitude") - F.col("fac_lat"), 2) +
+        F.pow(F.col("longitude") - F.col("fac_lon"), 2)
+    )
+)
+
+# Geo score: 0 if <1 degree (~69 miles), up to 25 points
+df_scored = df_scored.withColumn(
+    "geo_score",
+    F.when(F.col("geo_distance_deg") > 1,
+           F.least(F.lit(25), F.col("geo_distance_deg") * 5))
+    .otherwise(0)
+)
+
+# ---------- Rule 4: Upcoding ----------
+# Flag if procedure_code is always highest E&M (99215)
+df_scored = df_scored.withColumn(
+    "upcoding_score",
+    F.when(F.col("procedure_code") == "99215", F.lit(20)).otherwise(0)
+)
+
+print("Scoring rules applied.")
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Composite Score and Risk Tiers
+# ============================================================================
+
+df_scored = df_scored.withColumn(
+    "fraud_score",
+    F.round(
+        F.col("velocity_score") + F.col("amount_score") +
+        F.col("geo_score") + F.col("upcoding_score"),
+        2
+    )
+)
+
+# Assemble fraud flags
+df_scored = df_scored.withColumn(
+    "fraud_flags",
+    F.concat_ws("|",
+        F.when(F.col("velocity_score") > 0, F.lit("velocity_burst")),
+        F.when(F.col("amount_score") > 0, F.lit("amount_outlier")),
+        F.when(F.col("geo_score") > 0, F.lit("geo_anomaly")),
+        F.when(F.col("upcoding_score") > 0, F.lit("upcoding")),
+    )
+)
+
+# Risk tiers
+df_scored = df_scored.withColumn(
+    "risk_tier",
+    F.when(F.col("fraud_score") >= 50, "CRITICAL")
+    .when(F.col("fraud_score") >= 30, "HIGH")
+    .when(F.col("fraud_score") >= 15, "MEDIUM")
+    .otherwise("LOW")
+)
+
+# Select final output columns
+df_output = df_scored.select(
+    F.expr("uuid()").alias("score_id"),
+    F.current_timestamp().alias("score_timestamp"),
+    "claim_id",
+    "patient_id",
+    "provider_id",
+    "facility_id",
+    "claim_amount",
+    "diagnosis_code",
+    "procedure_code",
+    "claim_type",
+    "fraud_score",
+    "fraud_flags",
+    "risk_tier",
+    "velocity_score",
+    "amount_score",
+    "geo_score",
+    "upcoding_score",
+    "claims_in_window",
+    "amount_zscore",
+    "geo_distance_deg",
+    "latitude",
+    "longitude",
+)
+
+# Write to Delta
+df_output.write.format("delta").mode("overwrite").saveAsTable("rti_fraud_scores")
+
+print(f"Fraud scores written: {df_output.count()} claims scored")
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Summary Statistics
+# ============================================================================
+
+df_summary = spark.sql("""
+    SELECT
+        risk_tier,
+        COUNT(*) as claim_count,
+        ROUND(AVG(fraud_score), 1) as avg_score,
+        ROUND(MAX(fraud_score), 1) as max_score,
+        ROUND(SUM(claim_amount), 2) as total_amount
+    FROM rti_fraud_scores
+    GROUP BY risk_tier
+    ORDER BY
+        CASE risk_tier
+            WHEN 'CRITICAL' THEN 1
+            WHEN 'HIGH' THEN 2
+            WHEN 'MEDIUM' THEN 3
+            ELSE 4
+        END
+""")
+
+print("\n" + "=" * 60)
+print("FRAUD DETECTION RESULTS")
+print("=" * 60)
+df_summary.show(truncate=False)
+
+# Top flagged providers
+df_top_providers = spark.sql("""
+    SELECT
+        f.provider_id,
+        p.provider_name,
+        p.specialty,
+        COUNT(*) as flagged_claims,
+        ROUND(AVG(f.fraud_score), 1) as avg_fraud_score,
+        ROUND(SUM(f.claim_amount), 2) as total_flagged_amount
+    FROM rti_fraud_scores f
+    LEFT JOIN dim_provider p ON f.provider_id = p.provider_id AND p.is_current = true
+    WHERE f.risk_tier IN ('CRITICAL', 'HIGH')
+    GROUP BY f.provider_id, p.provider_name, p.specialty
+    ORDER BY avg_fraud_score DESC
+    LIMIT 10
+""")
+
+print("Top 10 Flagged Providers:")
+df_top_providers.show(truncate=False)
+
+print("NB_RTI_Fraud_Detection: COMPLETE")
+print("=" * 60)
+
+# METADATA **{"language":"python"}**

@@ -103,57 +103,90 @@ That's it. The launcher creates a deploy lakehouse, downloads the repo, deploys 
 Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intelligence** (operational, sub-minute). Batch feeds streaming — Gold dimension tables are the enrichment layer for real-time scoring.
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│  Healthcare_Launcher.ipynb                                          │
-│  (downloads repo → deploys artifacts → generates data → runs ETL    │
-│   → sets up RTI → deploys scoring)                                  │
-└───────────────────────────┬──────────────────────────────────────────┘
-                            │
-    ┌───────────────────────┼────────────────────────┐
-    ▼                       ▼                        ▼
-┌──────────┐        ┌──────────────┐         ┌──────────────┐
-│ Lakehouse│        │  Notebooks   │         │  Pipelines   │
-│  Bronze  │───────▶│ 01_Bronze    │◀────────│ PL_Master    │
-│  Silver  │        │ 02_Silver    │         │ PL_Full_Load │
-│  Gold    │        │ 03_Gold      │         └──────────────┘
-└──────────┘        └──────┬───────┘
-      │                    │
-      │         ┌──────────┼──────────────────┐
-      │         ▼          ▼                  ▼
-      │  ┌──────────┐  ┌──────────┐   ┌──────────────┐
-      │  │ Semantic  │  │  Data    │   │  Ontology +  │
-      │  │ Model     │  │  Agent   │   │  Graph Model │
-      │  └──────────┘  └──────────┘   └──────────────┘
-      │
-      │  ── BATCH PATH (above) ──  │  ── STREAMING PATH (below) ──
-      │
-      ▼  Gold dims enrich streaming
-┌──────────────────────────────────────────────────────────────────────┐
-│  Real-Time Intelligence (RTI)                                       │
-│                                                                      │
-│  ┌──────────────┐    ┌──────────────┐    ┌────────────────────────┐ │
-│  │  Eventstream  │───▶│  Eventhouse  │    │  RTI Scoring Notebooks │ │
-│  │  (Custom      │    │  (KQL DB +   │───▶│  Fraud Detection       │ │
-│  │   Endpoint)   │    │   6 tables)  │    │  Care Gap Alerts       │ │
-│  └───────┬───────┘    └──────┬───────┘    │  HighCost Trajectory   │ │
-│          │                   │            └────────────────────────┘ │
-│    ┌─────┴─────┐             │                       │              │
-│    │  Event    │             │                       ▼              │
-│    │  Simulator│             │     ┌─────────────────────────────┐  │
-│    └───────────┘             │     │  Operations Agent (Future)  │  │
-│                              │     │  ┌─────────┐ ┌───────────┐ │  │
-│                              └────▶│  │ Triage  │ │ SLA       │ │  │
-│                                    │  │ Worklist│ │ Monitor   │ │  │
-│                                    │  └────┬────┘ └─────┬─────┘ │  │
-│                                    │       └──────┬─────┘       │  │
-│                                    │              ▼             │  │
-│                                    │  ┌───────────────────────┐ │  │
-│                                    │  │ Action Router         │ │  │
-│                                    │  │ SIU │ EHR │ CM │Teams │ │  │
-│                                    │  └───────────────────────┘ │  │
-│                                    │  + Foundry Agent (NL Ops)  │  │
-│                                    └─────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                     HEALTHCARE ANALYTICS ARCHITECTURE                        │
+│                     Batch ETL + Real-Time Intelligence                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+    BATCH PATH (existing)                    STREAMING PATH (new)
+    Historical, authoritative,               Operational, sub-minute,
+    runs daily / on-demand                   runs continuously
+    ─────────────────────────                ────────────────────────
+
+    Source Systems / CSV Gen                 Live Events
+    NB_Generate_Sample_Data                  ADT feeds, claims clearinghouse,
+    NB_Generate_Incremental_Data             pharmacy PBM, EHR HL7
+           │                                          │
+           ▼                                          ▼
+    ┌──────────────┐                         ┌─────────────────────┐
+    │ lh_bronze_raw│                         │ Eventstream         │
+    │ (CSV files)  │                         │ (Custom Endpoint)   │
+    └──────┬───────┘                         └─────────┬───────────┘
+           │                                           │
+    01_Bronze_Ingest                              streaming ingestion
+           │                                           │
+           ▼                                           ▼
+    ┌──────────────┐                         ┌─────────────────────┐
+    │ lh_silver    │                         │ Healthcare_RTI_DB   │
+    │ stage → ODS  │                         │ (KQL Database)      │
+    │ (cleansed,   │                         │                     │
+    │  enriched)   │                         │ claims_events       │
+    └──────┬───────┘                         │ adt_events          │
+           │                                 │ rx_events           │
+    03_Gold_Star_Schema                      └─────────┬───────────┘
+           │                                           │
+           ▼                                           │
+    ┌──────────────────────┐          reads dims        │
+    │   lh_gold_curated    │◄──────────────────────────┤
+    │                      │   to enrich events         │
+    │ DIMENSIONS (SCD2):   │                            │
+    │  dim_patient         │──────────────┐             │
+    │  dim_provider        │              │             │
+    │  dim_facility        │   reference  │     scoring │
+    │  dim_payer           │     data     │             │
+    │  dim_diagnosis       │              ▼             ▼
+    │  dim_medication      │    ┌──────────────────────────────┐
+    │  dim_sdoh            │    │     SCORING NOTEBOOKS         │
+    │  care_gaps           │    │                              │
+    │  hedis_measures      │    │  NB_RTI_Fraud_Detection      │
+    │                      │    │    reads: claims_events      │
+    │ FACTS:               │    │    joins: dim_provider,      │
+    │  fact_encounter      │    │           fact_claim (hist)  │
+    │  fact_claim          │    │    writes: fraud_scores      │
+    │  fact_prescription   │    │                              │
+    │  fact_diagnosis      │    │  NB_RTI_Care_Gap_Alerts      │
+    │                      │    │    reads: adt_events         │
+    │ AGGREGATES:          │    │    joins: care_gaps,         │
+    │  agg_readmission     │    │           hedis_measures,    │
+    │  agg_med_adherence   │    │           dim_patient        │
+    │                      │    │    writes: care_gap_alerts   │
+    └──────────┬───────────┘    │                              │
+               │                │  NB_RTI_HighCost_Trajectory  │
+               │                │    reads: claims + adt events│
+               │                │    joins: dim_patient         │
+               │                │    writes: highcost_alerts   │
+               │                └──────────────┬───────────────┘
+               │                               │
+               ▼                               ▼
+    ┌────────────────────┐      ┌──────────────────────────────┐
+    │ BATCH CONSUMPTION  │      │ REAL-TIME CONSUMPTION        │
+    │                    │      │                              │
+    │ Semantic Model     │      │ KQL Dashboard                │
+    │ (Direct Lake)      │      │  • Fraud risk heatmap        │
+    │                    │      │  • Care gap closure live      │
+    │ Data Agent         │      │  • High-cost trend ticker    │
+    │ (Copilot AI)       │      │                              │
+    │                    │      │ Data Agent                   │
+    │ Ontology + Graph   │      │  (queries RTI tables too)    │
+    │ (Knowledge Graph)  │      │                              │
+    │                    │      │ Operations Agent (future)    │
+    │ Power BI Reports   │      │  • Unified triage worklist   │
+    └────────────────────┘      │  • SLA & freshness monitor   │
+                                │  • Action routing (SIU/EHR)  │
+                                │                              │
+                                │ Activator (future)           │
+                                │  • Teams/Email alerts        │
+                                └──────────────────────────────┘
 ```
 
 ## Deployment Flow

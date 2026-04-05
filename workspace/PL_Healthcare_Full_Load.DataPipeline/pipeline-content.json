@@ -16,6 +16,7 @@
                 },
                 "typeProperties": {
                     "notebookId": "b2000002-0002-0002-0002-000000000001",
+                    "workspaceId": "__WORKSPACE_ID__",
                     "parameters": {
                         "load_mode": {
                             "value": {
@@ -47,7 +48,8 @@
                     "secureInput": false
                 },
                 "typeProperties": {
-                    "notebookId": "b2000002-0002-0002-0002-000000000002"
+                    "notebookId": "b2000002-0002-0002-0002-000000000002",
+                    "workspaceId": "__WORKSPACE_ID__"
                 }
             },
             {
@@ -70,7 +72,8 @@
                     "secureInput": false
                 },
                 "typeProperties": {
-                    "notebookId": "b2000002-0002-0002-0002-000000000003"
+                    "notebookId": "b2000002-0002-0002-0002-000000000003",
+                    "workspaceId": "__WORKSPACE_ID__"
                 }
             },
             {
@@ -94,6 +97,7 @@
                 },
                 "typeProperties": {
                     "notebookId": "b2000002-0002-0002-0002-000000000005",
+                    "workspaceId": "__WORKSPACE_ID__",
                     "parameters": {
                         "load_mode": {
                             "value": {

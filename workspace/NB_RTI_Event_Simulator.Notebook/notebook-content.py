@@ -337,8 +337,17 @@ if MODE == "batch":
 # Stream Mode — Continuously push events to Eventstream Custom App
 # ============================================================================
 if MODE == "stream":
-    if not EVENTSTREAM_CONN_STR:
-        raise ValueError("EVENTSTREAM_CONN_STR must be set for stream mode")
+    if not EVENTSTREAM_CONN_STR or not EVENTHUB_NAME:
+        raise ValueError(
+            "EVENTSTREAM_CONN_STR and EVENTHUB_NAME must be set for stream mode.\n\n"
+            "To get these values:\n"
+            "  1. Run NB_RTI_Setup_Eventhouse first — it creates the Eventstream\n"
+            "  2. If the connection string was printed, copy it above\n"
+            "  3. Otherwise, open the Eventstream in the Fabric portal:\n"
+            "     - Click the Custom Endpoint source node\n"
+            "     - Copy 'Connection string' → set EVENTSTREAM_CONN_STR\n"
+            "     - Copy 'Event hub name'    → set EVENTHUB_NAME\n"
+        )
 
     from azure.eventhub import EventHubProducerClient, EventData
     import time

@@ -79,7 +79,10 @@ That's it. The launcher deploys everything automatically.
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent with healthcare knowledge |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **manual UI setup** (see guide below) |
-| **RTI (5 notebooks)** | Event Simulator, Eventhouse Setup, 3 Scoring | Real-Time Intelligence for fraud, care gaps, high-cost trajectory |
+| **Eventhouse** | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine |
+| **KQL Database** | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) |
+| **Eventstream** | `Healthcare_RTI_Eventstream` | API-created at deploy-time (Custom Endpoint source) |
+| **RTI Notebooks (5)** | Event Simulator, Post-Deploy Setup, 3 Scoring | Real-Time Intelligence for fraud, care gaps, high-cost trajectory |
 
 ### Data Volumes (Default)
 
@@ -95,27 +98,48 @@ That's it. The launcher deploys everything automatically.
 
 ## Architecture
 
+Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intelligence** (operational, sub-minute). Batch feeds streaming — Gold dimension tables are the enrichment layer for real-time scoring.
+
 ```
-┌─────────────────────────────────────────────────────────┐
-│  Healthcare_Launcher.ipynb                              │
-│  (downloads repo → deploys artifacts → generates data   │
-│   → runs pipeline → deploys ontology)                   │
-└────────────────────────┬────────────────────────────────┘
-                         │
-    ┌────────────────────┼──────────────────────┐
-    ▼                    ▼                      ▼
-┌──────────┐     ┌──────────────┐      ┌──────────────┐
-│ Lakehouse│     │  Notebooks   │      │  Pipelines   │
-│  Bronze  │────▶│ 01_Bronze    │◀─────│ PL_Master    │
-│  Silver  │     │ 02_Silver    │      │ PL_Full_Load │
-│  Gold    │     │ 03_Gold      │      └──────────────┘
-└──────────┘     └──────────────┘             │
-                         │                     │
-                         ▼                     ▼
-                 ┌──────────────┐      ┌──────────────┐
-                 │ Semantic     │      │ Data Agent   │
-                 │ Model (TMDL) │◀─────│ (Copilot AI) │
-                 └──────────────┘      └──────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  Healthcare_Launcher.ipynb                                          │
+│  (downloads repo → deploys artifacts → generates data → runs ETL    │
+│   → sets up RTI → deploys scoring)                                  │
+└───────────────────────────┬──────────────────────────────────────────┘
+                            │
+    ┌───────────────────────┼────────────────────────┐
+    ▼                       ▼                        ▼
+┌──────────┐        ┌──────────────┐         ┌──────────────┐
+│ Lakehouse│        │  Notebooks   │         │  Pipelines   │
+│  Bronze  │───────▶│ 01_Bronze    │◀────────│ PL_Master    │
+│  Silver  │        │ 02_Silver    │         │ PL_Full_Load │
+│  Gold    │        │ 03_Gold      │         └──────────────┘
+└──────────┘        └──────┬───────┘
+      │                    │
+      │         ┌──────────┼──────────────────┐
+      │         ▼          ▼                  ▼
+      │  ┌──────────┐  ┌──────────┐   ┌──────────────┐
+      │  │ Semantic  │  │  Data    │   │  Ontology +  │
+      │  │ Model     │  │  Agent   │   │  Graph Model │
+      │  └──────────┘  └──────────┘   └──────────────┘
+      │
+      │  ── BATCH PATH (above) ──  │  ── STREAMING PATH (below) ──
+      │
+      ▼  Gold dims enrich streaming
+┌──────────────────────────────────────────────────────────────────┐
+│  Real-Time Intelligence (RTI)                                    │
+│                                                                  │
+│  ┌──────────────┐    ┌──────────────┐    ┌───────────────────┐  │
+│  │  Eventstream  │───▶│  Eventhouse  │    │  RTI Notebooks    │  │
+│  │  (Custom      │    │  (KQL DB +   │───▶│  Fraud Detection  │  │
+│  │   Endpoint)   │    │   6 tables)  │    │  Care Gap Alerts  │  │
+│  └───────┬───────┘    └──────────────┘    │  HighCost Traj.   │  │
+│          │                                └───────────────────┘  │
+│    ┌─────┴─────┐                                                 │
+│    │  Event    │  Claims, ADT, Rx events                         │
+│    │  Simulator│  (batch seed + live stream)                     │
+│    └───────────┘                                                 │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Deployment Flow
@@ -125,13 +149,16 @@ The launcher executes these stages in order:
 1. **Install** `fabric-launcher` library
 2. **Download** this GitHub repo as ZIP
 3. **Deploy Stage 1** — Lakehouses (must exist before notebooks reference them)
-4. **Deploy Stage 2** — Notebooks (must exist before pipelines reference them)
-5. **Deploy Stage 3** — Data Pipelines
-6. **Deploy Stage 4** — Semantic Model + Data Agent
-7. **Upload** healthcare knowledge docs to `lh_gold_curated`
-8. **Run** `NB_Generate_Sample_Data` — generates fresh synthetic data with today's dates
-9. **Trigger** `PL_Healthcare_Master` with `load_mode=full` — runs Bronze → Silver → Gold ETL
-10. **Print** ontology setup instructions — user follows the guide manually (~10 min)
+4. **Deploy Stage 2** — Eventhouse + KQL Database (Git-tracked RTI infrastructure)
+5. **Deploy Stage 3** — Notebooks (must exist before pipelines reference them)
+6. **Deploy Stage 4** — Data Pipelines
+7. **Deploy Stage 5** — Semantic Model + Data Agent
+8. **Upload** healthcare knowledge docs to `lh_gold_curated`
+9. **Run** `NB_Generate_Sample_Data` — generates fresh synthetic data with today's dates
+10. **Trigger** `PL_Healthcare_Master` with `load_mode=full` — runs Bronze → Silver → Gold ETL
+11. **Run** `NB_RTI_Setup_Eventhouse` — discovers deployed Eventhouse, creates tables, wires Eventstream
+12. **Run** RTI scoring notebooks — Fraud Detection, Care Gap Alerts, High-Cost Trajectory
+13. **Print** ontology setup instructions — user follows the guide manually (~10 min)
 
 ## After Deployment
 
@@ -269,10 +296,13 @@ Risk tiers: **CRITICAL** (high spend + frequent ED) → **HIGH** (high spend) �
 
 By default, the RTI notebooks run in **batch mode** (single batch → Delta tables). To enable continuous streaming:
 
-1. Open **NB_RTI_Setup_Eventhouse** → it creates the Eventhouse + KQL DB + Eventstream
-2. In the Fabric portal, open the Eventstream → add a **Custom App** source → copy the connection string
-3. Open **NB_RTI_Event_Simulator** → set `MODE = "stream"` and paste the connection string
-4. Run — events will flow continuously every 5 seconds
+1. The launcher already deployed the **Eventhouse** and **KQL Database** as Git artifacts
+2. **NB_RTI_Setup_Eventhouse** discovers them, creates 6 KQL tables with streaming ingestion policies, and creates the **Eventstream** with a **Custom Endpoint** source
+3. The notebook prints the Custom Endpoint **connection string** and **event hub name**
+4. Open **NB_RTI_Event_Simulator** → set `MODE = "stream"`, paste `EVENTSTREAM_CONN_STR` and `EVENTHUB_NAME`
+5. Run — events flow continuously every 5 seconds through Eventstream → KQL DB
+
+> **Note:** If the connection string wasn't printed by the setup notebook, open the Eventstream in the Fabric portal, click the Custom Endpoint source node, and copy the values from the details panel.
 
 ---
 

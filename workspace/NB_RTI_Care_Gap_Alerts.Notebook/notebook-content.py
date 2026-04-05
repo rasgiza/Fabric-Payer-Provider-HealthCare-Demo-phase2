@@ -66,7 +66,18 @@ except Exception:
         df_care_gaps = spark.read.option("header", True).csv("Files/care_gaps.csv")
         print(f"  Care gaps from CSV: {df_care_gaps.count()} rows")
     except Exception:
-        raise RuntimeError("No care_gaps table or CSV found. Run NB_Generate_Sample_Data first.")
+        # Graceful degradation — create empty DataFrame so notebook completes
+        from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+        schema = StructType([
+            StructField("patient_id", StringType(), True),
+            StructField("measure_id", StringType(), True),
+            StructField("measure_name", StringType(), True),
+            StructField("is_gap_open", StringType(), True),
+            StructField("gap_days_overdue", IntegerType(), True),
+        ])
+        df_care_gaps = spark.createDataFrame([], schema)
+        print("  WARNING: No care_gaps table or CSV found. Using empty DataFrame.")
+        print("  Run NB_Generate_Sample_Data to populate care gaps for full alert generation.")
 
 # Load HEDIS measure definitions
 try:

@@ -82,7 +82,7 @@ That's it. The launcher deploys everything automatically.
 | **Eventhouse** | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine |
 | **KQL Database** | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) |
 | **Eventstream** | `Healthcare_RTI_Eventstream` | API-created at deploy-time (Custom Endpoint source) |
-| **RTI Notebooks (5)** | Event Simulator, Post-Deploy Setup, 3 Scoring | Real-Time Intelligence for fraud, care gaps, high-cost trajectory |
+| **RTI Notebooks (6)** | Event Simulator, Post-Deploy Setup, 3 Scoring, Ops Agent (stub) | Real-Time Intelligence for fraud, care gaps, high-cost trajectory + ops agent |
 
 ### Data Volumes (Default)
 
@@ -303,6 +303,30 @@ By default, the RTI notebooks run in **batch mode** (single batch → Delta tabl
 5. Run — events flow continuously every 5 seconds through Eventstream → KQL DB
 
 > **Note:** If the connection string wasn't printed by the setup notebook, open the Eventstream in the Fabric portal, click the Custom Endpoint source node, and copy the values from the details panel.
+
+### Future: Use Case 4 — Operations Agent
+
+> **Status: Architecture stub** (`NB_RTI_Operations_Agent`) — planned for next phase.
+
+The Operations Agent is an AI-powered operational intelligence layer that sits on top of the three RTI scoring outputs and unifies monitoring, triage, and action into a single interface.
+
+| Module | Capability | Integration |
+|--------|------------|-------------|
+| **Unified Alert Triage** | Merges fraud + care gap + high-cost alerts into a single priority-ranked worklist, deduplicates by patient across alert types | KQL queries against Eventhouse |
+| **SLA & Throughput Monitoring** | Tracks data freshness per input table, pipeline completion SLA, alert-to-action latency | Fabric REST API + KQL |
+| **Automated Action Routing** | CRITICAL fraud → SIU queue, CRITICAL care gaps → provider EHR/fax, CRITICAL high-cost → care management referral | Fabric Data Activator (Reflex) |
+| **Natural Language Ops** | Ops teams query alerts conversationally: "What are today's top 10 priorities?" | Azure AI Foundry Agent with KQL tools |
+
+**Sample Operations Agent questions (planned):**
+
+| # | Question |
+|---|----------|
+| 38 | What are today's top 10 priorities across all alert types? |
+| 39 | Which facilities have the most CRITICAL alerts right now? |
+| 40 | Is the claims pipeline running on time? When was the last event ingested? |
+| 41 | Show me patients who triggered both fraud and high-cost alerts simultaneously. |
+| 42 | How many CRITICAL alerts are unresolved from the last 24 hours? |
+| 43 | What is the average time between event ingestion and alert generation? |
 
 ---
 

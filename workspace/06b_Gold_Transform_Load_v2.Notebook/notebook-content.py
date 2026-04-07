@@ -654,17 +654,34 @@ except Exception:
         df_monitor_src = spark.createDataFrame(monitor_data, monitor_schema)
 
 # Standardize columns and types (Ontology compatible: INT not BOOLEAN)
-df_monitor = df_monitor_src.select(
-    col("device_id").cast("string"),
-    col("device_type").cast("string"),
-    col("device_model").cast("string"),
-    col("location_id").cast("string"),
-    col("unit_name").cast("string"),
-    col("floor_number").cast("int"),
-    col("building").cast("string"),
-    col("facility_id").cast("string"),
-    col("is_active").cast("int"),
-)
+# Source ref_monitors uses monitor_id/monitor_type/model; alias to dim_monitor schema
+src_cols = [c.lower() for c in df_monitor_src.columns]
+if "device_id" in src_cols:
+    # Inline fallback or future CSV with device_* columns
+    df_monitor = df_monitor_src.select(
+        col("device_id").cast("string"),
+        col("device_type").cast("string"),
+        col("device_model").cast("string"),
+        col("location_id").cast("string"),
+        col("unit_name").cast("string"),
+        col("floor_number").cast("int"),
+        col("building").cast("string"),
+        col("facility_id").cast("string"),
+        col("is_active").cast("int"),
+    )
+else:
+    # Generated CSV: monitor_id, monitor_type, manufacturer, model, ...
+    df_monitor = df_monitor_src.select(
+        col("monitor_id").alias("device_id").cast("string"),
+        col("monitor_type").alias("device_type").cast("string"),
+        col("model").alias("device_model").cast("string"),
+        lit(None).cast("string").alias("location_id"),
+        lit(None).cast("string").alias("unit_name"),
+        lit(None).cast("int").alias("floor_number"),
+        lit(None).cast("string").alias("building"),
+        lit(None).cast("string").alias("facility_id"),
+        lit(1).cast("int").alias("is_active"),
+    )
 
 # Assign surrogate key
 w_mon = Window.orderBy("device_id")

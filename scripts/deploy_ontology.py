@@ -34,6 +34,8 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from fabric_auth import get_fabric_token, get_auth_headers
 from clients.ontology_client import OntologyClient
+from clients.graph_client import GraphModelClient
+from clients.graph_definition_builder import GraphDefinitionBuilder
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -42,6 +44,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 # ============================================================
 FABRIC_API_BASE = "https://api.fabric.microsoft.com/v1"
 ONTOLOGY_NAME = "Healthcare_Demo_Ontology_HLS"
+GRAPH_MODEL_NAME = "Healthcare_Demo_Graph"
 LAKEHOUSE_NAME = "lh_gold_curated"
 FOLDER_NAME = "Ontologies"
 ONTOLOGY_DIR = SCRIPT_DIR.parent / "ontology" / ONTOLOGY_NAME
@@ -219,6 +222,10 @@ def main():
                         help=f"Ontology name (default: {ONTOLOGY_NAME})")
     parser.add_argument("--update", action="store_true",
                         help="Update existing ontology definition")
+    parser.add_argument("--skip-graph", action="store_true",
+                        help="Skip automatic graph model deployment")
+    parser.add_argument("--graph-model", default=GRAPH_MODEL_NAME,
+                        help=f"Graph model name (default: {GRAPH_MODEL_NAME})")
     args = parser.parse_args()
 
     ontology_dir = SCRIPT_DIR.parent / "ontology" / args.ontology
@@ -309,14 +316,103 @@ def main():
 
     print()
     print("=" * 70)
-    print(f"  {args.ontology:<50} {result}")
+    print(f"  ONTOLOGY: {args.ontology:<42} {result}")
     print("=" * 70)
-    print()
-    print("  Next: Deploy the graph model:")
-    print(f"    python scripts/deploy_graph_model.py --workspace \"{args.workspace}\" --tenant-id \"{args.tenant_id}\"")
-    print()
 
     if "FAIL" in result:
+        sys.exit(1)
+
+    # ── Step 9: Auto-deploy Graph Model ───────────────────────
+    # The Fabric API does NOT auto-provision a graph model when you
+    # create an ontology programmatically (unlike the Fabric UI).
+    # So we chain the graph model deployment here automatically.
+    if args.skip_graph:
+        print()
+        print("  --skip-graph: Skipping graph model deployment.")
+        print(f"  To deploy later: python scripts/deploy_graph_model.py "
+              f"--workspace \"{args.workspace}\" --tenant-id \"{args.tenant_id}\"")
+        print()
+        return
+
+    print()
+    print("=" * 70)
+    print("  DEPLOYING GRAPH MODEL (auto-provisioned for ontology)")
+    print("=" * 70)
+    print()
+    print("  NOTE: The Fabric REST API does not auto-provision a graph model")
+    print("  underneath the ontology (unlike the Fabric UI). Deploying now...")
+    print()
+
+    graph_client = GraphModelClient(token)
+    builder = GraphDefinitionBuilder(ontology_dir, workspace_id, lakehouse_id)
+
+    print("  Step 9a: Parsing ontology metadata for graph definition...")
+    builder.load_ontology()
+
+    entities = builder.entities
+    relationships = builder.relationships
+
+    print("\n  Step 9b: Generating graph model definition parts...")
+    graph_description = (
+        f"Graph model for {args.ontology}. "
+        f"{len(entities)} node types, {len(relationships)} edge types, "
+        f"bound to {LAKEHOUSE_NAME} delta tables."
+    )
+    graph_parts = builder.build_all_parts(
+        display_name=args.graph_model,
+        description=graph_description,
+    )
+
+    print(f"\n  Step 9c: Deploying graph model '{args.graph_model}'...")
+    existing_graph = graph_client.find_by_name(workspace_id, args.graph_model)
+    graph_result = ""
+    gm_id = None
+
+    if existing_graph and args.update:
+        gm_id = existing_graph["id"]
+        ok = graph_client.update_definition(workspace_id, gm_id, graph_parts)
+        graph_result = "[OK] Updated" if ok else "[FAIL] Update failed"
+    elif existing_graph and not args.update:
+        gm_id = existing_graph["id"]
+        print(f"    Already exists: {args.graph_model} (use --update to overwrite)")
+        graph_result = "[SKIP] Already exists"
+    else:
+        folder_id_for_graph = get_or_create_folder(token, workspace_id, FOLDER_NAME)
+        gm_id = graph_client.create(
+            workspace_id, args.graph_model, graph_description,
+            definition_parts=graph_parts, folder_id=folder_id_for_graph,
+        )
+        if gm_id:
+            graph_result = f"[OK] Created ({gm_id})"
+        else:
+            graph_result = "[FAIL] Create failed"
+            gm_id = None
+
+    # Wait for data load
+    if gm_id and "FAIL" not in graph_result and "SKIP" not in graph_result:
+        print(f"\n  Step 9d: Waiting for graph data load...")
+        loaded = graph_client.wait_for_data_load(workspace_id, gm_id, timeout=600)
+        if loaded:
+            graph_result += " + data loaded"
+        else:
+            print(f"    [WARN] Data load incomplete — check Fabric UI job history")
+
+    # Verify
+    if gm_id and "FAIL" not in graph_result and "SKIP" not in graph_result:
+        schema = graph_client.get_queryable_graph_type(workspace_id, gm_id)
+        if schema:
+            nt = schema.get("nodeTypes", [])
+            et = schema.get("edgeTypes", [])
+            print(f"    Queryable: {len(nt)} node types, {len(et)} edge types")
+
+    print()
+    print("=" * 70)
+    print(f"  ONTOLOGY:    {args.ontology:<38} {result}")
+    print(f"  GRAPH MODEL: {args.graph_model:<38} {graph_result}")
+    print("=" * 70)
+    print()
+
+    if "FAIL" in graph_result:
         sys.exit(1)
 
 

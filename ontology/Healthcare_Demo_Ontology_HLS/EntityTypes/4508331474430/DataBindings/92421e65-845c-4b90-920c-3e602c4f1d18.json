@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
   "id": "92421e65-845c-4b90-920c-3e602c4f1d18",
   "dataBindingConfiguration": {
@@ -37,7 +37,7 @@
         "targetPropertyId": "1214896408914925369"
       },
       {
-        "sourceColumnName": "diagnosis_sequence",
+        "sourceColumnName": "sequence_number",
         "targetPropertyId": "1214896384726243973"
       },
       {

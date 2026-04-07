@@ -118,14 +118,6 @@
       "payloadType": "InlineBase64"
     },
     {
-      "path": "RelationshipTypes/1214646453514666308/definition.json",
-      "payloadType": "InlineBase64"
-    },
-    {
-      "path": "RelationshipTypes/1214646453514666308/Contextualizations/1d09b85f-d65b-4042-ac14-4398ade739ea.json",
-      "payloadType": "InlineBase64"
-    },
-    {
       "path": "RelationshipTypes/1214634380467955402/definition.json",
       "payloadType": "InlineBase64"
     },

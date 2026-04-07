@@ -77,12 +77,36 @@
                 }
             },
             {
-                "name": "Gold_Star_Schema",
-                "description": "Build Gold star schema â€” SCD2 dimensions + MERGE facts (full=drop+rebuild, incremental=merge)",
+                "name": "Create_Gold_Tables",
+                "description": "Create empty Gold Delta tables in lh_gold_curated (idempotent — uses CREATE TABLE IF NOT EXISTS)",
                 "type": "TridentNotebook",
                 "dependsOn": [
                     {
                         "activity": "Silver_ODS_Enrich",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.01:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "typeProperties": {
+                    "notebookId": "b2000002-0002-0002-0002-000000000004",
+                    "workspaceId": "00000000-0000-0000-0000-000000000000"
+                }
+            },
+            {
+                "name": "Gold_Star_Schema",
+                "description": "Build Gold star schema â€" SCD2 dimensions + MERGE facts (full=drop+rebuild, incremental=merge)",
+                "type": "TridentNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "Create_Gold_Tables",
                         "dependencyConditions": [
                             "Succeeded"
                         ]

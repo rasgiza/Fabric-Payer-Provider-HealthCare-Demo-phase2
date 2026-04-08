@@ -57,13 +57,13 @@ READMIT_WINDOW_DAYS = 30       # Readmission = re-admit within this many days
 # ---------- Load events ----------
 print("Loading claims and ADT events...")
 
-df_claims = spark.table("rti_claims_events")
-df_adt = spark.table("rti_adt_events")
+df_claims = spark.table("lh_gold_curated.rti_claims_events")
+df_adt = spark.table("lh_gold_curated.rti_adt_events")
 df_patients = spark.sql("""
     SELECT patient_id, first_name, last_name, date_of_birth, zip_code
-    FROM dim_patient WHERE is_current = true
+    FROM lh_gold_curated.dim_patient WHERE is_current = true
 """)
-df_facilities = spark.sql("SELECT facility_id, facility_name, latitude, longitude FROM dim_facility")
+df_facilities = spark.sql("SELECT facility_id, facility_name, latitude, longitude FROM lh_gold_curated.dim_facility")
 
 print(f"  Claims events: {df_claims.count()}")
 print(f"  ADT events: {df_adt.count()}")
@@ -290,7 +290,7 @@ df_output = df_combined.select(
     "longitude",
 )
 
-df_output.write.format("delta").mode("overwrite").saveAsTable("rti_highcost_alerts")
+df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_highcost_alerts")
 alert_count = df_output.count()
 print(f"High-cost trajectory alerts written: {alert_count}")
 
@@ -310,7 +310,7 @@ df_summary = spark.sql("""
         ROUND(AVG(rolling_spend_90d), 0) as avg_spend_90d,
         ROUND(AVG(ed_visits_30d), 1) as avg_ed_visits,
         SUM(CASE WHEN readmission_flag THEN 1 ELSE 0 END) as readmissions
-    FROM rti_highcost_alerts
+    FROM lh_gold_curated.rti_highcost_alerts
     GROUP BY risk_tier
     ORDER BY
         CASE risk_tier
@@ -333,7 +333,7 @@ df_trend = spark.sql("""
         COUNT(*) as members,
         ROUND(AVG(rolling_spend_30d), 0) as avg_30d_spend,
         ROUND(AVG(ed_visits_30d), 1) as avg_ed_visits
-    FROM rti_highcost_alerts
+    FROM lh_gold_curated.rti_highcost_alerts
     GROUP BY cost_trend
     ORDER BY
         CASE cost_trend
@@ -359,7 +359,7 @@ df_top = spark.sql("""
         rolling_spend_90d,
         ed_visits_30d,
         readmission_flag
-    FROM rti_highcost_alerts
+    FROM lh_gold_curated.rti_highcost_alerts
     WHERE risk_tier IN ('CRITICAL', 'HIGH')
     ORDER BY rolling_spend_30d DESC
     LIMIT 15

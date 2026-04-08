@@ -320,9 +320,9 @@ if MODE == "batch":
     adt_sdf = spark.createDataFrame(adt_pdf)
     rx_sdf = spark.createDataFrame(rx_pdf)
 
-    claims_sdf.write.format("delta").mode("overwrite").saveAsTable("rti_claims_events")
-    adt_sdf.write.format("delta").mode("overwrite").saveAsTable("rti_adt_events")
-    rx_sdf.write.format("delta").mode("overwrite").saveAsTable("rti_rx_events")
+    claims_sdf.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_claims_events")
+    adt_sdf.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_adt_events")
+    rx_sdf.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_rx_events")
 
     print(f"  rti_claims_events: {claims_sdf.count()} rows")
     print(f"  rti_adt_events:    {adt_sdf.count()} rows")
@@ -391,9 +391,9 @@ if MODE == "stream":
             print(f"  Batch {batch_num}: sent {total} events")
 
             # Also append to Delta tables for historical tracking
-            spark.createDataFrame(claims_pdf).write.format("delta").mode("append").saveAsTable("rti_claims_events")
-            spark.createDataFrame(adt_pdf).write.format("delta").mode("append").saveAsTable("rti_adt_events")
-            spark.createDataFrame(rx_pdf).write.format("delta").mode("append").saveAsTable("rti_rx_events")
+            spark.createDataFrame(claims_pdf).write.format("delta").mode("append").saveAsTable("lh_gold_curated.rti_claims_events")
+            spark.createDataFrame(adt_pdf).write.format("delta").mode("append").saveAsTable("lh_gold_curated.rti_adt_events")
+            spark.createDataFrame(rx_pdf).write.format("delta").mode("append").saveAsTable("lh_gold_curated.rti_rx_events")
 
             time.sleep(STREAM_INTERVAL_SEC)
 

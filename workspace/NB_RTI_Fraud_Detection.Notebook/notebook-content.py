@@ -50,12 +50,12 @@ import math
 # ---------- Load events and reference data ----------
 print("Loading claims events and reference data...")
 
-df_claims = spark.table("rti_claims_events")
+df_claims = spark.table("lh_gold_curated.rti_claims_events")
 df_providers = spark.sql("""
     SELECT provider_id, provider_name, specialty, facility_id
-    FROM dim_provider WHERE is_current = true
+    FROM lh_gold_curated.dim_provider WHERE is_current = true
 """)
-df_facilities = spark.sql("SELECT facility_id, latitude as fac_lat, longitude as fac_lon FROM dim_facility")
+df_facilities = spark.sql("SELECT facility_id, latitude as fac_lat, longitude as fac_lon FROM lh_gold_curated.dim_facility")
 
 # Historical claim stats for baseline comparison
 df_historical = spark.sql("""
@@ -63,7 +63,7 @@ df_historical = spark.sql("""
            AVG(billed_amount) as hist_avg_amount,
            STDDEV(billed_amount) as hist_std_amount,
            COUNT(*) as hist_claim_count
-    FROM fact_claim
+    FROM lh_gold_curated.fact_claim
     GROUP BY provider_id
 """)
 
@@ -217,7 +217,7 @@ df_output = df_scored.select(
 )
 
 # Write to Delta
-df_output.write.format("delta").mode("overwrite").saveAsTable("rti_fraud_scores")
+df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_fraud_scores")
 
 print(f"Fraud scores written: {df_output.count()} claims scored")
 
@@ -236,7 +236,7 @@ df_summary = spark.sql("""
         ROUND(AVG(fraud_score), 1) as avg_score,
         ROUND(MAX(fraud_score), 1) as max_score,
         ROUND(SUM(claim_amount), 2) as total_amount
-    FROM rti_fraud_scores
+    FROM lh_gold_curated.rti_fraud_scores
     GROUP BY risk_tier
     ORDER BY
         CASE risk_tier
@@ -261,8 +261,8 @@ df_top_providers = spark.sql("""
         COUNT(*) as flagged_claims,
         ROUND(AVG(f.fraud_score), 1) as avg_fraud_score,
         ROUND(SUM(f.claim_amount), 2) as total_flagged_amount
-    FROM rti_fraud_scores f
-    LEFT JOIN dim_provider p ON f.provider_id = p.provider_id AND p.is_current = true
+    FROM lh_gold_curated.rti_fraud_scores f
+    LEFT JOIN lh_gold_curated.dim_provider p ON f.provider_id = p.provider_id AND p.is_current = true
     WHERE f.risk_tier IN ('CRITICAL', 'HIGH')
     GROUP BY f.provider_id, p.provider_name, p.specialty
     ORDER BY avg_fraud_score DESC

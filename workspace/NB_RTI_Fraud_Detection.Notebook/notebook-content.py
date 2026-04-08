@@ -7,11 +7,11 @@
 # # RTI Use Case 1: Claims Fraud Detection
 # 
 # Real-time scoring of claims events to detect potential fraud patterns:
-# - **Velocity bursts** — Provider submits many claims in a short window
-# - **Geographic anomaly** — Patient location far from provider facility
-# - **Amount outliers** — Claim amount exceeds 3σ of provider's historical mean
-# - **Upcoding** — Consistent use of highest E&M codes
-# - **Diagnosis pattern** — Unusual diagnosis combinations for specialty
+# - **Velocity bursts** -- Provider submits many claims in a short window
+# - **Geographic anomaly** -- Patient location far from provider facility
+# - **Amount outliers** -- Claim amount exceeds 3σ of provider's historical mean
+# - **Upcoding** -- Consistent use of highest E&M codes
+# - **Diagnosis pattern** -- Unusual diagnosis combinations for specialty
 # 
 # **Input:** `rti_claims_events` (Delta) or `claims_events` (KQL)
 # **Output:** `rti_fraud_scores` (Delta) + `fraud_scores` (KQL)
@@ -220,6 +220,76 @@ df_output = df_scored.select(
 df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_fraud_scores")
 
 print(f"Fraud scores written: {df_output.count()} claims scored")
+
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Push Fraud Scores to KQL (direct Kusto ingestion)
+# ============================================================================
+print("Pushing fraud scores to KQL...")
+
+import requests, json
+
+BASE_URL = "https://api.fabric.microsoft.com/v1"
+WORKSPACE_ID = notebookutils.runtime.context.get("currentWorkspaceId", "")
+KQL_DB_NAME = "Healthcare_RTI_DB"
+
+def get_fabric_token():
+    return notebookutils.credentials.getToken("https://analysis.windows.net/powerbi/api")
+
+def get_kusto_token():
+    return notebookutils.credentials.getToken("kusto")
+
+# Auto-discover Kusto ingestion URI
+KUSTO_INGEST_URI = ""
+headers = {"Authorization": f"Bearer {get_fabric_token()}", "Content-Type": "application/json"}
+resp = requests.get(f"{BASE_URL}/workspaces/{WORKSPACE_ID}/items?type=Eventhouse", headers=headers)
+if resp.status_code == 200:
+    for item in resp.json().get("value", []):
+        if "Healthcare" in item.get("displayName", ""):
+            props_resp = requests.get(
+                f"{BASE_URL}/workspaces/{WORKSPACE_ID}/eventhouses/{item['id']}",
+                headers=headers
+            )
+            if props_resp.status_code == 200:
+                props = props_resp.json().get("properties", props_resp.json())
+                KUSTO_INGEST_URI = props.get("ingestionServiceUri", "")
+                if not KUSTO_INGEST_URI:
+                    quri = props.get("queryServiceUri", "")
+                    if quri:
+                        KUSTO_INGEST_URI = quri.replace("https://", "https://ingest-")
+            break
+
+if KUSTO_INGEST_URI:
+    try:
+        from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, DataFormat
+        from azure.kusto.data import KustoConnectionStringBuilder
+        import io
+
+        # Select columns matching KQL fraud_scores schema
+        df_kql = df_output.select(
+            "score_id", "score_timestamp", "claim_id", "patient_id",
+            "provider_id", "facility_id", "claim_amount", "fraud_score",
+            "fraud_flags", "risk_tier", "latitude", "longitude"
+        ).toPandas()
+
+        token = get_kusto_token()
+        kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_INGEST_URI, token)
+        client = QueuedIngestClient(kcsb)
+        ingestion_props = IngestionProperties(
+            database=KQL_DB_NAME, table="fraud_scores",
+            data_format=DataFormat.JSON, ingestion_mapping_reference="fraud_scores_mapping"
+        )
+        json_data = df_kql.to_json(orient="records", lines=True, date_format="iso")
+        client.ingest_from_stream(io.StringIO(json_data), ingestion_properties=ingestion_props)
+        print(f"  KQL: {len(df_kql)} fraud scores queued -> fraud_scores")
+    except Exception as e:
+        print(f"  KQL WARN: fraud_scores ingestion failed: {e}")
+else:
+    print("  KQL: Eventhouse not found -- skipping KQL ingestion (Delta table still written)")
 
 # METADATA **{"language":"python"}**
 

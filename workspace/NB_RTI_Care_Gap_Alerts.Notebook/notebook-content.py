@@ -66,7 +66,7 @@ except Exception:
         df_care_gaps = spark.read.option("header", True).csv("Files/care_gaps.csv")
         print(f"  Care gaps from CSV: {df_care_gaps.count()} rows")
     except Exception:
-        # Graceful degradation — create empty DataFrame so notebook completes
+        # Graceful degradation -- create empty DataFrame so notebook completes
         from pyspark.sql.types import StructType, StructField, StringType, IntegerType
         schema = StructType([
             StructField("patient_id", StringType(), True),
@@ -87,7 +87,7 @@ except Exception:
         df_hedis = spark.read.option("header", True).csv("Files/hedis_measures.csv")
     except Exception:
         df_hedis = None
-        print("  HEDIS measures not found — will use measure_id only")
+        print("  HEDIS measures not found -- will use measure_id only")
 
 print(f"  ADT events: {df_adt.count()}")
 print(f"  Patients: {df_patients.count()}")
@@ -213,6 +213,76 @@ df_output = df_alerts.select(
 df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_care_gap_alerts")
 alert_count = df_output.count()
 print(f"Care gap alerts written: {alert_count}")
+
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Push Care Gap Alerts to KQL (direct Kusto ingestion)
+# ============================================================================
+print("Pushing care gap alerts to KQL...")
+
+import requests as _requests
+import json as _json
+
+_BASE_URL = "https://api.fabric.microsoft.com/v1"
+_WORKSPACE_ID = notebookutils.runtime.context.get("currentWorkspaceId", "")
+_KQL_DB_NAME = "Healthcare_RTI_DB"
+
+def _get_fabric_token():
+    return notebookutils.credentials.getToken("https://analysis.windows.net/powerbi/api")
+
+def _get_kusto_token():
+    return notebookutils.credentials.getToken("kusto")
+
+_KUSTO_INGEST_URI = ""
+_headers = {"Authorization": f"Bearer {_get_fabric_token()}", "Content-Type": "application/json"}
+_resp = _requests.get(f"{_BASE_URL}/workspaces/{_WORKSPACE_ID}/items?type=Eventhouse", headers=_headers)
+if _resp.status_code == 200:
+    for _item in _resp.json().get("value", []):
+        if "Healthcare" in _item.get("displayName", ""):
+            _props_resp = _requests.get(
+                f"{_BASE_URL}/workspaces/{_WORKSPACE_ID}/eventhouses/{_item['id']}",
+                headers=_headers
+            )
+            if _props_resp.status_code == 200:
+                _props = _props_resp.json().get("properties", _props_resp.json())
+                _KUSTO_INGEST_URI = _props.get("ingestionServiceUri", "")
+                if not _KUSTO_INGEST_URI:
+                    _quri = _props.get("queryServiceUri", "")
+                    if _quri:
+                        _KUSTO_INGEST_URI = _quri.replace("https://", "https://ingest-")
+            break
+
+if _KUSTO_INGEST_URI:
+    try:
+        from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, DataFormat
+        from azure.kusto.data import KustoConnectionStringBuilder
+        import io
+
+        _df_kql = df_output.select(
+            "alert_id", "alert_timestamp", "patient_id", "facility_id",
+            "facility_name", "measure_id", "measure_name",
+            F.col("gap_days_overdue_int").alias("gap_days_overdue"),
+            "alert_priority", "alert_text", "latitude", "longitude"
+        ).toPandas()
+
+        _token = _get_kusto_token()
+        _kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(_KUSTO_INGEST_URI, _token)
+        _client = QueuedIngestClient(_kcsb)
+        _ingestion_props = IngestionProperties(
+            database=_KQL_DB_NAME, table="care_gap_alerts",
+            data_format=DataFormat.JSON, ingestion_mapping_reference="care_gap_alerts_mapping"
+        )
+        _json_data = _df_kql.to_json(orient="records", lines=True, date_format="iso")
+        _client.ingest_from_stream(io.StringIO(_json_data), ingestion_properties=_ingestion_props)
+        print(f"  KQL: {len(_df_kql)} care gap alerts queued -> care_gap_alerts")
+    except Exception as e:
+        print(f"  KQL WARN: care_gap_alerts ingestion failed: {e}")
+else:
+    print("  KQL: Eventhouse not found -- skipping KQL ingestion (Delta table still written)")
 
 # METADATA **{"language":"python"}**
 

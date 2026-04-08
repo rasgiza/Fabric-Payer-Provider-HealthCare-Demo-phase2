@@ -8,10 +8,10 @@
 # 
 # Identifies members on an **escalating cost trajectory** before they become
 # catastrophic spenders. Uses rolling windows over claims and ED visits to flag:
-# - **Rising spend** — 30-day and 90-day rolling claim totals exceeding thresholds
-# - **ED superutilizers** — ≥3 ED visits in 30 days
-# - **Readmission risk** — Multiple admits within 30 days
-# - **Cost trend** — Accelerating vs. stable vs. declining spend
+# - **Rising spend** -- 30-day and 90-day rolling claim totals exceeding thresholds
+# - **ED superutilizers** -- >=3 ED visits in 30 days
+# - **Readmission risk** -- Multiple admits within 30 days
+# - **Cost trend** -- Accelerating vs. stable vs. declining spend
 # 
 # **Industry pain point:** 5% of members drive 50% of healthcare costs. Early
 # identification of members trending toward high-cost status enables care management
@@ -47,7 +47,7 @@ from pyspark.sql.window import Window
 # ---------- Thresholds ----------
 SPEND_30D_THRESHOLD = 15000    # Flag if 30-day rolling spend exceeds this
 SPEND_90D_THRESHOLD = 40000    # Flag if 90-day rolling spend exceeds this
-ED_VISITS_30D_THRESHOLD = 3    # Flag if ≥3 ED visits in 30 days
+ED_VISITS_30D_THRESHOLD = 3    # Flag if >=3 ED visits in 30 days
 READMIT_WINDOW_DAYS = 30       # Readmission = re-admit within this many days
 
 # METADATA **{"language":"python"}**
@@ -293,6 +293,76 @@ df_output = df_combined.select(
 df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_highcost_alerts")
 alert_count = df_output.count()
 print(f"High-cost trajectory alerts written: {alert_count}")
+
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+# ============================================================================
+# Push High-Cost Alerts to KQL (direct Kusto ingestion)
+# ============================================================================
+print("Pushing high-cost alerts to KQL...")
+
+import requests as _requests
+import json as _json
+
+_BASE_URL = "https://api.fabric.microsoft.com/v1"
+_WORKSPACE_ID = notebookutils.runtime.context.get("currentWorkspaceId", "")
+_KQL_DB_NAME = "Healthcare_RTI_DB"
+
+def _get_fabric_token():
+    return notebookutils.credentials.getToken("https://analysis.windows.net/powerbi/api")
+
+def _get_kusto_token():
+    return notebookutils.credentials.getToken("kusto")
+
+_KUSTO_INGEST_URI = ""
+_headers = {"Authorization": f"Bearer {_get_fabric_token()}", "Content-Type": "application/json"}
+_resp = _requests.get(f"{_BASE_URL}/workspaces/{_WORKSPACE_ID}/items?type=Eventhouse", headers=_headers)
+if _resp.status_code == 200:
+    for _item in _resp.json().get("value", []):
+        if "Healthcare" in _item.get("displayName", ""):
+            _props_resp = _requests.get(
+                f"{_BASE_URL}/workspaces/{_WORKSPACE_ID}/eventhouses/{_item['id']}",
+                headers=_headers
+            )
+            if _props_resp.status_code == 200:
+                _props = _props_resp.json().get("properties", _props_resp.json())
+                _KUSTO_INGEST_URI = _props.get("ingestionServiceUri", "")
+                if not _KUSTO_INGEST_URI:
+                    _quri = _props.get("queryServiceUri", "")
+                    if _quri:
+                        _KUSTO_INGEST_URI = _quri.replace("https://", "https://ingest-")
+            break
+
+if _KUSTO_INGEST_URI:
+    try:
+        from azure.kusto.ingest import QueuedIngestClient, IngestionProperties, DataFormat
+        from azure.kusto.data import KustoConnectionStringBuilder
+        import io
+
+        _df_kql = df_output.select(
+            "alert_id", "alert_timestamp", "patient_id",
+            "rolling_spend_30d", "rolling_spend_90d", "ed_visits_30d",
+            "readmission_flag", "risk_tier", "cost_trend",
+            "latitude", "longitude"
+        ).toPandas()
+
+        _token = _get_kusto_token()
+        _kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(_KUSTO_INGEST_URI, _token)
+        _client = QueuedIngestClient(_kcsb)
+        _ingestion_props = IngestionProperties(
+            database=_KQL_DB_NAME, table="highcost_alerts",
+            data_format=DataFormat.JSON, ingestion_mapping_reference="highcost_alerts_mapping"
+        )
+        _json_data = _df_kql.to_json(orient="records", lines=True, date_format="iso")
+        _client.ingest_from_stream(io.StringIO(_json_data), ingestion_properties=_ingestion_props)
+        print(f"  KQL: {len(_df_kql)} high-cost alerts queued -> highcost_alerts")
+    except Exception as e:
+        print(f"  KQL WARN: highcost_alerts ingestion failed: {e}")
+else:
+    print("  KQL: Eventhouse not found -- skipping KQL ingestion (Delta table still written)")
 
 # METADATA **{"language":"python"}**
 

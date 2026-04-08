@@ -13,6 +13,20 @@
 # 2. **Execute** schema -- creates 6 tables + streaming ingestion policies + JSON mappings
 # 3. **Discover** Kusto ingestion URI for downstream notebooks
 # 
+# > **Why direct Kusto ingestion?** This demo deploys everything programmatically
+# > (zero portal clicks). Eventstream Custom Endpoints and their wiring to KQL destinations
+# > cannot be fully configured via public API today, which would require manual portal steps.
+# > Direct Kusto ingestion (`azure-kusto-ingest`) achieves the same streaming result with
+# > zero user configuration.
+# >
+# > **In production**, you would typically ingest via:
+# > - **Eventstream Custom Endpoint** -- for application-generated events
+# > - **IoT Hub / IoT Central** -- for medical device telemetry (vitals, wearables)
+# > - **Azure Event Hub** -- for high-throughput enterprise event buses
+# > - **Change Data Capture** -- for database-sourced real-time feeds
+# >
+# > All of these route through Eventstream into the same KQL tables created here.
+# 
 # **Default lakehouse:** `lh_gold_curated`
 
 # METADATA **{"language":"python"}**

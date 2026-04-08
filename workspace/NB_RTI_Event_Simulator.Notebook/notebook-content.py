@@ -12,12 +12,18 @@
 # 3. **High-Cost Member Trajectory** -- Claims + ED visits for rolling cost analysis
 # 
 # **Modes:**
-# - `batch` -- Generate one batch, save as Delta tables + push to KQL
-# - `stream` -- Continuously push events to KQL via direct Kusto ingestion
+# - `batch` -- Generate one batch, save as Delta tables + push to KQL (used by launcher)
+# - `stream` -- Continuously push events to KQL in a loop (for live demos)
 # 
 # **Ingestion:** Direct Kusto (`azure-kusto-ingest`, pre-installed in Fabric)
 # - Zero config: token from `notebookutils.credentials.getToken("kusto")`
 # - No Eventstream, connection strings, or manual portal steps
+# 
+# > **Note:** This demo uses direct Kusto ingestion because it can be deployed entirely
+# > programmatically with no manual portal steps. In a production environment, events would
+# > flow from **Eventstream Custom Endpoints**, **IoT Hub** (medical devices / wearables),
+# > or **Azure Event Hub** into the same KQL tables. The scoring notebooks and KQL dashboards
+# > work identically regardless of the ingestion source.
 # 
 # **Default lakehouse:** `lh_gold_curated`
 

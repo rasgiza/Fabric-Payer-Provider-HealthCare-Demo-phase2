@@ -146,17 +146,23 @@ if df_hedis is not None:
     df_alerts = df_alerts.join(
         df_hedis.select(
             F.col("measure_id").alias("h_measure_id"),
-            "measure_name",
+            F.col("measure_name").alias("_hedis_measure_name"),
             "description",
             "frequency_months"
         ),
         df_alerts["measure_id"] == F.col("h_measure_id"),
         "left"
     ).drop("h_measure_id")
-    # Prefer HEDIS measure_name, fall back to care_gaps
+    # Unify: prefer HEDIS measure_name, fall back to care_gaps, then measure_id
     df_alerts = df_alerts.withColumn(
-        "measure_name", F.coalesce(F.col("measure_name"), F.col("_cg_measure_name"))
-    ).drop("_cg_measure_name")
+        "measure_name",
+        F.coalesce(F.col("_hedis_measure_name"), F.col("_cg_measure_name"), F.col("measure_id"))
+    ).drop("_cg_measure_name", "_hedis_measure_name")
+else:
+    # No HEDIS table -- ensure measure_name always has a value
+    df_alerts = df_alerts.withColumn(
+        "measure_name", F.coalesce(F.col("measure_name"), F.col("measure_id"))
+    )
 
 print(f"  Patient-encounter-gap matches: {df_alerts.count()}")
 

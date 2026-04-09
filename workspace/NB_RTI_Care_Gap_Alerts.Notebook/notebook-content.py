@@ -39,7 +39,7 @@ print("NB_RTI_Care_Gap_Alerts: Starting...")
 
 # CELL **{"language":"python"}**
 
-%pip install azure-kusto-data azure-kusto-ingest --quiet
+%pip install azure-kusto-data azure-kusto-ingest azure-core>=1.31.0 --quiet
 
 # METADATA **{"language":"python"}**
 

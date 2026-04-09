@@ -1,0 +1,401 @@
+{
+  "$schema": "https://dataexplorer.azure.com/static/d/schema/20/dashboard.json",
+  "autoRefresh": {
+    "enabled": true,
+    "defaultRefreshRate": {
+      "count": 30,
+      "unit": "seconds"
+    }
+  },
+  "pages": [
+    {
+      "name": "Real-Time Operations",
+      "id": "page-realtime-ops",
+      "tiles": [
+        {
+          "id": "tile-live-kpis",
+          "title": "Live Event Summary (5 min)",
+          "layout": { "x": 0, "y": 0, "width": 12, "height": 4 },
+          "queryRef": { "kind": "query", "queryId": "q-live-kpis" },
+          "visualType": "multistat",
+          "visualOptions": {}
+        },
+        {
+          "id": "tile-claims-volume-trend",
+          "title": "Claims Volume -- 6h Trend",
+          "layout": { "x": 0, "y": 4, "width": 8, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-claims-volume-trend" },
+          "visualType": "line",
+          "visualOptions": {
+            "xAxis": { "column": "time_bucket" },
+            "yAxes": [
+              { "columns": ["claims", "adt_events", "rx_events"], "label": "Events" }
+            ],
+            "legend": { "isVisible": true }
+          }
+        },
+        {
+          "id": "tile-event-type-dist",
+          "title": "Event Type Distribution (1h)",
+          "layout": { "x": 8, "y": 4, "width": 4, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-event-type-distribution" },
+          "visualType": "pie",
+          "visualOptions": {
+            "labelColumn": "event_type",
+            "valueColumn": "event_count"
+          }
+        },
+        {
+          "id": "tile-fraud-score-dist",
+          "title": "Fraud Score Distribution (1h)",
+          "layout": { "x": 0, "y": 9, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-fraud-score-distribution" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "risk_tier" },
+            "yAxes": [
+              { "columns": ["claim_count"], "label": "Claims" }
+            ]
+          }
+        },
+        {
+          "id": "tile-alert-velocity",
+          "title": "Alert Velocity -- Hourly Trend",
+          "layout": { "x": 6, "y": 9, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-alert-velocity" },
+          "visualType": "line",
+          "visualOptions": {
+            "xAxis": { "column": "hour_bucket" },
+            "yAxes": [
+              { "columns": ["fraud_alerts", "care_gap_alerts", "highcost_alerts"], "label": "Alerts" }
+            ],
+            "legend": { "isVisible": true }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Care Quality & Gaps",
+      "id": "page-care-quality",
+      "tiles": [
+        {
+          "id": "tile-care-gap-kpis",
+          "title": "Care Gap Summary (24h)",
+          "layout": { "x": 0, "y": 0, "width": 12, "height": 4 },
+          "queryRef": { "kind": "query", "queryId": "q-care-gap-kpis" },
+          "visualType": "multistat",
+          "visualOptions": {}
+        },
+        {
+          "id": "tile-care-gap-by-measure",
+          "title": "Care Gaps by Measure",
+          "layout": { "x": 0, "y": 4, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-care-gap-by-measure" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "measure_name" },
+            "yAxes": [
+              { "columns": ["alert_count"], "label": "Alerts" }
+            ]
+          }
+        },
+        {
+          "id": "tile-care-gap-priority",
+          "title": "Alerts by Priority",
+          "layout": { "x": 6, "y": 4, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-care-gap-priority" },
+          "visualType": "pie",
+          "visualOptions": {
+            "labelColumn": "alert_priority",
+            "valueColumn": "alert_count"
+          }
+        },
+        {
+          "id": "tile-overdue-gaps-table",
+          "title": "Most Overdue Care Gaps",
+          "layout": { "x": 0, "y": 9, "width": 12, "height": 6 },
+          "queryRef": { "kind": "query", "queryId": "q-overdue-care-gaps" },
+          "visualType": "table",
+          "visualOptions": {
+            "conditionalFormatting": [
+              {
+                "column": "alert_priority",
+                "rules": [
+                  { "value": "critical", "color": "#FF0000" },
+                  { "value": "high", "color": "#FF6600" }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "tile-highcost-risk-tiers",
+          "title": "High-Cost Patient Risk Tiers",
+          "layout": { "x": 0, "y": 15, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-highcost-risk-tiers" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "risk_tier" },
+            "yAxes": [
+              { "columns": ["patient_count"], "label": "Patients" }
+            ]
+          }
+        },
+        {
+          "id": "tile-highcost-trend",
+          "title": "Cost Trend Distribution",
+          "layout": { "x": 6, "y": 15, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-highcost-cost-trend" },
+          "visualType": "pie",
+          "visualOptions": {
+            "labelColumn": "cost_trend",
+            "valueColumn": "patient_count"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fraud Detection & Claims",
+      "id": "page-fraud-claims",
+      "tiles": [
+        {
+          "id": "tile-fraud-kpis",
+          "title": "Fraud Detection Summary (24h)",
+          "layout": { "x": 0, "y": 0, "width": 12, "height": 4 },
+          "queryRef": { "kind": "query", "queryId": "q-fraud-kpis" },
+          "visualType": "multistat",
+          "visualOptions": {}
+        },
+        {
+          "id": "tile-fraud-trend",
+          "title": "Fraud Score Trend -- Hourly",
+          "layout": { "x": 0, "y": 4, "width": 8, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-fraud-trend" },
+          "visualType": "line",
+          "visualOptions": {
+            "xAxis": { "column": "hour_bucket" },
+            "yAxes": [
+              { "columns": ["avg_fraud_score", "high_risk_pct"], "label": "Score / %" }
+            ],
+            "legend": { "isVisible": true }
+          }
+        },
+        {
+          "id": "tile-fraud-by-claim-type",
+          "title": "Fraud Risk by Claim Type",
+          "layout": { "x": 8, "y": 4, "width": 4, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-fraud-by-claim-type" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "event_type" },
+            "yAxes": [
+              { "columns": ["avg_fraud_score"], "label": "Avg Score" }
+            ]
+          }
+        },
+        {
+          "id": "tile-fraud-watchlist",
+          "title": "Fraud Watch List -- High Risk Claims",
+          "layout": { "x": 0, "y": 9, "width": 12, "height": 6 },
+          "queryRef": { "kind": "query", "queryId": "q-fraud-watchlist" },
+          "visualType": "table",
+          "visualOptions": {
+            "conditionalFormatting": [
+              {
+                "column": "risk_tier",
+                "rules": [
+                  { "value": "critical", "color": "#FF0000" },
+                  { "value": "high", "color": "#FF6600" }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "tile-highcost-watchlist",
+          "title": "High-Cost Patient Watch List",
+          "layout": { "x": 0, "y": 15, "width": 12, "height": 6 },
+          "queryRef": { "kind": "query", "queryId": "q-highcost-watchlist" },
+          "visualType": "table",
+          "visualOptions": {
+            "conditionalFormatting": [
+              {
+                "column": "risk_tier",
+                "rules": [
+                  { "value": "critical", "color": "#FF0000" },
+                  { "value": "high", "color": "#FF6600" }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SLA & Data Freshness",
+      "id": "page-sla-freshness",
+      "tiles": [
+        {
+          "id": "tile-freshness-kpis",
+          "title": "Data Freshness -- All Tables",
+          "layout": { "x": 0, "y": 0, "width": 12, "height": 6 },
+          "queryRef": { "kind": "query", "queryId": "q-data-freshness" },
+          "visualType": "table",
+          "visualOptions": {}
+        },
+        {
+          "id": "tile-ingestion-rate",
+          "title": "Ingestion Rate -- 6h Trend (all tables)",
+          "layout": { "x": 0, "y": 6, "width": 12, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-ingestion-rate" },
+          "visualType": "line",
+          "visualOptions": {
+            "xAxis": { "column": "time_bucket" },
+            "yAxes": [
+              { "columns": ["claims_events", "adt_events", "rx_events", "fraud_scores", "care_gap_alerts", "highcost_alerts"], "label": "Rows / 5min" }
+            ],
+            "legend": { "isVisible": true }
+          }
+        },
+        {
+          "id": "tile-table-row-counts",
+          "title": "Table Row Counts",
+          "layout": { "x": 0, "y": 11, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-table-row-counts" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "table_name" },
+            "yAxes": [
+              { "columns": ["row_count"], "label": "Rows" }
+            ]
+          }
+        },
+        {
+          "id": "tile-facility-volume",
+          "title": "Event Volume by Facility (24h)",
+          "layout": { "x": 6, "y": 11, "width": 6, "height": 5 },
+          "queryRef": { "kind": "query", "queryId": "q-facility-volume" },
+          "visualType": "bar",
+          "visualOptions": {
+            "xAxis": { "column": "facility_name" },
+            "yAxes": [
+              { "columns": ["event_count"], "label": "Events" }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "dataSources": [
+    {
+      "id": "ds-healthcare-eventhouse",
+      "name": "__KQL_DB_NAME__",
+      "kind": "kusto",
+      "clusterUri": "__EVENTHOUSE_QUERY_URI__",
+      "database": "__KQL_DB_NAME__",
+      "scopeId": "__EVENTHOUSE_ID__"
+    }
+  ],
+  "queries": [
+    {
+      "id": "q-live-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(5m) | summarize claims = count()),\n  (adt_events | where event_timestamp > ago(5m) | summarize adt = count()),\n  (rx_events | where event_timestamp > ago(5m) | summarize rx = count()),\n  (fraud_scores | where score_timestamp > ago(5m) | summarize fraud = count()),\n  (care_gap_alerts | where alert_timestamp > ago(5m) | summarize gaps = count()),\n  (highcost_alerts | where alert_timestamp > ago(5m) | summarize highcost = count())\n| summarize\n    claims_5m = sum(claims),\n    adt_events_5m = sum(adt),\n    rx_events_5m = sum(rx),\n    fraud_alerts_5m = sum(fraud),\n    care_gap_alerts_5m = sum(gaps),\n    highcost_alerts_5m = sum(highcost)"
+    },
+    {
+      "id": "q-claims-volume-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims' | project event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt' | project event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx' | project event_timestamp, table_name)\n| summarize\n    claims = countif(table_name == 'claims'),\n    adt_events = countif(table_name == 'adt'),\n    rx_events = countif(table_name == 'rx')\n    by time_bucket = bin(event_timestamp, 5m)\n| order by time_bucket asc"
+    },
+    {
+      "id": "q-event-type-distribution",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(1h) | project event_type),\n  (adt_events | where event_timestamp > ago(1h) | project event_type),\n  (rx_events | where event_timestamp > ago(1h) | project event_type)\n| summarize event_count = count() by event_type\n| order by event_count desc"
+    },
+    {
+      "id": "q-fraud-score-distribution",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(1h)\n| summarize claim_count = count() by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-alert-velocity",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (fraud_scores | where score_timestamp > ago(24h) | extend alert_type = 'fraud' | project ts = score_timestamp, alert_type),\n  (care_gap_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'care_gap' | project ts = alert_timestamp, alert_type),\n  (highcost_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'highcost' | project ts = alert_timestamp, alert_type)\n| summarize\n    fraud_alerts = countif(alert_type == 'fraud'),\n    care_gap_alerts = countif(alert_type == 'care_gap'),\n    highcost_alerts = countif(alert_type == 'highcost')\n    by hour_bucket = bin(ts, 1h)\n| order by hour_bucket asc"
+    },
+    {
+      "id": "q-care-gap-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize\n    total_alerts = count(),\n    unique_patients = dcount(patient_id),\n    unique_measures = dcount(measure_id),\n    critical_alerts = countif(alert_priority == 'critical'),\n    high_alerts = countif(alert_priority == 'high'),\n    avg_days_overdue = round(avg(gap_days_overdue), 0),\n    max_days_overdue = max(gap_days_overdue)"
+    },
+    {
+      "id": "q-care-gap-by-measure",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by measure_name\n| order by alert_count desc\n| take 15"
+    },
+    {
+      "id": "q-care-gap-priority",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by alert_priority\n| order by case(\n    alert_priority == 'critical', 1,\n    alert_priority == 'high', 2,\n    alert_priority == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-overdue-care-gaps",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| project\n    alert_timestamp,\n    patient_id,\n    facility_name,\n    measure_name,\n    gap_days_overdue,\n    alert_priority,\n    alert_text\n| order by gap_days_overdue desc\n| take 50"
+    },
+    {
+      "id": "q-highcost-risk-tiers",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-highcost-cost-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by cost_trend\n| order by patient_count desc"
+    },
+    {
+      "id": "q-fraud-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    total_scored = count(),\n    high_risk_claims = countif(risk_tier in ('high', 'critical')),\n    critical_claims = countif(risk_tier == 'critical'),\n    avg_fraud_score = round(avg(fraud_score), 3),\n    max_fraud_score = round(max(fraud_score), 3),\n    total_claim_amount = round(sum(claim_amount), 2),\n    high_risk_amount = round(sumif(claim_amount, risk_tier in ('high', 'critical')), 2)"
+    },
+    {
+      "id": "q-fraud-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    avg_fraud_score = round(avg(fraud_score), 3),\n    total_claims = count(),\n    high_risk = countif(risk_tier in ('high', 'critical'))\n    by hour_bucket = bin(score_timestamp, 1h)\n| extend high_risk_pct = round(todouble(high_risk) / todouble(total_claims) * 100, 1)\n| order by hour_bucket asc"
+    },
+    {
+      "id": "q-fraud-by-claim-type",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| join kind=inner (claims_events | project claim_id, event_type) on $left.claim_id == $right.claim_id\n| summarize avg_fraud_score = round(avg(fraud_score), 3), claim_count = count() by event_type\n| order by avg_fraud_score desc"
+    },
+    {
+      "id": "q-fraud-watchlist",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    score_timestamp,\n    claim_id,\n    patient_id,\n    provider_id,\n    claim_amount,\n    fraud_score,\n    fraud_flags,\n    risk_tier\n| order by fraud_score desc\n| take 50"
+    },
+    {
+      "id": "q-highcost-watchlist",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    alert_timestamp,\n    patient_id,\n    rolling_spend_30d,\n    rolling_spend_90d,\n    ed_visits_30d,\n    readmission_flag,\n    risk_tier,\n    cost_trend\n| order by rolling_spend_90d desc\n| take 50"
+    },
+    {
+      "id": "q-data-freshness",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize last_event = max(score_timestamp), row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'highcost_alerts')\n| extend minutes_ago = round(datetime_diff('minute', now(), last_event), 0)\n| project table_name, row_count, last_event, minutes_ago\n| order by table_name asc"
+    },
+    {
+      "id": "q-ingestion-rate",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims_events' | project ts = event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt_events' | project ts = event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx_events' | project ts = event_timestamp, table_name),\n  (fraud_scores | where score_timestamp > ago(6h) | extend table_name = 'fraud_scores' | project ts = score_timestamp, table_name),\n  (care_gap_alerts | where alert_timestamp > ago(6h) | extend table_name = 'care_gap_alerts' | project ts = alert_timestamp, table_name),\n  (highcost_alerts | where alert_timestamp > ago(6h) | extend table_name = 'highcost_alerts' | project ts = alert_timestamp, table_name)\n| summarize\n    claims_events = countif(table_name == 'claims_events'),\n    adt_events = countif(table_name == 'adt_events'),\n    rx_events = countif(table_name == 'rx_events'),\n    fraud_scores = countif(table_name == 'fraud_scores'),\n    care_gap_alerts = countif(table_name == 'care_gap_alerts'),\n    highcost_alerts = countif(table_name == 'highcost_alerts')\n    by time_bucket = bin(ts, 5m)\n| order by time_bucket asc"
+    },
+    {
+      "id": "q-table-row-counts",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | summarize row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize row_count = count() | extend table_name = 'highcost_alerts')\n| order by row_count desc"
+    },
+    {
+      "id": "q-facility-volume",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "adt_events\n| where event_timestamp > ago(24h)\n| summarize event_count = count() by facility_name\n| order by event_count desc\n| take 15"
+    }
+  ]
+}

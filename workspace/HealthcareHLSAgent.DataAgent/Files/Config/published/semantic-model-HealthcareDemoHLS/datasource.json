@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
   "artifactId": "a1000001-0001-0001-0001-000000000004",
   "workspaceId": "00000000-0000-0000-0000-000000000000",
-  "dataSourceInstructions": null,
+  "dataSourceInstructions": "Use this semantic model for pre-built DAX measures and aggregations. It contains 26 measures across encounters, claims, prescriptions, and adherence tables. Use DAX measures when the user asks for KPIs, rates, or summary metrics like denial rate, readmission rate, adherent rate, total charges, avg length of stay. For row-level detail, patient lookups, or multi-table JOINs, use the lakehouse SQL source instead.",
   "displayName": "HealthcareDemoHLS",
   "type": "semantic_model",
-  "userDescription": null,
+  "userDescription": "HealthcareDemoHLS Direct Lake semantic model with 26 pre-built DAX measures for healthcare KPIs: denial rates, readmission rates, medication adherence, charges, encounter volumes, and cost trends.",
   "metadata": {},
   "elements": [
     {

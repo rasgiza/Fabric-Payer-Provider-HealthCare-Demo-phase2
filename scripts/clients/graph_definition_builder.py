@@ -35,7 +35,7 @@ TYPE_MAP = {
     "String": "STRING",
     "BigInt": "INT",
     "Double": "FLOAT",
-    "DateTime": "ZONED DATETIME",
+    "DateTime": "DATETIME",
     "Boolean": "BOOLEAN",
     "Int": "INT",
 }
@@ -247,7 +247,7 @@ class GraphDefinitionBuilder:
                 "edgeTypeAlias": f"{r['name']}_edgeType",
                 "dataSourceName": f"{r['ctx_table']}_Source",
                 "sourceNodeKeyColumns": src_key,
-                "targetNodeKeyColumns": r["tgt_key_cols"],
+                "destinationNodeKeyColumns": r["tgt_key_cols"],
                 "propertyMappings": [],
             })
 
@@ -283,7 +283,7 @@ class GraphDefinitionBuilder:
                 "properties": {"path": path},
             })
 
-        return {"schemaVersion": "1.0.0", "dataSources": sources}
+        return {"dataSources": sources}
 
     # ── Build stylingConfiguration.json ───────────────────────
 
@@ -302,6 +302,11 @@ class GraphDefinitionBuilder:
             }
             styles[alias] = {"size": 30}
 
+        # Add edge type styles
+        for r in self.relationships.values():
+            edge_alias = f"{r['name']}_edgeType"
+            styles[edge_alias] = {"size": 30}
+
         return {
             "schemaVersion": "1.0.0",
             "modelLayout": {
@@ -310,7 +315,6 @@ class GraphDefinitionBuilder:
                 "pan": {"x": 0, "y": 0},
                 "zoomLevel": 1,
             },
-            "visualFormat": {},
         }
 
     # ── Build .platform ────────────────────────────────────────

@@ -109,9 +109,13 @@ class GraphDefinitionBuilder:
                     st = cfg.get("sourceTableProperties", {})
                     source_table = st.get("sourceTableName")
 
+            # pk_col: source column for the PK (from binding)
+            pk_col = bindings.get(pk_prop_id) if pk_prop_id else None
+
             self.entities[eid] = {
                 "name": name,
                 "pk_prop_name": pk_prop_name,
+                "pk_col": pk_col,
                 "properties": prop_map,
                 "source_table": source_table,
                 "bindings": bindings,
@@ -230,11 +234,19 @@ class GraphDefinitionBuilder:
 
         edge_tables = []
         for rid, r in self.relationships.items():
+            # Use source entity's PK column for sourceNodeKeyColumns.
+            # Ontology contextualizations may have sourceKeyRefBindings
+            # duplicating the target FK; the Graph Model API requires
+            # the column that identifies the SOURCE node (its PK).
+            src_ent = self.entities[r["source_id"]]
+            src_key = ([src_ent["pk_col"]]
+                       if src_ent.get("pk_col")
+                       else r["src_key_cols"])
             edge_tables.append({
                 "id": f"{r['name']}_{uuid.uuid4().hex[:8]}",
                 "edgeTypeAlias": f"{r['name']}_edgeType",
                 "dataSourceName": f"{r['ctx_table']}_Source",
-                "sourceNodeKeyColumns": r["src_key_cols"],
+                "sourceNodeKeyColumns": src_key,
                 "destinationNodeKeyColumns": r["tgt_key_cols"],
                 "propertyMappings": [],
             })

@@ -283,7 +283,7 @@ if resp.status_code == 200:
 if KUSTO_QUERY_URI and KUSTO_INGEST_URI:
     try:
         from azure.kusto.ingest import ManagedStreamingIngestClient, IngestionProperties
-        from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
+        from azure.kusto.data import KustoConnectionStringBuilder, KustoClient, DataFormat
         import io
 
         # Select columns matching KQL fraud_scores schema
@@ -296,6 +296,20 @@ if KUSTO_QUERY_URI and KUSTO_INGEST_URI:
         token = get_kusto_token()
         engine_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_QUERY_URI, token)
         dm_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_INGEST_URI, token)
+
+        # Ensure table, streaming policy, and mapping exist before ingesting
+        _mgmt_client = KustoClient(engine_kcsb)
+        _mgmt_cmds = [
+            """.create-merge table fraud_scores (score_id:string,score_timestamp:datetime,claim_id:string,patient_id:string,provider_id:string,facility_id:string,claim_amount:real,fraud_score:real,fraud_flags:string,risk_tier:string,latitude:real,longitude:real)""",
+            """.alter table fraud_scores policy streamingingestion enable""",
+            """.create-or-alter table fraud_scores ingestion json mapping 'fraud_scores_mapping' '[{"column":"score_id","path":"$.score_id","datatype":"string"},{"column":"score_timestamp","path":"$.score_timestamp","datatype":"datetime"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"fraud_score","path":"$.fraud_score","datatype":"real"},{"column":"fraud_flags","path":"$.fraud_flags","datatype":"string"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+        ]
+        for _cmd in _mgmt_cmds:
+            try:
+                _mgmt_client.execute_mgmt(KQL_DB_NAME, _cmd.strip())
+            except Exception as _me:
+                print(f"  KQL WARN: mgmt command failed (non-fatal): {_me}")
+
         client = ManagedStreamingIngestClient(engine_kcsb, dm_kcsb)
         ingestion_props = IngestionProperties(
             database=KQL_DB_NAME, table="fraud_scores",

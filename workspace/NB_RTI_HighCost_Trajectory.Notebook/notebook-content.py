@@ -354,7 +354,7 @@ if _resp.status_code == 200:
 if _KUSTO_QUERY_URI and _KUSTO_INGEST_URI:
     try:
         from azure.kusto.ingest import ManagedStreamingIngestClient, IngestionProperties
-        from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
+        from azure.kusto.data import KustoConnectionStringBuilder, KustoClient, DataFormat
         import io
 
         _df_kql = df_output.select(
@@ -367,6 +367,20 @@ if _KUSTO_QUERY_URI and _KUSTO_INGEST_URI:
         _token = _get_kusto_token()
         _engine_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(_KUSTO_QUERY_URI, _token)
         _dm_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(_KUSTO_INGEST_URI, _token)
+
+        # Ensure table, streaming policy, and mapping exist before ingesting
+        _mgmt_client = KustoClient(_engine_kcsb)
+        _mgmt_cmds = [
+            """.create-merge table highcost_alerts (alert_id:string,alert_timestamp:datetime,patient_id:string,rolling_spend_30d:real,rolling_spend_90d:real,ed_visits_30d:int,readmission_flag:bool,risk_tier:string,cost_trend:string,latitude:real,longitude:real)""",
+            """.alter table highcost_alerts policy streamingingestion enable""",
+            """.create-or-alter table highcost_alerts ingestion json mapping 'highcost_alerts_mapping' '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+        ]
+        for _cmd in _mgmt_cmds:
+            try:
+                _mgmt_client.execute_mgmt(_KQL_DB_NAME, _cmd.strip())
+            except Exception as _me:
+                print(f"  KQL WARN: mgmt command failed (non-fatal): {_me}")
+
         _client = ManagedStreamingIngestClient(_engine_kcsb, _dm_kcsb)
         _ingestion_props = IngestionProperties(
             database=_KQL_DB_NAME, table="highcost_alerts",

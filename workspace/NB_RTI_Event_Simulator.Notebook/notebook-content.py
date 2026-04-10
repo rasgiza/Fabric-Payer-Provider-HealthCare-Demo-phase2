@@ -147,10 +147,27 @@ else:
 # Ref: https://learn.microsoft.com/en-us/kusto/api/get-started/app-managed-streaming-ingest
 
 from azure.kusto.ingest import ManagedStreamingIngestClient, IngestionProperties
-from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
+from azure.kusto.data import KustoConnectionStringBuilder, KustoClient, DataFormat
 import io
 
 _kusto_client = None  # Reuse client across calls
+_ensured_tables = set()  # Track which tables have been ensured
+
+# Table schemas and mappings for self-healing creation
+_TABLE_SCHEMAS = {
+    "claims_events": {
+        "create": ".create-merge table claims_events (event_id:string,event_timestamp:datetime,event_type:string,claim_id:string,patient_id:string,provider_id:string,facility_id:string,payer_id:string,diagnosis_code:string,procedure_code:string,claim_type:string,claim_amount:real,latitude:real,longitude:real,injected_fraud_flags:string)",
+        "mapping": """.create-or-alter table claims_events ingestion json mapping 'claims_events_mapping' '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"}]'""",
+    },
+    "adt_events": {
+        "create": ".create-merge table adt_events (event_id:string,event_timestamp:datetime,event_type:string,patient_id:string,facility_id:string,facility_name:string,admission_type:string,primary_diagnosis:string,latitude:real,longitude:real,has_open_care_gaps:bool,open_gap_measures:string)",
+        "mapping": """.create-or-alter table adt_events ingestion json mapping 'adt_events_mapping' '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"admission_type","path":"$.admission_type","datatype":"string"},{"column":"primary_diagnosis","path":"$.primary_diagnosis","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"has_open_care_gaps","path":"$.has_open_care_gaps","datatype":"bool"},{"column":"open_gap_measures","path":"$.open_gap_measures","datatype":"string"}]'""",
+    },
+    "rx_events": {
+        "create": ".create-merge table rx_events (event_id:string,event_timestamp:datetime,event_type:string,patient_id:string,provider_id:string,medication_code:string,medication_name:string,drug_class:string,quantity:int,days_supply:int,latitude:real,longitude:real)",
+        "mapping": """.create-or-alter table rx_events ingestion json mapping 'rx_events_mapping' '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"medication_code","path":"$.medication_code","datatype":"string"},{"column":"medication_name","path":"$.medication_name","datatype":"string"},{"column":"drug_class","path":"$.drug_class","datatype":"string"},{"column":"quantity","path":"$.quantity","datatype":"int"},{"column":"days_supply","path":"$.days_supply","datatype":"int"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+    },
+}
 
 def _get_or_create_kusto_client():
     """Create (or refresh) the ManagedStreamingIngestClient."""
@@ -166,11 +183,30 @@ def _get_or_create_kusto_client():
         _kusto_client = ManagedStreamingIngestClient(engine_kcsb, dm_kcsb)
     return _kusto_client
 
+def _ensure_table_and_mapping(table_name):
+    """Ensure the KQL table, streaming policy, and mapping exist (idempotent)."""
+    if table_name in _ensured_tables or table_name not in _TABLE_SCHEMAS:
+        return
+    try:
+        token = get_kusto_token()
+        kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_QUERY_URI, token)
+        mgmt = KustoClient(kcsb)
+        schema = _TABLE_SCHEMAS[table_name]
+        for cmd in [schema["create"], f".alter table {table_name} policy streamingingestion enable", schema["mapping"]]:
+            try:
+                mgmt.execute_mgmt(KQL_DB_NAME, cmd.strip())
+            except Exception:
+                pass
+        _ensured_tables.add(table_name)
+    except Exception as e:
+        print(f"  KQL WARN: ensure table {table_name} failed (non-fatal): {e}")
+
 def push_to_kql(df_pandas, table_name, mapping_name):
     """Push a pandas DataFrame to a KQL table via managed streaming ingestion."""
     if not KUSTO_QUERY_URI or not KUSTO_INGEST_URI:
         return False
     try:
+        _ensure_table_and_mapping(table_name)
         client = _get_or_create_kusto_client()
 
         ingestion_props = IngestionProperties(

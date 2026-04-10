@@ -1,1059 +1,849 @@
 {
-  "$schema": "https://pbiadx.powerbi.com/static/d/schema/72/dashboard.json",
-  "schema_version": 72,
-  "title": "Healthcare RTI Dashboard",
-  "pages": [
-    {
-      "id": "page-realtime-ops",
-      "name": "Real-Time Operations"
-    },
-    {
-      "id": "page-care-quality",
-      "name": "Care Quality & Gaps"
-    },
-    {
-      "id": "page-fraud-claims",
-      "name": "Fraud Detection & Claims"
-    },
-    {
-      "id": "page-sla-freshness",
-      "name": "SLA & Data Freshness"
+  "$schema": "https://dataexplorer.azure.com/static/d/schema/20/dashboard.json",
+  "autoRefresh": {
+    "enabled": true,
+    "defaultRefreshRate": {
+      "count": 30,
+      "unit": "seconds"
     }
-  ],
-  "tiles": [
-    {
-      "id": "tile-live-kpis",
-      "title": "Live Event Summary (5 min)",
-      "visualType": "card",
-      "pageId": "page-realtime-ops",
-      "layout": {
-        "x": 0,
-        "y": 0,
-        "width": 12,
-        "height": 4
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-live-kpis"
-      },
-      "description": "Live Event Summary (5 min)",
-      "visualOptions": {
-        "multiStat__textSize": "auto",
-        "multiStat__valueColumn": null,
-        "colorRulesDisabled": true,
-        "colorRules": []
-      }
-    },
-    {
-      "id": "tile-claims-volume-trend",
-      "title": "Claims Volume -- 6h Trend",
-      "visualType": "line",
-      "pageId": "page-realtime-ops",
-      "layout": {
-        "x": 0,
-        "y": 4,
-        "width": 8,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-claims-volume-trend"
-      },
-      "description": "Claims Volume -- 6h Trend",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-event-type-dist",
-      "title": "Event Type Distribution (1h)",
-      "visualType": "column",
-      "pageId": "page-realtime-ops",
-      "layout": {
-        "x": 8,
-        "y": 4,
-        "width": 4,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-event-type-distribution"
-      },
-      "description": "Event Type Distribution (1h)",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-fraud-score-dist",
-      "title": "Fraud Score Distribution (1h)",
-      "visualType": "bar",
-      "pageId": "page-realtime-ops",
-      "layout": {
-        "x": 0,
-        "y": 9,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-fraud-score-distribution"
-      },
-      "description": "Fraud Score Distribution (1h)",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-alert-velocity",
-      "title": "Alert Velocity -- Hourly Trend",
-      "visualType": "line",
-      "pageId": "page-realtime-ops",
-      "layout": {
-        "x": 6,
-        "y": 9,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-alert-velocity"
-      },
-      "description": "Alert Velocity -- Hourly Trend",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-care-gap-kpis",
-      "title": "Care Gap Summary (24h)",
-      "visualType": "card",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 0,
-        "y": 0,
-        "width": 12,
-        "height": 4
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-care-gap-kpis"
-      },
-      "description": "Care Gap Summary (24h)",
-      "visualOptions": {
-        "multiStat__textSize": "auto",
-        "multiStat__valueColumn": null,
-        "colorRulesDisabled": true,
-        "colorRules": []
-      }
-    },
-    {
-      "id": "tile-care-gap-by-measure",
-      "title": "Care Gaps by Measure",
-      "visualType": "bar",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 0,
-        "y": 4,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-care-gap-by-measure"
-      },
-      "description": "Care Gaps by Measure",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-care-gap-priority",
-      "title": "Alerts by Priority",
-      "visualType": "column",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 6,
-        "y": 4,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-care-gap-priority"
-      },
-      "description": "Alerts by Priority",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-overdue-gaps-table",
-      "title": "Most Overdue Care Gaps",
-      "visualType": "table",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 0,
-        "y": 9,
-        "width": 12,
-        "height": 6
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-overdue-care-gaps"
-      },
-      "description": "Most Overdue Care Gaps",
-      "visualOptions": {
-        "table__enableRenderLinks": true,
-        "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "table__renderLinks": [],
-        "colorRules": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-highcost-risk-tiers",
-      "title": "High-Cost Patient Risk Tiers",
-      "visualType": "bar",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 0,
-        "y": 15,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-highcost-risk-tiers"
-      },
-      "description": "High-Cost Patient Risk Tiers",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-highcost-trend",
-      "title": "Cost Trend Distribution",
-      "visualType": "column",
-      "pageId": "page-care-quality",
-      "layout": {
-        "x": 6,
-        "y": 15,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-highcost-cost-trend"
-      },
-      "description": "Cost Trend Distribution",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-fraud-kpis",
-      "title": "Fraud Detection Summary (24h)",
-      "visualType": "card",
-      "pageId": "page-fraud-claims",
-      "layout": {
-        "x": 0,
-        "y": 0,
-        "width": 12,
-        "height": 4
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-fraud-kpis"
-      },
-      "description": "Fraud Detection Summary (24h)",
-      "visualOptions": {
-        "multiStat__textSize": "auto",
-        "multiStat__valueColumn": null,
-        "colorRulesDisabled": true,
-        "colorRules": []
-      }
-    },
-    {
-      "id": "tile-fraud-trend",
-      "title": "Fraud Score Trend -- Hourly",
-      "visualType": "line",
-      "pageId": "page-fraud-claims",
-      "layout": {
-        "x": 0,
-        "y": 4,
-        "width": 8,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-fraud-trend"
-      },
-      "description": "Fraud Score Trend -- Hourly",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-fraud-by-claim-type",
-      "title": "Fraud Risk by Claim Type",
-      "visualType": "bar",
-      "pageId": "page-fraud-claims",
-      "layout": {
-        "x": 8,
-        "y": 4,
-        "width": 4,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-fraud-by-claim-type"
-      },
-      "description": "Fraud Risk by Claim Type",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-fraud-watchlist",
-      "title": "Fraud Watch List -- High Risk Claims",
-      "visualType": "table",
-      "pageId": "page-fraud-claims",
-      "layout": {
-        "x": 0,
-        "y": 9,
-        "width": 12,
-        "height": 6
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-fraud-watchlist"
-      },
-      "description": "Fraud Watch List -- High Risk Claims",
-      "visualOptions": {
-        "table__enableRenderLinks": true,
-        "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "table__renderLinks": [],
-        "colorRules": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-highcost-watchlist",
-      "title": "High-Cost Patient Watch List",
-      "visualType": "table",
-      "pageId": "page-fraud-claims",
-      "layout": {
-        "x": 0,
-        "y": 15,
-        "width": 12,
-        "height": 6
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-highcost-watchlist"
-      },
-      "description": "High-Cost Patient Watch List",
-      "visualOptions": {
-        "table__enableRenderLinks": true,
-        "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "table__renderLinks": [],
-        "colorRules": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-freshness-kpis",
-      "title": "Data Freshness -- All Tables",
-      "visualType": "table",
-      "pageId": "page-sla-freshness",
-      "layout": {
-        "x": 0,
-        "y": 0,
-        "width": 12,
-        "height": 6
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-data-freshness"
-      },
-      "description": "Data Freshness -- All Tables",
-      "visualOptions": {
-        "table__enableRenderLinks": true,
-        "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "table__renderLinks": [],
-        "colorRules": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-ingestion-rate",
-      "title": "Ingestion Rate -- 6h Trend (all tables)",
-      "visualType": "line",
-      "pageId": "page-sla-freshness",
-      "layout": {
-        "x": 0,
-        "y": 6,
-        "width": 12,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-ingestion-rate"
-      },
-      "description": "Ingestion Rate -- 6h Trend (all tables)",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-table-row-counts",
-      "title": "Table Row Counts",
-      "visualType": "bar",
-      "pageId": "page-sla-freshness",
-      "layout": {
-        "x": 0,
-        "y": 11,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-table-row-counts"
-      },
-      "description": "Table Row Counts",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    },
-    {
-      "id": "tile-facility-volume",
-      "title": "Event Volume by Facility (24h)",
-      "visualType": "bar",
-      "pageId": "page-sla-freshness",
-      "layout": {
-        "x": 6,
-        "y": 11,
-        "width": 6,
-        "height": 5
-      },
-      "queryRef": {
-        "kind": "query",
-        "queryId": "q-facility-volume"
-      },
-      "description": "Event Volume by Facility (24h)",
-      "visualOptions": {
-        "multipleYAxes": {
-          "base": {
-            "id": "-1",
-            "label": "",
-            "columns": [],
-            "yAxisMaximumValue": null,
-            "yAxisMinimumValue": null,
-            "yAxisScale": "linear",
-            "horizontalLines": []
-          },
-          "additional": [],
-          "showMultiplePanels": false
-        },
-        "seriesColors": {},
-        "hideLegend": false,
-        "legendLocation": "bottom",
-        "xColumnTitle": "",
-        "xColumn": null,
-        "yColumns": null,
-        "seriesColumns": null,
-        "xAxisScale": "linear",
-        "verticalLine": "",
-        "crossFilterDisabled": false,
-        "drillthroughDisabled": false,
-        "forceAxisTicks": false,
-        "crossFilter": [],
-        "drillthrough": [],
-        "selectedDataOnLoad": {
-          "all": true,
-          "limit": 10
-        }
-      }
-    }
-  ],
+  },
   "dataSources": [
     {
-      "kind": "kusto-trident",
       "id": "ds-healthcare-eventhouse",
       "name": "__KQL_DB_NAME__",
+      "kind": "kusto",
       "clusterUri": "__EVENTHOUSE_QUERY_URI__",
-      "databaseArtifactId": "__KQL_DB_ID__"
+      "database": "__KQL_DB_NAME__",
+      "scopeId": "__KQL_DB_ID__"
     }
   ],
-  "queries": [
+  "pages": [
     {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | where event_timestamp > ago(5m) | summarize claims = count()),\n  (adt_events | where event_timestamp > ago(5m) | summarize adt = count()),\n  (rx_events | where event_timestamp > ago(5m) | summarize rx = count()),\n  (fraud_scores | where score_timestamp > ago(5m) | summarize fraud = count()),\n  (care_gap_alerts | where alert_timestamp > ago(5m) | summarize gaps = count()),\n  (highcost_alerts | where alert_timestamp > ago(5m) | summarize highcost = count())\n| summarize\n    claims_5m = sum(claims),\n    adt_events_5m = sum(adt),\n    rx_events_5m = sum(rx),\n    fraud_alerts_5m = sum(fraud),\n    care_gap_alerts_5m = sum(gaps),\n    highcost_alerts_5m = sum(highcost)",
-      "id": "q-live-kpis",
-      "usedVariables": []
+      "name": "Real-Time Operations",
+      "id": "page-realtime-ops",
+      "tiles": [
+        {
+          "id": "tile-live-kpis",
+          "title": "Live Event Summary (5 min)",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 4
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-live-kpis"
+          },
+          "visualType": "card",
+          "visualOptions": {
+            "multiStat__textSize": "auto",
+            "multiStat__valueColumn": null,
+            "colorRulesDisabled": true,
+            "colorRules": []
+          }
+        },
+        {
+          "id": "tile-claims-volume-trend",
+          "title": "Claims Volume -- 6h Trend",
+          "layout": {
+            "x": 0,
+            "y": 4,
+            "width": 8,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-claims-volume-trend"
+          },
+          "visualType": "line",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-event-type-dist",
+          "title": "Event Type Distribution (1h)",
+          "layout": {
+            "x": 8,
+            "y": 4,
+            "width": 4,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-event-type-distribution"
+          },
+          "visualType": "column",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-fraud-score-dist",
+          "title": "Fraud Score Distribution (1h)",
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-fraud-score-distribution"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-alert-velocity",
+          "title": "Alert Velocity -- Hourly Trend",
+          "layout": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-alert-velocity"
+          },
+          "visualType": "line",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        }
+      ]
     },
     {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims' | project event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt' | project event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx' | project event_timestamp, table_name)\n| summarize\n    claims = countif(table_name == 'claims'),\n    adt_events = countif(table_name == 'adt'),\n    rx_events = countif(table_name == 'rx')\n    by time_bucket = bin(event_timestamp, 5m)\n| order by time_bucket asc",
-      "id": "q-claims-volume-trend",
-      "usedVariables": []
+      "name": "Care Quality & Gaps",
+      "id": "page-care-quality",
+      "tiles": [
+        {
+          "id": "tile-care-gap-kpis",
+          "title": "Care Gap Summary (24h)",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 4
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-care-gap-kpis"
+          },
+          "visualType": "card",
+          "visualOptions": {
+            "multiStat__textSize": "auto",
+            "multiStat__valueColumn": null,
+            "colorRulesDisabled": true,
+            "colorRules": []
+          }
+        },
+        {
+          "id": "tile-care-gap-by-measure",
+          "title": "Care Gaps by Measure",
+          "layout": {
+            "x": 0,
+            "y": 4,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-care-gap-by-measure"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-care-gap-priority",
+          "title": "Alerts by Priority",
+          "layout": {
+            "x": 6,
+            "y": 4,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-care-gap-priority"
+          },
+          "visualType": "column",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-overdue-gaps-table",
+          "title": "Most Overdue Care Gaps",
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 6
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-overdue-care-gaps"
+          },
+          "visualType": "table",
+          "visualOptions": {
+            "table__enableRenderLinks": true,
+            "colorRulesDisabled": true,
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "table__renderLinks": [],
+            "colorRules": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-highcost-risk-tiers",
+          "title": "High-Cost Patient Risk Tiers",
+          "layout": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-highcost-risk-tiers"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-highcost-trend",
+          "title": "Cost Trend Distribution",
+          "layout": {
+            "x": 6,
+            "y": 15,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-highcost-cost-trend"
+          },
+          "visualType": "column",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        }
+      ]
     },
     {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | where event_timestamp > ago(1h) | project event_type),\n  (adt_events | where event_timestamp > ago(1h) | project event_type),\n  (rx_events | where event_timestamp > ago(1h) | project event_type)\n| summarize event_count = count() by event_type\n| order by event_count desc",
-      "id": "q-event-type-distribution",
-      "usedVariables": []
+      "name": "Fraud Detection & Claims",
+      "id": "page-fraud-claims",
+      "tiles": [
+        {
+          "id": "tile-fraud-kpis",
+          "title": "Fraud Detection Summary (24h)",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 4
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-fraud-kpis"
+          },
+          "visualType": "card",
+          "visualOptions": {
+            "multiStat__textSize": "auto",
+            "multiStat__valueColumn": null,
+            "colorRulesDisabled": true,
+            "colorRules": []
+          }
+        },
+        {
+          "id": "tile-fraud-trend",
+          "title": "Fraud Score Trend -- Hourly",
+          "layout": {
+            "x": 0,
+            "y": 4,
+            "width": 8,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-fraud-trend"
+          },
+          "visualType": "line",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-fraud-by-claim-type",
+          "title": "Fraud Risk by Claim Type",
+          "layout": {
+            "x": 8,
+            "y": 4,
+            "width": 4,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-fraud-by-claim-type"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-fraud-watchlist",
+          "title": "Fraud Watch List -- High Risk Claims",
+          "layout": {
+            "x": 0,
+            "y": 9,
+            "width": 12,
+            "height": 6
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-fraud-watchlist"
+          },
+          "visualType": "table",
+          "visualOptions": {
+            "table__enableRenderLinks": true,
+            "colorRulesDisabled": true,
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "table__renderLinks": [],
+            "colorRules": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-highcost-watchlist",
+          "title": "High-Cost Patient Watch List",
+          "layout": {
+            "x": 0,
+            "y": 15,
+            "width": 12,
+            "height": 6
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-highcost-watchlist"
+          },
+          "visualType": "table",
+          "visualOptions": {
+            "table__enableRenderLinks": true,
+            "colorRulesDisabled": true,
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "table__renderLinks": [],
+            "colorRules": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        }
+      ]
     },
     {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "fraud_scores\n| where score_timestamp > ago(1h)\n| summarize claim_count = count() by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc",
-      "id": "q-fraud-score-distribution",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (fraud_scores | where score_timestamp > ago(24h) | extend alert_type = 'fraud' | project ts = score_timestamp, alert_type),\n  (care_gap_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'care_gap' | project ts = alert_timestamp, alert_type),\n  (highcost_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'highcost' | project ts = alert_timestamp, alert_type)\n| summarize\n    fraud_alerts = countif(alert_type == 'fraud'),\n    care_gap_alerts = countif(alert_type == 'care_gap'),\n    highcost_alerts = countif(alert_type == 'highcost')\n    by hour_bucket = bin(ts, 1h)\n| order by hour_bucket asc",
-      "id": "q-alert-velocity",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize\n    total_alerts = count(),\n    unique_patients = dcount(patient_id),\n    unique_measures = dcount(measure_id),\n    critical_alerts = countif(alert_priority == 'critical'),\n    high_alerts = countif(alert_priority == 'high'),\n    avg_days_overdue = round(avg(gap_days_overdue), 0),\n    max_days_overdue = max(gap_days_overdue)",
-      "id": "q-care-gap-kpis",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by measure_name\n| order by alert_count desc\n| take 15",
-      "id": "q-care-gap-by-measure",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by alert_priority\n| order by case(\n    alert_priority == 'critical', 1,\n    alert_priority == 'high', 2,\n    alert_priority == 'medium', 3,\n    4) asc",
-      "id": "q-care-gap-priority",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| project\n    alert_timestamp,\n    patient_id,\n    facility_name,\n    measure_name,\n    gap_days_overdue,\n    alert_priority,\n    alert_text\n| order by gap_days_overdue desc\n| take 50",
-      "id": "q-overdue-care-gaps",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc",
-      "id": "q-highcost-risk-tiers",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by cost_trend\n| order by patient_count desc",
-      "id": "q-highcost-cost-trend",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    total_scored = count(),\n    high_risk_claims = countif(risk_tier in ('high', 'critical')),\n    critical_claims = countif(risk_tier == 'critical'),\n    avg_fraud_score = round(avg(fraud_score), 3),\n    max_fraud_score = round(max(fraud_score), 3),\n    total_claim_amount = round(sum(claim_amount), 2),\n    high_risk_amount = round(sumif(claim_amount, risk_tier in ('high', 'critical')), 2)",
-      "id": "q-fraud-kpis",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    avg_fraud_score = round(avg(fraud_score), 3),\n    total_claims = count(),\n    high_risk = countif(risk_tier in ('high', 'critical'))\n    by hour_bucket = bin(score_timestamp, 1h)\n| extend high_risk_pct = round(todouble(high_risk) / todouble(total_claims) * 100, 1)\n| order by hour_bucket asc",
-      "id": "q-fraud-trend",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| join kind=inner (claims_events | project claim_id, event_type) on $left.claim_id == $right.claim_id\n| summarize avg_fraud_score = round(avg(fraud_score), 3), claim_count = count() by event_type\n| order by avg_fraud_score desc",
-      "id": "q-fraud-by-claim-type",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    score_timestamp,\n    claim_id,\n    patient_id,\n    provider_id,\n    claim_amount,\n    fraud_score,\n    fraud_flags,\n    risk_tier\n| order by fraud_score desc\n| take 50",
-      "id": "q-fraud-watchlist",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    alert_timestamp,\n    patient_id,\n    rolling_spend_30d,\n    rolling_spend_90d,\n    ed_visits_30d,\n    readmission_flag,\n    risk_tier,\n    cost_trend\n| order by rolling_spend_90d desc\n| take 50",
-      "id": "q-highcost-watchlist",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize last_event = max(score_timestamp), row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'highcost_alerts')\n| extend minutes_ago = round(datetime_diff('minute', now(), last_event), 0)\n| project table_name, row_count, last_event, minutes_ago\n| order by table_name asc",
-      "id": "q-data-freshness",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims_events' | project ts = event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt_events' | project ts = event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx_events' | project ts = event_timestamp, table_name),\n  (fraud_scores | where score_timestamp > ago(6h) | extend table_name = 'fraud_scores' | project ts = score_timestamp, table_name),\n  (care_gap_alerts | where alert_timestamp > ago(6h) | extend table_name = 'care_gap_alerts' | project ts = alert_timestamp, table_name),\n  (highcost_alerts | where alert_timestamp > ago(6h) | extend table_name = 'highcost_alerts' | project ts = alert_timestamp, table_name)\n| summarize\n    claims_events = countif(table_name == 'claims_events'),\n    adt_events = countif(table_name == 'adt_events'),\n    rx_events = countif(table_name == 'rx_events'),\n    fraud_scores = countif(table_name == 'fraud_scores'),\n    care_gap_alerts = countif(table_name == 'care_gap_alerts'),\n    highcost_alerts = countif(table_name == 'highcost_alerts')\n    by time_bucket = bin(ts, 5m)\n| order by time_bucket asc",
-      "id": "q-ingestion-rate",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "union\n  (claims_events | summarize row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize row_count = count() | extend table_name = 'highcost_alerts')\n| order by row_count desc",
-      "id": "q-table-row-counts",
-      "usedVariables": []
-    },
-    {
-      "dataSource": {
-        "kind": "inline",
-        "dataSourceId": "ds-healthcare-eventhouse"
-      },
-      "text": "adt_events\n| where event_timestamp > ago(24h)\n| summarize event_count = count() by facility_name\n| order by event_count desc\n| take 15",
-      "id": "q-facility-volume",
-      "usedVariables": []
+      "name": "SLA & Data Freshness",
+      "id": "page-sla-freshness",
+      "tiles": [
+        {
+          "id": "tile-freshness-kpis",
+          "title": "Data Freshness -- All Tables",
+          "layout": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 6
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-data-freshness"
+          },
+          "visualType": "table",
+          "visualOptions": {
+            "table__enableRenderLinks": true,
+            "colorRulesDisabled": true,
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "table__renderLinks": [],
+            "colorRules": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-ingestion-rate",
+          "title": "Ingestion Rate -- 6h Trend (all tables)",
+          "layout": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-ingestion-rate"
+          },
+          "visualType": "line",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-table-row-counts",
+          "title": "Table Row Counts",
+          "layout": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-table-row-counts"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        },
+        {
+          "id": "tile-facility-volume",
+          "title": "Event Volume by Facility (24h)",
+          "layout": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          },
+          "queryRef": {
+            "kind": "query",
+            "queryId": "q-facility-volume"
+          },
+          "visualType": "bar",
+          "visualOptions": {
+            "multipleYAxes": {
+              "base": {
+                "id": "-1",
+                "label": "",
+                "columns": [],
+                "yAxisMaximumValue": null,
+                "yAxisMinimumValue": null,
+                "yAxisScale": "linear",
+                "horizontalLines": []
+              },
+              "additional": [],
+              "showMultiplePanels": false
+            },
+            "seriesColors": {},
+            "hideLegend": false,
+            "legendLocation": "bottom",
+            "xColumnTitle": "",
+            "xColumn": null,
+            "yColumns": null,
+            "seriesColumns": null,
+            "xAxisScale": "linear",
+            "verticalLine": "",
+            "crossFilterDisabled": false,
+            "drillthroughDisabled": false,
+            "forceAxisTicks": false,
+            "crossFilter": [],
+            "drillthrough": [],
+            "selectedDataOnLoad": {
+              "all": true,
+              "limit": 10
+            }
+          }
+        }
+      ]
     }
   ],
   "parameters": [
@@ -1074,6 +864,106 @@
       }
     }
   ],
-  "baseQueries": [],
-  "pagesNavWidth": 274
+  "queries": [
+    {
+      "id": "q-live-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(5m) | summarize claims = count()),\n  (adt_events | where event_timestamp > ago(5m) | summarize adt = count()),\n  (rx_events | where event_timestamp > ago(5m) | summarize rx = count()),\n  (fraud_scores | where score_timestamp > ago(5m) | summarize fraud = count()),\n  (care_gap_alerts | where alert_timestamp > ago(5m) | summarize gaps = count()),\n  (highcost_alerts | where alert_timestamp > ago(5m) | summarize highcost = count())\n| summarize\n    claims_5m = sum(claims),\n    adt_events_5m = sum(adt),\n    rx_events_5m = sum(rx),\n    fraud_alerts_5m = sum(fraud),\n    care_gap_alerts_5m = sum(gaps),\n    highcost_alerts_5m = sum(highcost)"
+    },
+    {
+      "id": "q-claims-volume-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims' | project event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt' | project event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx' | project event_timestamp, table_name)\n| summarize\n    claims = countif(table_name == 'claims'),\n    adt_events = countif(table_name == 'adt'),\n    rx_events = countif(table_name == 'rx')\n    by time_bucket = bin(event_timestamp, 5m)\n| order by time_bucket asc"
+    },
+    {
+      "id": "q-event-type-distribution",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(1h) | project event_type),\n  (adt_events | where event_timestamp > ago(1h) | project event_type),\n  (rx_events | where event_timestamp > ago(1h) | project event_type)\n| summarize event_count = count() by event_type\n| order by event_count desc"
+    },
+    {
+      "id": "q-fraud-score-distribution",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(1h)\n| summarize claim_count = count() by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-alert-velocity",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (fraud_scores | where score_timestamp > ago(24h) | extend alert_type = 'fraud' | project ts = score_timestamp, alert_type),\n  (care_gap_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'care_gap' | project ts = alert_timestamp, alert_type),\n  (highcost_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'highcost' | project ts = alert_timestamp, alert_type)\n| summarize\n    fraud_alerts = countif(alert_type == 'fraud'),\n    care_gap_alerts = countif(alert_type == 'care_gap'),\n    highcost_alerts = countif(alert_type == 'highcost')\n    by hour_bucket = bin(ts, 1h)\n| order by hour_bucket asc"
+    },
+    {
+      "id": "q-care-gap-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize\n    total_alerts = count(),\n    unique_patients = dcount(patient_id),\n    unique_measures = dcount(measure_id),\n    critical_alerts = countif(alert_priority == 'critical'),\n    high_alerts = countif(alert_priority == 'high'),\n    avg_days_overdue = round(avg(gap_days_overdue), 0),\n    max_days_overdue = max(gap_days_overdue)"
+    },
+    {
+      "id": "q-care-gap-by-measure",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by measure_name\n| order by alert_count desc\n| take 15"
+    },
+    {
+      "id": "q-care-gap-priority",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by alert_priority\n| order by case(\n    alert_priority == 'critical', 1,\n    alert_priority == 'high', 2,\n    alert_priority == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-overdue-care-gaps",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| project\n    alert_timestamp,\n    patient_id,\n    facility_name,\n    measure_name,\n    gap_days_overdue,\n    alert_priority,\n    alert_text\n| order by gap_days_overdue desc\n| take 50"
+    },
+    {
+      "id": "q-highcost-risk-tiers",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+    },
+    {
+      "id": "q-highcost-cost-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by cost_trend\n| order by patient_count desc"
+    },
+    {
+      "id": "q-fraud-kpis",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    total_scored = count(),\n    high_risk_claims = countif(risk_tier in ('high', 'critical')),\n    critical_claims = countif(risk_tier == 'critical'),\n    avg_fraud_score = round(avg(fraud_score), 3),\n    max_fraud_score = round(max(fraud_score), 3),\n    total_claim_amount = round(sum(claim_amount), 2),\n    high_risk_amount = round(sumif(claim_amount, risk_tier in ('high', 'critical')), 2)"
+    },
+    {
+      "id": "q-fraud-trend",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    avg_fraud_score = round(avg(fraud_score), 3),\n    total_claims = count(),\n    high_risk = countif(risk_tier in ('high', 'critical'))\n    by hour_bucket = bin(score_timestamp, 1h)\n| extend high_risk_pct = round(todouble(high_risk) / todouble(total_claims) * 100, 1)\n| order by hour_bucket asc"
+    },
+    {
+      "id": "q-fraud-by-claim-type",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| join kind=inner (claims_events | project claim_id, event_type) on $left.claim_id == $right.claim_id\n| summarize avg_fraud_score = round(avg(fraud_score), 3), claim_count = count() by event_type\n| order by avg_fraud_score desc"
+    },
+    {
+      "id": "q-fraud-watchlist",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    score_timestamp,\n    claim_id,\n    patient_id,\n    provider_id,\n    claim_amount,\n    fraud_score,\n    fraud_flags,\n    risk_tier\n| order by fraud_score desc\n| take 50"
+    },
+    {
+      "id": "q-highcost-watchlist",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    alert_timestamp,\n    patient_id,\n    rolling_spend_30d,\n    rolling_spend_90d,\n    ed_visits_30d,\n    readmission_flag,\n    risk_tier,\n    cost_trend\n| order by rolling_spend_90d desc\n| take 50"
+    },
+    {
+      "id": "q-data-freshness",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize last_event = max(event_timestamp), row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize last_event = max(score_timestamp), row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize last_event = max(alert_timestamp), row_count = count() | extend table_name = 'highcost_alerts')\n| extend minutes_ago = round(datetime_diff('minute', now(), last_event), 0)\n| project table_name, row_count, last_event, minutes_ago\n| order by table_name asc"
+    },
+    {
+      "id": "q-ingestion-rate",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims_events' | project ts = event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt_events' | project ts = event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx_events' | project ts = event_timestamp, table_name),\n  (fraud_scores | where score_timestamp > ago(6h) | extend table_name = 'fraud_scores' | project ts = score_timestamp, table_name),\n  (care_gap_alerts | where alert_timestamp > ago(6h) | extend table_name = 'care_gap_alerts' | project ts = alert_timestamp, table_name),\n  (highcost_alerts | where alert_timestamp > ago(6h) | extend table_name = 'highcost_alerts' | project ts = alert_timestamp, table_name)\n| summarize\n    claims_events = countif(table_name == 'claims_events'),\n    adt_events = countif(table_name == 'adt_events'),\n    rx_events = countif(table_name == 'rx_events'),\n    fraud_scores = countif(table_name == 'fraud_scores'),\n    care_gap_alerts = countif(table_name == 'care_gap_alerts'),\n    highcost_alerts = countif(table_name == 'highcost_alerts')\n    by time_bucket = bin(ts, 5m)\n| order by time_bucket asc"
+    },
+    {
+      "id": "q-table-row-counts",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "union\n  (claims_events | summarize row_count = count() | extend table_name = 'claims_events'),\n  (adt_events | summarize row_count = count() | extend table_name = 'adt_events'),\n  (rx_events | summarize row_count = count() | extend table_name = 'rx_events'),\n  (fraud_scores | summarize row_count = count() | extend table_name = 'fraud_scores'),\n  (care_gap_alerts | summarize row_count = count() | extend table_name = 'care_gap_alerts'),\n  (highcost_alerts | summarize row_count = count() | extend table_name = 'highcost_alerts')\n| order by row_count desc"
+    },
+    {
+      "id": "q-facility-volume",
+      "dataSourceId": "ds-healthcare-eventhouse",
+      "text": "adt_events\n| where event_timestamp > ago(24h)\n| summarize event_count = count() by facility_name\n| order by event_count desc\n| take 15"
+    }
+  ]
 }

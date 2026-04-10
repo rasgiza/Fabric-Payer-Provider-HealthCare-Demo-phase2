@@ -293,7 +293,7 @@
       "kind": "kusto",
       "clusterUri": "__EVENTHOUSE_QUERY_URI__",
       "database": "__KQL_DB_NAME__",
-      "scopeId": "__EVENTHOUSE_ID__"
+      "scopeId": "__KQL_DB_ID__"
     }
   ],
   "queries": [

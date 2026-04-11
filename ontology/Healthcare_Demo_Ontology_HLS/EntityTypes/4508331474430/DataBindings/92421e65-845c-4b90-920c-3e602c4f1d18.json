@@ -37,7 +37,7 @@
         "targetPropertyId": "1214896408914925369"
       },
       {
-        "sourceColumnName": "sequence_number",
+        "sourceColumnName": "diagnosis_sequence",
         "targetPropertyId": "1214896384726243973"
       },
       {

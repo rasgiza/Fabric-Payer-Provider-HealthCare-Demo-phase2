@@ -49,7 +49,7 @@
         "targetPropertyId": "1214894203965715057"
       },
       {
-        "sourceColumnName": "pharmacy_id",
+        "sourceColumnName": "pharmacy_type",
         "targetPropertyId": "1214894156432387370"
       },
       {

@@ -62,65 +62,57 @@ Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the
 
 ## Graph Agent (HealthcareGraphAgent)
 
-Open **HealthcareGraphAgent** in your Fabric workspace. This agent navigates the Healthcare_Demo_Ontology_HLS graph — tracing entity relationships, following care pathways, and telling patient stories. Unlike HealthcareHLSAgent (which does SQL aggregations), the Graph Agent excels at **entity lookups** and **relationship traversal**.
+Open **HealthcareGraphAgent** in your Fabric workspace. This agent navigates the Healthcare_Demo_Ontology_HLS graph — tracing relationships between providers, payers, claims, encounters, and patients. Unlike HealthcareHLSAgent (which does SQL aggregations), the Graph Agent excels at **entity profiles**, **relationship traversal**, and **network exploration**.
 
 > **When to use which agent:**
 > - **HealthcareHLSAgent** → "How many?", "What rate?", "Top 10", "Monthly trend" (aggregations)
-> - **HealthcareGraphAgent** → "What happened to this patient?", "Who treated them?", "How are these entities connected?" (traversals)
+> - **HealthcareGraphAgent** → "Show me this provider's network", "Which payers denied these claims?", "Trace this claim end-to-end" (traversals)
 
-### Patient Care Stories
+### Provider Operations & Network
 | # | Question |
 |---|----------|
-| 1 | Tell me the full story of patient PAT0000001 — encounters, diagnoses, medications, claims, providers, everything. |
-| 2 | Show me the full care pathway for patient PAT0000005 — from their first encounter through all claims, prescriptions, and diagnoses. |
-| 3 | Give me the full clinical picture of patient PAT0000040 — vitals, medications, adherence, diagnoses, and encounters. |
-| 4 | A patient was readmitted within days of discharge. Walk me through what happened — the index admission, discharge, readmission, diagnoses, claims, and who was involved. |
+| 1 | Give me a full profile of provider PRV0000010 — patients treated, encounters, claims submitted, and prescriptions written. |
+| 2 | Which providers have submitted claims that were denied? Show each provider with their denied claims, denial reasons, payers, and patients. |
+| 3 | What does Dr. Smith's patient panel look like? Show encounters, diagnoses, and outcomes for their patients. |
+| 4 | Show me prescribing patterns for Cardiology providers — what medications, which patients, and which payers cover the prescriptions. |
+| 5 | Which providers treat patients with high readmission risk? Show the provider, their high-risk patients, and conditions. |
+| 6 | Which providers serve patients in socially vulnerable communities? Show the SDOH profile alongside provider details. |
 
-### Clinical Context & Vitals
+### Payer Portfolio & Coverage
 | # | Question |
 |---|----------|
-| 5 | What were the vitals for patient PAT0000012? Were any abnormal? |
-| 6 | What diagnoses does patient PAT0000010 have? Are any of them chronic? |
-| 7 | I have a patient named Elizabeth Brown, age 62. What medications is she on, who prescribed them, and is she adherent? |
-| 8 | Is patient PAT0000025 adherent to their medications? Show me their adherence by drug class. |
+| 7 | Show me all claims for payer Aetna — which providers submitted them, which patients, and what were the outcomes. |
+| 8 | Which payers have the most denied claims? For each payer show the denials with provider, patient, encounter, and denial reason. |
+| 9 | What prescriptions does each payer cover? Show the medication, prescribing provider, and patient. |
+| 10 | Show me the provider network that bills payer BlueCross — which providers submit claims and for what encounter types. |
+| 11 | Which payers cover patients in high SDOH risk areas? Show the payer, the patients, and their social risk factors. |
 
-### Provider & Encounter Relationships
+### Claims & Financial Investigation
 | # | Question |
 |---|----------|
-| 9 | Who is the provider that treated patient PAT0000050 and what other patients have they treated? |
-| 10 | Which patients are connected to Dr. Smith? Show me all their encounters and outcomes. |
-| 11 | Show me everything connected to encounter ENC0005678 — I want the complete picture. |
-| 12 | What prescriptions originated from inpatient encounters for patient PAT0000008? |
+| 12 | Trace claim CLM0009999 end-to-end — from patient through encounter, provider, and payer. |
+| 13 | Show me all denied claims with the complete story — which provider submitted, to which payer, for which patient, and why denied. |
+| 14 | What claims are linked to encounter ENC0001234? Show the financial picture including payer and provider. |
+| 15 | Show me denied claims for high-risk readmission patients — which providers and payers are involved. |
+| 16 | Show me high-cost encounters — who was the provider, what diagnoses, what payer, and was the claim denied. |
 
-### Claims, Payers & Financial Traversal
+### Provider-Payer Network Analysis
 | # | Question |
 |---|----------|
-| 13 | Which payer covers the claims for patient PAT0000015 and were any denied? |
-| 14 | What claims are linked to encounter ENC0001234 and what's the financial picture? |
-| 15 | Trace the complete journey of claim CLM0009999 from patient to payer. |
-| 16 | Show me denied claims and the full story behind each — who submitted, what patient, what encounter, what payer. |
+| 17 | How are providers and payers connected through claims? Show me the provider-payer claims network. |
+| 18 | Which chronic medications are prescribed across the provider network and which payers reimburse them. |
+| 19 | Show me the relationship between claim denials and patient diagnoses — what conditions are associated with denied claims. |
+| 20 | Trace prescription costs by payer — which payers bear the highest prescription burden and for what drug classes. |
 
-### Risk & Intervention Targets
+### Clinical Operations & Interventions
 | # | Question |
 |---|----------|
-| 17 | Show me patients with high readmission risk and their full clinical context. |
-| 18 | Find patients with high readmission risk who live in high SDOH risk areas — these are our most vulnerable. |
-| 19 | Show me patients who are non-adherent to chronic medications and also have high readmission risk — these are our biggest intervention targets. |
-| 20 | Which payers are associated with denied claims for high-risk readmission patients? |
+| 21 | Show me patients with poor medication adherence — who are their providers and which payers cover them? These are intervention opportunities. |
+| 22 | Show me patients with abnormal vitals — who are their treating providers and what diagnoses do they have. |
+| 23 | Find our most vulnerable population — patients in high SDOH risk areas who are non-adherent with high readmission risk. Show providers and payers involved. |
+| 24 | What is the overall denial rate by payer or the average cost per provider across the network? |
 
-### SDOH & Community Health
-| # | Question |
-|---|----------|
-| 21 | What is the SDOH profile for patient PAT0000030 and how might it affect their care? |
-| 22 | I want to understand the relationship between a patient's diagnoses and their claims — do chronic conditions lead to more denials? |
-
-### Medication Prescribing Patterns
-| # | Question |
-|---|----------|
-| 23 | Which providers prescribe chronic medications and to which patients? |
-| 24 | Tell me about the sickest patients — who has the most encounters, most diagnoses, and highest costs? |
-
-> **Note:** Question 24 involves aggregation — the graph agent will explain that counts/rankings require HealthcareHLSAgent and offer to show individual patient stories instead. This demonstrates the agent's ability to redirect to the right tool.
+> **Note:** Question 24 involves aggregation — the graph agent will explain that rates/rankings require HealthcareHLSAgent and offer to explore specific payers or providers instead. This demonstrates the agent's ability to redirect to the right tool.
 
 ---
 

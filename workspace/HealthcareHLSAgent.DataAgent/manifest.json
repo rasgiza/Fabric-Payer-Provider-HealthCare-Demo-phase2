@@ -18,10 +18,6 @@
       "payloadType": "InlineBase64"
     },
     {
-      "path": "Files/Config/draft/semantic-model-HealthcareDemoHLS/datasource.json",
-      "payloadType": "InlineBase64"
-    },
-    {
       "path": "Files/Config/publish_info.json",
       "payloadType": "InlineBase64"
     },
@@ -35,10 +31,6 @@
     },
     {
       "path": "Files/Config/published/lakehouse-tables-lh_gold_curated/fewshots.json",
-      "payloadType": "InlineBase64"
-    },
-    {
-      "path": "Files/Config/published/semantic-model-HealthcareDemoHLS/datasource.json",
       "payloadType": "InlineBase64"
     },
     {

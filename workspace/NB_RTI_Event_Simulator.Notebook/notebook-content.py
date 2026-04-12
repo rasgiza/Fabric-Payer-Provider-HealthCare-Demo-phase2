@@ -50,6 +50,32 @@ print("NB_RTI_Event_Simulator: Starting...")
 
 # CELL **{"language":"python"}**
 
+# ---------- Attach default lakehouse (self-healing) ----------
+# When run via notebookutils.notebook.run(), the child notebook may not
+# inherit the caller's lakehouse context. Discover and attach lh_gold_curated
+# so spark.table("lh_gold_curated.xxx") resolves correctly.
+import requests as _req
+_ws_id = notebookutils.runtime.context.get("currentWorkspaceId", "")
+_tok = notebookutils.credentials.getToken("pbi")
+_hdr = {"Authorization": f"Bearer {_tok}"}
+_lh_resp = _req.get(f"https://api.fabric.microsoft.com/v1/workspaces/{_ws_id}/lakehouses", headers=_hdr)
+if _lh_resp.status_code == 200:
+    for _lh in _lh_resp.json().get("value", []):
+        if _lh["displayName"] == "lh_gold_curated":
+            _lh_id = _lh["id"]
+            notebookutils.lakehouse.setDefaultLakehouse(_ws_id, _lh_id)
+            print(f"  Attached lh_gold_curated ({_lh_id[:8]}...)")
+            break
+    else:
+        print("  WARNING: lh_gold_curated not found in workspace")
+else:
+    print(f"  WARNING: Could not list lakehouses (HTTP {_lh_resp.status_code})")
+del _req, _ws_id, _tok, _hdr, _lh_resp
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
 %pip install azure-kusto-data azure-kusto-ingest azure-core>=1.31.0 --quiet
 
 # METADATA **{"language":"python"}**

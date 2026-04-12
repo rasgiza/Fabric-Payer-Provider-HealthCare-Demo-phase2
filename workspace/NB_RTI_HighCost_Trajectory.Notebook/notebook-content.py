@@ -41,7 +41,7 @@ print("NB_RTI_HighCost_Trajectory: Starting...")
 
 # CELL **{"language":"python"}**
 
-%pip install azure-kusto-data azure-kusto-ingest "azure-core>=1.31.0" --quiet
+%pip install azure-kusto-data azure-kusto-ingest azure-core>=1.31.0 --quiet
 
 # METADATA **{"language":"python"}**
 

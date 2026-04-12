@@ -1,13 +1,13 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
   "namespace": "usertypes",
-  "id": "4100000000000000004",
-  "name": "vitalsDuringEncounter",
-  "namespaceType": "Custom",
+  "id": "1214650000000000000",
+  "name": "prescribedBy",
+  "namespaceType": "Imported",
   "source": {
-    "entityTypeId": "296512183960612"
+    "entityTypeId": "217560195183424"
   },
   "target": {
-    "entityTypeId": "164135924096088"
+    "entityTypeId": "230620448405276"
   }
 }

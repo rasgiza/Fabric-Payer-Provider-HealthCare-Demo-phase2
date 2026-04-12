@@ -42,7 +42,7 @@ For each: select the entity -> click **Delete** (or the trash icon).
 
 You should have **10 entity types** remaining.
 
-> **Note:** The 2 additional entity types (MedicationAdherence, Vitals) and their 4 relationships are deployed via the API script (`deploy_ontology.py`), which reads them from the manifest. The UI flow above creates the 10 core entities; the API adds the remaining 2.
+> **Note:** The 2 additional entity types (MedicationAdherence, Vitals) and their 3 relationships (adherenceFor, adherenceMedication, vitalsTakenFor) are deployed via the API script (`deploy_ontology.py`), which reads them from the manifest. The UI flow above creates the 10 core entities + 15 relationships; the API adds the remaining 2 entities + 3 relationships = **12 entities, 18 relationships** total.
 
 ---
 
@@ -384,7 +384,7 @@ These properties are auto-imported when you create the ontology from the semanti
 For automated deployment (CI/CD, repeatable environments), the API script deploys the ontology and its linked graph in one step:
 
 ```bash
-python 05_deploy_ontology.py        # Deploys ontology (12 entities, 17 relationships) + populates auto-provisioned graph
+python 05_deploy_ontology.py        # Deploys ontology (12 entities, 18 relationships) + populates auto-provisioned graph
 ```
 
 When Fabric creates an ontology via API, it auto-provisions a Graph child item. `deploy_ontology.py` Step 9 detects this child, pushes the GraphModel-format definition to it, and triggers data loading — producing the same linked ontology+graph as the UI approach.

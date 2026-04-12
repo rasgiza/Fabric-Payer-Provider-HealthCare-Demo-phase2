@@ -110,7 +110,8 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Notebooks (7)** | 5 ETL + `NB_Generate_Sample_Data` + `NB_Generate_Incremental_Data` | Spark-based data processing |
 | **Pipelines (2)** | `PL_Healthcare_Full_Load`, `PL_Healthcare_Master` | Orchestration with full/incremental modes |
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
-| **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent with healthcare knowledge |
+| **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent — lakehouse + semantic model (SQL aggregations) |
+| **Graph Agent** | `HealthcareGraphAgent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **manual UI setup** (see guide below) |
 | **Eventhouse** | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine |
 | **KQL Database** | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) |
@@ -238,7 +239,7 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 7. **Deploy Stage 3 — Notebooks** — 12 notebooks (5 ETL + 2 data gen + 5 RTI + 1 ops agent stub)
    (must exist before pipelines reference them as activities)
 8. **Deploy Stage 4 — Data Pipelines** — `PL_Healthcare_Full_Load`, `PL_Healthcare_Master`
-9. **Deploy Stage 5 — Semantic Model + Data Agent** — `HealthcareDemoHLS` (TMDL star schema) + `HealthcareHLSAgent` (Copilot AI)
+9. **Deploy Stage 5 — Semantic Model + Data Agents** — `HealthcareDemoHLS` (TMDL star schema) + `HealthcareHLSAgent` (SQL Copilot) + `HealthcareGraphAgent` (Graph Copilot)
 10. **Validate** all deployed items — checks each item exists and has correct type
 11. **Upload** healthcare knowledge docs from `healthcare_knowledge/` to `lh_gold_curated/Files/healthcare_knowledge/`
 12. **Run** `NB_Generate_Sample_Data` — generates ~10K patients, 100K encounters, HEDIS measures, care gaps
@@ -257,7 +258,7 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 | 2 | Eventhouse, KQLDatabase | 2 | RTI infra must be provisioned before `NB_RTI_Setup_Eventhouse` discovers them |
 | 3 | Notebook | 12 | Pipelines reference notebooks as activities — notebooks must exist first |
 | 4 | DataPipeline | 2 | Pipelines orchestrate notebook execution |
-| 5 | SemanticModel, DataAgent | 2 | Semantic model needs Gold tables populated; Data Agent needs semantic model |
+| 5 | SemanticModel, DataAgent | 3 | Semantic model needs Gold tables populated; Data Agents need semantic model and ontology |
 
 ## After Deployment
 
@@ -267,9 +268,12 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 
 ### Sample Questions — Data Agents
 
-Open **HealthcareHLSAgent** in your Fabric workspace and try the pre-built questions covering claim denials, readmissions, medication adherence, SDOH, RTI scoring, and Foundry AI.
+The solution includes two complementary AI agents:
 
-See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 60+ copy-paste questions organized by domain.
+- **HealthcareHLSAgent** — SQL-based agent for aggregations, rates, and trends ("What is the denial rate?", "Top 10 providers by cost")
+- **HealthcareGraphAgent** — Graph traversal agent for entity lookups and relationships ("Tell me about patient PAT0000001", "Who treated this patient?", "Trace claim CLM0009999 from patient to payer")
+
+See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ copy-paste questions organized by domain and agent.
 
 ### Data Agent Reference
 
@@ -546,14 +550,14 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 
 ```
 ├── Healthcare_Launcher.ipynb          # <- Import this into Fabric
-├── ONTOLOGY_GRAPH_SETUP_GUIDE.md      # Manual ontology setup (12 entities, 17 relationships)
+├── ONTOLOGY_GRAPH_SETUP_GUIDE.md      # Manual ontology setup (12 entities, 18 relationships)
 ├── DATA_AGENT_GUIDE.md                # Agent instructions, routing, few-shots, knowledge base
 ├── POWERBI_DASHBOARD_GUIDE.md         # Power BI report pages, measures, Direct Lake tips
 ├── FOUNDRY_IQ_SETUP_GUIDE.md          # Azure AI Foundry orchestrator agent setup (11 steps)
 ├── FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md  # Hybrid query debugging guide
 ├── foundry_agent/
 │   └── orchestrator_instructions.md   # Version-controlled orchestrator instructions (v23)
-├── SAMPLE_QUESTIONS.md                # 60+ copy-paste questions for all agents
+├── SAMPLE_QUESTIONS.md                # 80+ copy-paste questions for all agents
 ├── deployment.yaml                    # Optional: CI/CD config
 ├── README.md
 ├── workspace/                         # Fabric Git Integration format
@@ -576,8 +580,9 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 │   ├── PL_Healthcare_Full_Load.DataPipeline/
 │   ├── PL_Healthcare_Master.DataPipeline/
 │   ├── HealthcareDemoHLS.SemanticModel/
-│   └── HealthcareHLSAgent.DataAgent/
-├── ontology/                          # Reference definition (used by guide, not auto-deployed)
+│   ├── HealthcareHLSAgent.DataAgent/
+│   └── HealthcareGraphAgent.DataAgent/
+├── ontology/                          # Ontology manifest (12 entities, 18 relationships) — deployed by Cell 10a
 │   └── Healthcare_Demo_Ontology_HLS/
 ├── healthcare_knowledge/              # AI agent knowledge base
 │   ├── clinical_guidelines/
@@ -598,7 +603,8 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 | Pipeline fails | Open PL_Healthcare_Master → check activity run details. Common cause: lakehouse tables not yet created |
 | Semantic model shows no data | Run the pipeline first — it populates Gold lakehouse tables that the model reads |
 | Data Agent returns generic answers | Ensure `healthcare_knowledge/` docs were uploaded to `lh_gold_curated/Files/` |
-| Ontology not auto-deployed | By design — must be created in the UI from the semantic model. Follow [ONTOLOGY_GRAPH_SETUP_GUIDE.md](ONTOLOGY_GRAPH_SETUP_GUIDE.md) |
+| Graph Agent shows no results | Ensure ontology is deployed (Cell 10a) and graph is populated. Run Cell 10b to patch graph agent IDs |
+| Ontology not auto-deployed | Cell 10a deploys the ontology + graph via API. Follow [ONTOLOGY_GRAPH_SETUP_GUIDE.md](ONTOLOGY_GRAPH_SETUP_GUIDE.md) for manual UI setup |
 | `fabric-launcher` install fails | Ensure your Fabric capacity supports Python package installation |
 
 ## Credits

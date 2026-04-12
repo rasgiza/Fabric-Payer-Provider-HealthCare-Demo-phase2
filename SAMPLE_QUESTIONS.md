@@ -60,6 +60,70 @@ Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the
 
 ---
 
+## Graph Agent (HealthcareGraphAgent)
+
+Open **HealthcareGraphAgent** in your Fabric workspace. This agent navigates the Healthcare_Demo_Ontology_HLS graph — tracing entity relationships, following care pathways, and telling patient stories. Unlike HealthcareHLSAgent (which does SQL aggregations), the Graph Agent excels at **entity lookups** and **relationship traversal**.
+
+> **When to use which agent:**
+> - **HealthcareHLSAgent** → "How many?", "What rate?", "Top 10", "Monthly trend" (aggregations)
+> - **HealthcareGraphAgent** → "What happened to this patient?", "Who treated them?", "How are these entities connected?" (traversals)
+
+### Patient Care Stories
+| # | Question |
+|---|----------|
+| 1 | Tell me the full story of patient PAT0000001 — encounters, diagnoses, medications, claims, providers, everything. |
+| 2 | Show me the full care pathway for patient PAT0000005 — from their first encounter through all claims, prescriptions, and diagnoses. |
+| 3 | Give me the full clinical picture of patient PAT0000040 — vitals, medications, adherence, diagnoses, and encounters. |
+| 4 | A patient was readmitted within days of discharge. Walk me through what happened — the index admission, discharge, readmission, diagnoses, claims, and who was involved. |
+
+### Clinical Context & Vitals
+| # | Question |
+|---|----------|
+| 5 | What were the vitals for patient PAT0000012? Were any abnormal? |
+| 6 | What diagnoses does patient PAT0000010 have? Are any of them chronic? |
+| 7 | I have a patient named Elizabeth Brown, age 62. What medications is she on, who prescribed them, and is she adherent? |
+| 8 | Is patient PAT0000025 adherent to their medications? Show me their adherence by drug class. |
+
+### Provider & Encounter Relationships
+| # | Question |
+|---|----------|
+| 9 | Who is the provider that treated patient PAT0000050 and what other patients have they treated? |
+| 10 | Which patients are connected to Dr. Smith? Show me all their encounters and outcomes. |
+| 11 | Show me everything connected to encounter ENC0005678 — I want the complete picture. |
+| 12 | What prescriptions originated from inpatient encounters for patient PAT0000008? |
+
+### Claims, Payers & Financial Traversal
+| # | Question |
+|---|----------|
+| 13 | Which payer covers the claims for patient PAT0000015 and were any denied? |
+| 14 | What claims are linked to encounter ENC0001234 and what's the financial picture? |
+| 15 | Trace the complete journey of claim CLM0009999 from patient to payer. |
+| 16 | Show me denied claims and the full story behind each — who submitted, what patient, what encounter, what payer. |
+
+### Risk & Intervention Targets
+| # | Question |
+|---|----------|
+| 17 | Show me patients with high readmission risk and their full clinical context. |
+| 18 | Find patients with high readmission risk who live in high SDOH risk areas — these are our most vulnerable. |
+| 19 | Show me patients who are non-adherent to chronic medications and also have high readmission risk — these are our biggest intervention targets. |
+| 20 | Which payers are associated with denied claims for high-risk readmission patients? |
+
+### SDOH & Community Health
+| # | Question |
+|---|----------|
+| 21 | What is the SDOH profile for patient PAT0000030 and how might it affect their care? |
+| 22 | I want to understand the relationship between a patient's diagnoses and their claims — do chronic conditions lead to more denials? |
+
+### Medication Prescribing Patterns
+| # | Question |
+|---|----------|
+| 23 | Which providers prescribe chronic medications and to which patients? |
+| 24 | Tell me about the sickest patients — who has the most encounters, most diagnoses, and highest costs? |
+
+> **Note:** Question 24 involves aggregation — the graph agent will explain that counts/rankings require HealthcareHLSAgent and offer to show individual patient stories instead. This demonstrates the agent's ability to redirect to the right tool.
+
+---
+
 ## RTI Data Agent Questions
 
 These questions work with the RTI scoring tables after running the Real-Time Intelligence notebooks:

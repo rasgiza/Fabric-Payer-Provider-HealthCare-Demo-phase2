@@ -24,7 +24,7 @@
       "tiles": [
         {
           "id": "tile-live-kpis",
-          "title": "Live Event Summary (5 min)",
+          "title": "Live Event Summary (7d)",
           "layout": {
             "x": 0,
             "y": 0,
@@ -40,7 +40,7 @@
         },
         {
           "id": "tile-claims-volume-trend",
-          "title": "Claims Volume -- 6h Trend",
+          "title": "Claims Volume Trend (7d)",
           "layout": {
             "x": 0,
             "y": 4,
@@ -56,7 +56,7 @@
         },
         {
           "id": "tile-event-type-dist",
-          "title": "Event Type Distribution (1h)",
+          "title": "Event Type Distribution (7d)",
           "layout": {
             "x": 8,
             "y": 4,
@@ -72,7 +72,7 @@
         },
         {
           "id": "tile-fraud-score-dist",
-          "title": "Fraud Score Distribution (1h)",
+          "title": "Fraud Score Distribution (7d)",
           "layout": {
             "x": 0,
             "y": 9,
@@ -88,7 +88,7 @@
         },
         {
           "id": "tile-alert-velocity",
-          "title": "Alert Velocity -- Hourly Trend",
+          "title": "Alert Velocity (7d)",
           "layout": {
             "x": 6,
             "y": 9,
@@ -110,7 +110,7 @@
       "tiles": [
         {
           "id": "tile-care-gap-kpis",
-          "title": "Care Gap Summary (24h)",
+          "title": "Care Gap Summary (7d)",
           "layout": {
             "x": 0,
             "y": 0,
@@ -212,7 +212,7 @@
       "tiles": [
         {
           "id": "tile-fraud-kpis",
-          "title": "Fraud Detection Summary (24h)",
+          "title": "Fraud Detection Summary (7d)",
           "layout": {
             "x": 0,
             "y": 0,
@@ -228,7 +228,7 @@
         },
         {
           "id": "tile-fraud-trend",
-          "title": "Fraud Score Trend -- Hourly",
+          "title": "Fraud Score Trend (7d)",
           "layout": {
             "x": 0,
             "y": 4,
@@ -314,7 +314,7 @@
         },
         {
           "id": "tile-ingestion-rate",
-          "title": "Ingestion Rate -- 6h Trend (all tables)",
+          "title": "Ingestion Rate Trend (7d, all tables)",
           "layout": {
             "x": 0,
             "y": 6,
@@ -346,7 +346,7 @@
         },
         {
           "id": "tile-facility-volume",
-          "title": "Event Volume by Facility (24h)",
+          "title": "Event Volume by Facility (7d)",
           "layout": {
             "x": 6,
             "y": 11,
@@ -373,8 +373,8 @@
       "endVariableName": "_endTime",
       "defaultValue": {
         "kind": "dynamic",
-        "count": 24,
-        "unit": "hours"
+        "count": 7,
+        "unit": "days"
       },
       "showOnPages": {
         "kind": "all"
@@ -385,82 +385,82 @@
     {
       "id": "q-live-kpis",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "union\n  (claims_events | where event_timestamp > ago(5m) | summarize claims = count()),\n  (adt_events | where event_timestamp > ago(5m) | summarize adt = count()),\n  (rx_events | where event_timestamp > ago(5m) | summarize rx = count()),\n  (fraud_scores | where score_timestamp > ago(5m) | summarize fraud = count()),\n  (care_gap_alerts | where alert_timestamp > ago(5m) | summarize gaps = count()),\n  (highcost_alerts | where alert_timestamp > ago(5m) | summarize highcost = count())\n| summarize\n    claims_5m = sum(claims),\n    adt_events_5m = sum(adt),\n    rx_events_5m = sum(rx),\n    fraud_alerts_5m = sum(fraud),\n    care_gap_alerts_5m = sum(gaps),\n    highcost_alerts_5m = sum(highcost)"
+      "text": "union\n  (claims_events | where event_timestamp > ago(7d) | summarize claims = count()),\n  (adt_events | where event_timestamp > ago(7d) | summarize adt = count()),\n  (rx_events | where event_timestamp > ago(7d) | summarize rx = count()),\n  (fraud_scores | where score_timestamp > ago(7d) | summarize fraud = count()),\n  (care_gap_alerts | where alert_timestamp > ago(7d) | summarize gaps = count()),\n  (highcost_alerts | where alert_timestamp > ago(7d) | summarize highcost = count())\n| summarize\n    claims_7d = sum(claims),\n    adt_events_7d = sum(adt),\n    rx_events_7d = sum(rx),\n    fraud_alerts_7d = sum(fraud),\n    care_gap_alerts_7d = sum(gaps),\n    highcost_alerts_7d = sum(highcost)"
     },
     {
       "id": "q-claims-volume-trend",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims' | project event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt' | project event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx' | project event_timestamp, table_name)\n| summarize\n    claims = countif(table_name == 'claims'),\n    adt_events = countif(table_name == 'adt'),\n    rx_events = countif(table_name == 'rx')\n    by time_bucket = bin(event_timestamp, 5m)\n| order by time_bucket asc"
+      "text": "union\n  (claims_events | where event_timestamp > ago(7d) | extend table_name = 'claims' | project event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(7d) | extend table_name = 'adt' | project event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(7d) | extend table_name = 'rx' | project event_timestamp, table_name)\n| summarize\n    claims = countif(table_name == 'claims'),\n    adt_events = countif(table_name == 'adt'),\n    rx_events = countif(table_name == 'rx')\n    by time_bucket = bin(event_timestamp, 1h)\n| order by time_bucket asc"
     },
     {
       "id": "q-event-type-distribution",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "union\n  (claims_events | where event_timestamp > ago(1h) | project event_type),\n  (adt_events | where event_timestamp > ago(1h) | project event_type),\n  (rx_events | where event_timestamp > ago(1h) | project event_type)\n| summarize event_count = count() by event_type\n| order by event_count desc"
+      "text": "union\n  (claims_events | where event_timestamp > ago(7d) | project event_type),\n  (adt_events | where event_timestamp > ago(7d) | project event_type),\n  (rx_events | where event_timestamp > ago(7d) | project event_type)\n| summarize event_count = count() by event_type\n| order by event_count desc"
     },
     {
       "id": "q-fraud-score-distribution",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "fraud_scores\n| where score_timestamp > ago(1h)\n| summarize claim_count = count() by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+      "text": "fraud_scores\n| where score_timestamp > ago(7d)\n| summarize claim_count = count() by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
     },
     {
       "id": "q-alert-velocity",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "union\n  (fraud_scores | where score_timestamp > ago(24h) | extend alert_type = 'fraud' | project ts = score_timestamp, alert_type),\n  (care_gap_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'care_gap' | project ts = alert_timestamp, alert_type),\n  (highcost_alerts | where alert_timestamp > ago(24h) | extend alert_type = 'highcost' | project ts = alert_timestamp, alert_type)\n| summarize\n    fraud_alerts = countif(alert_type == 'fraud'),\n    care_gap_alerts = countif(alert_type == 'care_gap'),\n    highcost_alerts = countif(alert_type == 'highcost')\n    by hour_bucket = bin(ts, 1h)\n| order by hour_bucket asc"
+      "text": "union\n  (fraud_scores | where score_timestamp > ago(7d) | extend alert_type = 'fraud' | project ts = score_timestamp, alert_type),\n  (care_gap_alerts | where alert_timestamp > ago(7d) | extend alert_type = 'care_gap' | project ts = alert_timestamp, alert_type),\n  (highcost_alerts | where alert_timestamp > ago(7d) | extend alert_type = 'highcost' | project ts = alert_timestamp, alert_type)\n| summarize\n    fraud_alerts = countif(alert_type == 'fraud'),\n    care_gap_alerts = countif(alert_type == 'care_gap'),\n    highcost_alerts = countif(alert_type == 'highcost')\n    by hour_bucket = bin(ts, 6h)\n| order by hour_bucket asc"
     },
     {
       "id": "q-care-gap-kpis",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize\n    total_alerts = count(),\n    unique_patients = dcount(patient_id),\n    unique_measures = dcount(measure_id),\n    critical_alerts = countif(alert_priority == 'critical'),\n    high_alerts = countif(alert_priority == 'high'),\n    avg_days_overdue = round(avg(gap_days_overdue), 0),\n    max_days_overdue = max(gap_days_overdue)"
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(7d)\n| summarize\n    total_alerts = count(),\n    unique_patients = dcount(patient_id),\n    unique_measures = dcount(measure_id),\n    critical_alerts = countif(alert_priority == 'critical'),\n    high_alerts = countif(alert_priority == 'high'),\n    avg_days_overdue = round(avg(gap_days_overdue), 0),\n    max_days_overdue = max(gap_days_overdue)"
     },
     {
       "id": "q-care-gap-by-measure",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by measure_name\n| order by alert_count desc\n| take 15"
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(7d)\n| summarize alert_count = count() by measure_name\n| order by alert_count desc\n| take 15"
     },
     {
       "id": "q-care-gap-priority",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| summarize alert_count = count() by alert_priority\n| order by case(\n    alert_priority == 'critical', 1,\n    alert_priority == 'high', 2,\n    alert_priority == 'medium', 3,\n    4) asc"
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(7d)\n| summarize alert_count = count() by alert_priority\n| order by case(\n    alert_priority == 'critical', 1,\n    alert_priority == 'high', 2,\n    alert_priority == 'medium', 3,\n    4) asc"
     },
     {
       "id": "q-overdue-care-gaps",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "care_gap_alerts\n| where alert_timestamp > ago(24h)\n| project\n    alert_timestamp,\n    patient_id,\n    facility_name,\n    measure_name,\n    gap_days_overdue,\n    alert_priority,\n    alert_text\n| order by gap_days_overdue desc\n| take 50"
+      "text": "care_gap_alerts\n| where alert_timestamp > ago(7d)\n| project\n    alert_timestamp,\n    patient_id,\n    facility_name,\n    measure_name,\n    gap_days_overdue,\n    alert_priority,\n    alert_text\n| order by gap_days_overdue desc\n| take 50"
     },
     {
       "id": "q-highcost-risk-tiers",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
+      "text": "highcost_alerts\n| where alert_timestamp > ago(7d)\n| summarize patient_count = dcount(patient_id) by risk_tier\n| order by case(\n    risk_tier == 'critical', 1,\n    risk_tier == 'high', 2,\n    risk_tier == 'medium', 3,\n    4) asc"
     },
     {
       "id": "q-highcost-cost-trend",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| summarize patient_count = dcount(patient_id) by cost_trend\n| order by patient_count desc"
+      "text": "highcost_alerts\n| where alert_timestamp > ago(7d)\n| summarize patient_count = dcount(patient_id) by cost_trend\n| order by patient_count desc"
     },
     {
       "id": "q-fraud-kpis",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    total_scored = count(),\n    high_risk_claims = countif(risk_tier in ('high', 'critical')),\n    critical_claims = countif(risk_tier == 'critical'),\n    avg_fraud_score = round(avg(fraud_score), 3),\n    max_fraud_score = round(max(fraud_score), 3),\n    total_claim_amount = round(sum(claim_amount), 2),\n    high_risk_amount = round(sumif(claim_amount, risk_tier in ('high', 'critical')), 2)"
+      "text": "fraud_scores\n| where score_timestamp > ago(7d)\n| summarize\n    total_scored = count(),\n    high_risk_claims = countif(risk_tier in ('high', 'critical')),\n    critical_claims = countif(risk_tier == 'critical'),\n    avg_fraud_score = round(avg(fraud_score), 3),\n    max_fraud_score = round(max(fraud_score), 3),\n    total_claim_amount = round(sum(claim_amount), 2),\n    high_risk_amount = round(sumif(claim_amount, risk_tier in ('high', 'critical')), 2)"
     },
     {
       "id": "q-fraud-trend",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| summarize\n    avg_fraud_score = round(avg(fraud_score), 3),\n    total_claims = count(),\n    high_risk = countif(risk_tier in ('high', 'critical'))\n    by hour_bucket = bin(score_timestamp, 1h)\n| extend high_risk_pct = round(todouble(high_risk) / todouble(total_claims) * 100, 1)\n| order by hour_bucket asc"
+      "text": "fraud_scores\n| where score_timestamp > ago(7d)\n| summarize\n    avg_fraud_score = round(avg(fraud_score), 3),\n    total_claims = count(),\n    high_risk = countif(risk_tier in ('high', 'critical'))\n    by hour_bucket = bin(score_timestamp, 6h)\n| extend high_risk_pct = round(todouble(high_risk) / todouble(total_claims) * 100, 1)\n| order by hour_bucket asc"
     },
     {
       "id": "q-fraud-by-claim-type",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| join kind=inner (claims_events | project claim_id, event_type) on $left.claim_id == $right.claim_id\n| summarize avg_fraud_score = round(avg(fraud_score), 3), claim_count = count() by event_type\n| order by avg_fraud_score desc"
+      "text": "fraud_scores\n| where score_timestamp > ago(7d)\n| join kind=inner (claims_events | project claim_id, event_type) on $left.claim_id == $right.claim_id\n| summarize avg_fraud_score = round(avg(fraud_score), 3), claim_count = count() by event_type\n| order by avg_fraud_score desc"
     },
     {
       "id": "q-fraud-watchlist",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "fraud_scores\n| where score_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    score_timestamp,\n    claim_id,\n    patient_id,\n    provider_id,\n    claim_amount,\n    fraud_score,\n    fraud_flags,\n    risk_tier\n| order by fraud_score desc\n| take 50"
+      "text": "fraud_scores\n| where score_timestamp > ago(7d)\n| where risk_tier in ('high', 'critical')\n| project\n    score_timestamp,\n    claim_id,\n    patient_id,\n    provider_id,\n    claim_amount,\n    fraud_score,\n    fraud_flags,\n    risk_tier\n| order by fraud_score desc\n| take 50"
     },
     {
       "id": "q-highcost-watchlist",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "highcost_alerts\n| where alert_timestamp > ago(24h)\n| where risk_tier in ('high', 'critical')\n| project\n    alert_timestamp,\n    patient_id,\n    rolling_spend_30d,\n    rolling_spend_90d,\n    ed_visits_30d,\n    readmission_flag,\n    risk_tier,\n    cost_trend\n| order by rolling_spend_90d desc\n| take 50"
+      "text": "highcost_alerts\n| where alert_timestamp > ago(7d)\n| where risk_tier in ('high', 'critical')\n| project\n    alert_timestamp,\n    patient_id,\n    rolling_spend_30d,\n    rolling_spend_90d,\n    ed_visits_30d,\n    readmission_flag,\n    risk_tier,\n    cost_trend\n| order by rolling_spend_90d desc\n| take 50"
     },
     {
       "id": "q-data-freshness",
@@ -470,7 +470,7 @@
     {
       "id": "q-ingestion-rate",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "union\n  (claims_events | where event_timestamp > ago(6h) | extend table_name = 'claims_events' | project ts = event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(6h) | extend table_name = 'adt_events' | project ts = event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(6h) | extend table_name = 'rx_events' | project ts = event_timestamp, table_name),\n  (fraud_scores | where score_timestamp > ago(6h) | extend table_name = 'fraud_scores' | project ts = score_timestamp, table_name),\n  (care_gap_alerts | where alert_timestamp > ago(6h) | extend table_name = 'care_gap_alerts' | project ts = alert_timestamp, table_name),\n  (highcost_alerts | where alert_timestamp > ago(6h) | extend table_name = 'highcost_alerts' | project ts = alert_timestamp, table_name)\n| summarize\n    claims_events = countif(table_name == 'claims_events'),\n    adt_events = countif(table_name == 'adt_events'),\n    rx_events = countif(table_name == 'rx_events'),\n    fraud_scores = countif(table_name == 'fraud_scores'),\n    care_gap_alerts = countif(table_name == 'care_gap_alerts'),\n    highcost_alerts = countif(table_name == 'highcost_alerts')\n    by time_bucket = bin(ts, 5m)\n| order by time_bucket asc"
+      "text": "union\n  (claims_events | where event_timestamp > ago(7d) | extend table_name = 'claims_events' | project ts = event_timestamp, table_name),\n  (adt_events | where event_timestamp > ago(7d) | extend table_name = 'adt_events' | project ts = event_timestamp, table_name),\n  (rx_events | where event_timestamp > ago(7d) | extend table_name = 'rx_events' | project ts = event_timestamp, table_name),\n  (fraud_scores | where score_timestamp > ago(7d) | extend table_name = 'fraud_scores' | project ts = score_timestamp, table_name),\n  (care_gap_alerts | where alert_timestamp > ago(7d) | extend table_name = 'care_gap_alerts' | project ts = alert_timestamp, table_name),\n  (highcost_alerts | where alert_timestamp > ago(7d) | extend table_name = 'highcost_alerts' | project ts = alert_timestamp, table_name)\n| summarize\n    claims_events = countif(table_name == 'claims_events'),\n    adt_events = countif(table_name == 'adt_events'),\n    rx_events = countif(table_name == 'rx_events'),\n    fraud_scores = countif(table_name == 'fraud_scores'),\n    care_gap_alerts = countif(table_name == 'care_gap_alerts'),\n    highcost_alerts = countif(table_name == 'highcost_alerts')\n    by time_bucket = bin(ts, 1h)\n| order by time_bucket asc"
     },
     {
       "id": "q-table-row-counts",
@@ -480,7 +480,7 @@
     {
       "id": "q-facility-volume",
       "dataSourceId": "ds-healthcare-eventhouse",
-      "text": "adt_events\n| where event_timestamp > ago(24h)\n| summarize event_count = count() by facility_name\n| order by event_count desc\n| take 15"
+      "text": "adt_events\n| where event_timestamp > ago(7d)\n| summarize event_count = count() by facility_name\n| order by event_count desc\n| take 15"
     }
   ]
 }

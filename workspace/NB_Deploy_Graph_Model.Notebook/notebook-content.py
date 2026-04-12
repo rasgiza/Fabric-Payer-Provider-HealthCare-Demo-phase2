@@ -38,7 +38,7 @@
 import json, requests, time, base64, os, re, math, uuid
 
 print("=" * 60)
-print("  NB_Deploy_Graph_Model -- Standalone Graph Deployer")
+print("  NB_Deploy_Graph_Model -- Ontology Graph Deployer")
 print("=" * 60)
 
 # -- Config -----------------------------------------------------------
@@ -619,13 +619,22 @@ else:
 
 update_url = f"{GM_API}/{gm_id}/updateDefinition?updateMetadata=True"
 
-# -- Test each node individually --
+# -- Test each node individually (standalone graphs only) --
+# Skip per-node validation for auto-provisioned graphs: the ontology
+# deployment already validated all bindings, and pushing single-node
+# definitions to a child graph triggers backend errors.
 print()
 bad_nodes = []
 good_nodes = []
 fail_reasons = {}
 
-for ni, (nt, ntbl) in enumerate(zip(node_types, node_tables)):
+if auto_provisioned:
+    print("  [SKIP] Per-node validation -- auto-provisioned graph")
+    print("         (ontology deployment already validated all bindings)")
+    good_nodes = [nt["alias"].replace("_nodeType", "") for nt in node_types]
+
+elif not auto_provisioned:
+  for ni, (nt, ntbl) in enumerate(zip(node_types, node_tables)):
     nds_name = ntbl["dataSourceName"]
     nds = [ds for ds in data_sources["dataSources"] if ds["name"] == nds_name]
     n_gt = {"schemaVersion": "1.0.0", "nodeTypes": [nt], "edgeTypes": []}

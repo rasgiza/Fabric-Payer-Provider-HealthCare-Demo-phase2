@@ -1,0 +1,125 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/fewShots/1.0.0/schema.json",
+  "fewShots": [
+    {
+      "id": "ga000001-0001-0001-0001-000000000001",
+      "question": "Give me a full profile of provider PRV0000010 \u2014 patients treated, encounters, claims submitted, and prescriptions written",
+      "query": "Find Provider with provider_id = 'PRV0000010'. Get display_name, specialty, department, npi_number. Fan out: traverse treatedBy (reverse) to Encounter (encounter_type, total_charges, readmission_risk_category, length_of_stay), then involves to Patient (name, age, insurance_type). Traverse submittedBy (reverse) to Claim (claim_status, denial_flag, billed_amount, paid_amount, primary_denial_reason), then covers to Patient and ClaimHasPayer to Payer. Traverse prescribedBy (reverse) to Prescription (total_cost, is_chronic_medication), then dispenses to Medication (medication_name, drug_class) and serves to Patient. Present as a provider profile: specialty, patient panel, encounter types, claim outcomes, and prescribing patterns."
+    },
+    {
+      "id": "ga000002-0002-0002-0002-000000000002",
+      "question": "Which providers have submitted claims that were denied? Show each provider with their denied claims, denial reasons, payers, and patients",
+      "query": "Find Claim entities where denial_flag = 1. For each, traverse submittedBy to Provider (display_name, specialty), covers to Patient (name, insurance_type), ClaimHasPayer to Payer (payer_name), billsFor to Encounter (encounter_type). Return primary_denial_reason, recommended_action, billed_amount. Group by provider to show which providers have the most denials and with which payers."
+    },
+    {
+      "id": "ga000003-0003-0003-0003-000000000003",
+      "question": "What does Dr. Smith's patient panel look like? Show encounters, diagnoses, and outcomes for their patients",
+      "query": "Find Provider where display_name contains 'Smith'. Traverse treatedBy (reverse) to Encounter (encounter_type, readmission_risk_category, length_of_stay, total_charges, readmission_flag). For each Encounter, traverse involves to Patient (name, age, insurance_type). Also traverse occursIn (reverse from PatientDiagnosis) to the same Encounters, then references to Diagnosis (icd_description, is_chronic). Present as Dr. Smith's panel: patients treated, encounter types, diagnoses seen, readmission risk, and charges."
+    },
+    {
+      "id": "ga000004-0004-0004-0004-000000000004",
+      "question": "Show me prescribing patterns for Cardiology providers \u2014 what medications, which patients, and which payers cover the prescriptions",
+      "query": "Find Provider where specialty = 'Cardiology'. For each, traverse prescribedBy (reverse) to Prescription (total_cost, is_chronic_medication, days_supply). From each Prescription: traverse dispenses to Medication (medication_name, drug_class, therapeutic_area, is_chronic), serves to Patient (name, age), PrescriptionHasPayer to Payer (payer_name). Group by provider to show each cardiologist's prescribing profile: medications, drug classes, chronic vs acute, payer mix, and costs."
+    },
+    {
+      "id": "ga000005-0005-0005-0005-000000000005",
+      "question": "Which providers treat patients with high readmission risk? Show the provider, their high-risk patients, and conditions",
+      "query": "Find Encounter where readmission_risk_category = 'High'. Traverse treatedBy to Provider (display_name, specialty, department). Traverse involves to Patient (name, age, insurance_type). For each Patient, traverse affects (reverse) to PatientDiagnosis then references to Diagnosis (icd_description, is_chronic). Group by provider \u2014 show which providers carry the most high-risk patients and what conditions those patients have."
+    },
+    {
+      "id": "ga000006-0006-0006-0006-000000000006",
+      "question": "Which providers serve patients in socially vulnerable communities? Show the SDOH profile alongside provider details",
+      "query": "Find CommunityHealth where risk_tier = 'High'. Traverse livesIn (reverse) to Patient (name, age, insurance_type, zip_code). For each Patient, traverse involves (reverse) to Encounter then treatedBy to Provider (display_name, specialty). Also get CommunityHealth details: poverty_rate, social_vulnerability_index, food_desert_flag, uninsured_rate. Group by provider to show which providers serve vulnerable communities and the social risk factors their patients face."
+    },
+    {
+      "id": "ga000007-0007-0007-0007-000000000007",
+      "question": "Show me all claims for payer Aetna \u2014 which providers submitted them, which patients, and what were the outcomes",
+      "query": "Find Payer where payer_name contains 'Aetna'. Traverse ClaimHasPayer (reverse) to Claim (claim_status, denial_flag, billed_amount, paid_amount, primary_denial_reason). For each Claim: traverse submittedBy to Provider (display_name, specialty), covers to Patient (name, insurance_type), billsFor to Encounter (encounter_type, total_charges). Present as Aetna's claims portfolio: total claims, approved vs denied, top submitting providers, and common denial reasons."
+    },
+    {
+      "id": "ga000008-0008-0008-0008-000000000008",
+      "question": "Which payers have the most denied claims? For each payer show the denials with provider, patient, encounter, and denial reason",
+      "query": "Find Claim where denial_flag = 1. Traverse ClaimHasPayer to Payer (payer_name, payer_type). Also traverse submittedBy to Provider (display_name, specialty), covers to Patient (name, age), billsFor to Encounter (encounter_type, readmission_risk_category). Return primary_denial_reason, recommended_action, billed_amount. Group by payer to show denial patterns \u2014 which payers deny the most and for what reasons."
+    },
+    {
+      "id": "ga000009-0009-0009-0009-000000000009",
+      "question": "What prescriptions does each payer cover? Show the medication, prescribing provider, and patient",
+      "query": "Find Payer (payer_name). Traverse PrescriptionHasPayer (reverse) to Prescription (total_cost, payer_paid, patient_copay, is_chronic_medication). From each Prescription: traverse dispenses to Medication (medication_name, drug_class, is_chronic), prescribedBy to Provider (display_name, specialty), serves to Patient (name). Group by payer to show each payer's prescription coverage: medications, drug classes, chronic vs acute, costs, and prescribing providers."
+    },
+    {
+      "id": "ga000010-0010-0010-0010-000000000010",
+      "question": "Show me the provider network that bills payer BlueCross \u2014 which providers submit claims and for what encounter types",
+      "query": "Find Payer where payer_name contains 'BlueCross' or 'Blue Cross'. Traverse ClaimHasPayer (reverse) to Claim. For each Claim, traverse submittedBy to Provider (display_name, specialty, department) and billsFor to Encounter (encounter_type). Group by provider to show BlueCross's provider network: which providers bill them, what specialties, what encounter types, and claim volumes."
+    },
+    {
+      "id": "ga000011-0011-0011-0011-000000000011",
+      "question": "Which payers cover patients in high SDOH risk areas? Show the payer, the patients, and their social risk factors",
+      "query": "Find CommunityHealth where risk_tier = 'High'. Traverse livesIn (reverse) to Patient (name, zip_code, insurance_type). For each Patient, traverse covers (reverse) to Claim then ClaimHasPayer to Payer (payer_name, payer_type). Also return CommunityHealth details: poverty_rate, social_vulnerability_index, food_desert_flag, median_household_income. Group by payer to show which payers have the most exposure to socially vulnerable populations."
+    },
+    {
+      "id": "ga000012-0012-0012-0012-000000000012",
+      "question": "Trace claim CLM0009999 end-to-end \u2014 from patient through encounter, provider, and payer",
+      "query": "Find Claim with claim_id = 'CLM0009999'. Traverse covers to Patient (name, insurance_type), submittedBy to Provider (display_name, specialty), ClaimHasPayer to Payer (payer_name), billsFor to Encounter (encounter_type, total_charges, readmission_risk_category). For the encounter, also get treatedBy to Provider and occursIn (reverse on PatientDiagnosis) then references to Diagnosis. Show the full lifecycle: patient admitted \u2192 diagnosed \u2192 treated by provider \u2192 claim filed \u2192 payer billed \u2192 approved/denied with amounts."
+    },
+    {
+      "id": "ga000013-0013-0013-0013-000000000013",
+      "question": "Show me all denied claims with the complete story \u2014 which provider submitted, to which payer, for which patient, and why denied",
+      "query": "Find Claim entities where denial_flag = 1. For each: traverse covers to Patient (name, age, insurance_type), submittedBy to Provider (display_name, specialty), ClaimHasPayer to Payer (payer_name), billsFor to Encounter (encounter_type, length_of_stay, readmission_risk_category, total_charges). Show claim_status, primary_denial_reason, recommended_action, billed_amount, paid_amount. Tell the story of each denial: why it happened, who was involved, provider and payer."
+    },
+    {
+      "id": "ga000014-0014-0014-0014-000000000014",
+      "question": "What claims are linked to encounter ENC0001234? Show the financial picture including payer and provider",
+      "query": "Find Encounter with encounter_id = 'ENC0001234'. Traverse billsFor (reverse) to Claim (claim_id, claim_status, denial_flag, billed_amount, paid_amount, primary_denial_reason). For each Claim, traverse ClaimHasPayer to Payer and submittedBy to Provider. Also traverse involves to Patient and treatedBy to Provider for the encounter context. Present the full financial picture: provider who treated, provider who billed, payer, amounts, and denial status."
+    },
+    {
+      "id": "ga000015-0015-0015-0015-000000000015",
+      "question": "Show me denied claims for high-risk readmission patients \u2014 which providers and payers are involved",
+      "query": "Find Encounter where readmission_risk_category = 'High'. Traverse billsFor (reverse) to Claim where denial_flag = 1. For each denied claim: traverse ClaimHasPayer to Payer (payer_name), submittedBy to Provider (display_name, specialty), covers to Patient (name, age). Return primary_denial_reason, billed_amount, readmission_risk_score. Present as: high-risk cases with claim denials \u2014 showing the payer-provider-patient triangle and financial exposure."
+    },
+    {
+      "id": "ga000016-0016-0016-0016-000000000016",
+      "question": "Show me high-cost encounters \u2014 who was the provider, what diagnoses, what payer, and was the claim denied",
+      "query": "Find Encounter entities (focus on high total_charges). Traverse treatedBy to Provider (display_name, specialty), involves to Patient (name, insurance_type). Traverse occursIn (reverse from PatientDiagnosis) then references to Diagnosis (icd_description, is_chronic). Traverse billsFor (reverse) to Claim (claim_status, denial_flag, billed_amount, paid_amount, primary_denial_reason), then ClaimHasPayer to Payer. Present high-cost encounters: provider, diagnosis, payer, claim outcome, and financial impact."
+    },
+    {
+      "id": "ga000017-0017-0017-0017-000000000017",
+      "question": "How are providers and payers connected through claims? Show me the provider-payer claims network",
+      "query": "Find Claim entities. For each: traverse submittedBy to Provider (display_name, specialty) and ClaimHasPayer to Payer (payer_name, payer_type). Also get claim_status, billed_amount, denial_flag. Map out the provider-payer network: which providers bill which payers, what are the claim volumes and outcomes between each pair. This is a relationship discovery question \u2014 show the network connections."
+    },
+    {
+      "id": "ga000018-0018-0018-0018-000000000018",
+      "question": "Which chronic medications are prescribed across the provider network and which payers reimburse them",
+      "query": "Find Medication where is_chronic = 1. Traverse dispenses (reverse) to Prescription. For each Prescription: traverse prescribedBy to Provider (display_name, specialty), PrescriptionHasPayer to Payer (payer_name), serves to Patient (name, age). Return medication_name, drug_class, total_cost, payer_paid. Group by medication to show: which chronic drugs are prescribed, by which providers, covered by which payers, and total costs."
+    },
+    {
+      "id": "ga000019-0019-0019-0019-000000000019",
+      "question": "Show me the relationship between claim denials and patient diagnoses \u2014 what conditions are associated with denied claims",
+      "query": "Find Claim where denial_flag = 1. Traverse billsFor to Encounter. From the Encounter, traverse occursIn (reverse from PatientDiagnosis) then references to Diagnosis (icd_description, icd_category, is_chronic). Also traverse submittedBy to Provider (specialty), ClaimHasPayer to Payer (payer_name). Show which diagnoses appear in denied claims \u2014 this helps identify denial patterns by condition, provider specialty, and payer."
+    },
+    {
+      "id": "ga000020-0020-0020-0020-000000000020",
+      "question": "Trace prescription costs by payer \u2014 which payers bear the highest prescription burden and for what drug classes",
+      "query": "Find Payer (payer_name). Traverse PrescriptionHasPayer (reverse) to Prescription (total_cost, payer_paid, patient_copay, is_chronic_medication). From each Prescription: traverse dispenses to Medication (drug_class, therapeutic_area, is_chronic), prescribedBy to Provider (display_name, specialty). Group by payer then by drug_class to show each payer's prescription spend by drug class, chronic vs acute split, and prescribing providers."
+    },
+    {
+      "id": "ga000021-0021-0021-0021-000000000021",
+      "question": "Show me patients with poor medication adherence \u2014 who are their providers and which payers cover them? These are intervention opportunities",
+      "query": "Find MedicationAdherence where adherence_category = 'Non-Adherent'. Traverse adherenceFor to Patient (name, age, insurance_type). Traverse adherenceMedication to Medication (medication_name, drug_class, is_chronic). For each Patient, traverse involves (reverse) to Encounter then treatedBy to Provider (display_name, specialty). Also traverse covers (reverse) to Claim then ClaimHasPayer to Payer (payer_name). Present as intervention targets: non-adherent patient, failing medication, managing provider, covering payer \u2014 so both payer and provider can coordinate outreach."
+    },
+    {
+      "id": "ga000022-0022-0022-0022-000000000022",
+      "question": "Show me patients with abnormal vitals \u2014 who are their treating providers and what diagnoses do they have",
+      "query": "Find Vitals where risk_flag = 1 or critical_reading_count > 0. Traverse vitalsTakenFor to Patient (name, age). Return vital details: avg_heart_rate, avg_bp_systolic, avg_bp_diastolic, avg_spo2, avg_temperature, risk_flag, critical_reading_count. For each Patient, traverse involves (reverse) to Encounter then treatedBy to Provider (display_name, specialty). Also traverse affects (reverse) to PatientDiagnosis then references to Diagnosis (icd_description, is_chronic). Flag abnormals: BP >= 140 systolic, HR > 100 or < 60, SpO2 < 95, Temp > 100.4. Show provider context \u2014 these patients may need immediate provider attention."
+    },
+    {
+      "id": "ga000023-0023-0023-0023-000000000023",
+      "question": "Find our most vulnerable population \u2014 patients in high SDOH risk areas who are non-adherent with high readmission risk. Show providers and payers involved",
+      "query": "Find CommunityHealth where risk_tier = 'High'. Traverse livesIn (reverse) to Patient. For each Patient: traverse adherenceFor (reverse) to MedicationAdherence \u2014 filter adherence_category = 'Non-Adherent', then adherenceMedication to Medication (drug_class). Traverse involves (reverse) to Encounter where readmission_risk_category = 'High', then treatedBy to Provider. Traverse covers (reverse) to Claim then ClaimHasPayer to Payer. Return: patient name, zip_code, social_vulnerability_index, non-adherent medications, readmission_risk_score, provider name, payer name. These are the highest-priority patients for payer-provider collaboration."
+    },
+    {
+      "id": "ga000024-0024-0024-0024-000000000024",
+      "question": "What is the overall denial rate by payer or the average cost per provider across the network?",
+      "query": "This question asks for aggregate statistics \u2014 denial rates, averages, counts, and rankings. The graph agent navigates relationships between individual entities but does not compute aggregate metrics. For denial rates by payer, average costs by provider, or top-N rankings, use HealthcareHLSAgent which runs SQL against the lakehouse star schema. HOWEVER, if you want to explore a specific payer's denied claims, an individual provider's profile, or trace a specific claim journey, I can help \u2014 just ask about a specific entity."
+    }
+  ]
+}

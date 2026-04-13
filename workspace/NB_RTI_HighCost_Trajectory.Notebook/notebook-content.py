@@ -80,6 +80,14 @@ if _lh_resp.status_code == 200:
                         return
                     return _orig(self, name, **kwargs)
                 _DFW.saveAsTable = _patched_sat
+                # Also patch spark.table() for reading
+                _orig_table = spark.table
+                def _patched_table(name, _base=_abfss, _orig=_orig_table):
+                    if name.startswith('lh_gold_curated.'):
+                        tbl = name.split('.', 1)[1]
+                        return spark.read.format('delta').load(f'{_base}/{tbl}')
+                    return _orig(name)
+                spark.table = _patched_table
                 print(f"  Registered lh_gold_curated via ABFSS path rewriter ({_lh_id[:8]}...)")
                 _attached = True
             if not _attached:

@@ -209,7 +209,7 @@ df_ed_counts = df_ed.withColumn(
     "patient_id",
     F.col("event_ts").alias("ed_event_ts"),
     "ed_visits_30d",
-    "facility_id"
+    F.col("facility_id").alias("ed_facility_id")
 ).dropDuplicates(["patient_id"])  # Keep latest ED count per patient
 
 print(f"  ED events processed: {df_ed.count()}")
@@ -286,9 +286,10 @@ df_latest_spend = (
 # Join all signals
 df_combined = (
     df_latest_spend
-    .join(df_ed_counts.select("patient_id", "ed_visits_30d"), "patient_id", "left")
+    .join(df_ed_counts.select("patient_id", "ed_visits_30d", "ed_facility_id"), "patient_id", "left")
     .join(df_readmit_counts, "patient_id", "left")
     .join(df_patients, "patient_id", "left")
+    .join(df_facilities, F.col("ed_facility_id") == df_facilities["facility_id"], "left")
 )
 
 # Fill nulls
@@ -347,6 +348,8 @@ df_output = df_combined.select(
     "patient_id",
     F.col("first_name").alias("patient_first_name"),
     F.col("last_name").alias("patient_last_name"),
+    F.col("ed_facility_id").alias("facility_id"),
+    F.coalesce(df_facilities["facility_name"], F.lit("Unknown")).alias("facility_name"),
     "rolling_spend_30d",
     "rolling_spend_90d",
     "claims_count_30d",
@@ -355,8 +358,8 @@ df_output = df_combined.select(
     "readmission_flag",
     "risk_tier",
     "cost_trend",
-    "latitude",
-    "longitude",
+    F.coalesce("latitude", df_facilities["latitude"]).alias("latitude"),
+    F.coalesce("longitude", df_facilities["longitude"]).alias("longitude"),
 )
 
 df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_highcost_alerts")
@@ -413,6 +416,7 @@ if _KUSTO_QUERY_URI and _KUSTO_INGEST_URI:
 
         _df_kql = df_output.select(
             "alert_id", "alert_timestamp", "patient_id",
+            "facility_id", "facility_name",
             "rolling_spend_30d", "rolling_spend_90d", "ed_visits_30d",
             "readmission_flag", "risk_tier", "cost_trend",
             "latitude", "longitude"
@@ -425,9 +429,9 @@ if _KUSTO_QUERY_URI and _KUSTO_INGEST_URI:
         # Ensure table, streaming policy, and mapping exist before ingesting
         _mgmt_client = KustoClient(_engine_kcsb)
         _mgmt_cmds = [
-            """.create-merge table highcost_alerts (alert_id:string,alert_timestamp:datetime,patient_id:string,rolling_spend_30d:real,rolling_spend_90d:real,ed_visits_30d:int,readmission_flag:bool,risk_tier:string,cost_trend:string,latitude:real,longitude:real)""",
+            """.create-merge table highcost_alerts (alert_id:string,alert_timestamp:datetime,patient_id:string,facility_id:string,facility_name:string,rolling_spend_30d:real,rolling_spend_90d:real,ed_visits_30d:int,readmission_flag:bool,risk_tier:string,cost_trend:string,latitude:real,longitude:real)""",
             """.alter table highcost_alerts policy streamingingestion enable""",
-            """.create-or-alter table highcost_alerts ingestion json mapping 'highcost_alerts_mapping' '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+            """.create-or-alter table highcost_alerts ingestion json mapping 'highcost_alerts_mapping' '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
         ]
         for _cmd in _mgmt_cmds:
             try:

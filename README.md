@@ -25,7 +25,7 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
    - [High-Cost Member Trajectory](#use-case-3-high-cost-member-trajectory)
    - [RTI Data Tables](#rti-data-tables)
    - [Switching to Live Streaming](#switching-to-live-streaming)
-   - [Future: Operations Agent](#future-use-case-4--operations-agent)
+   - [Operations Agent](#use-case-4--operations-agent-healthcareopsagent)
 8. [Ontology & Graph Model Setup](#create-the-ontology--graph-model-manual--10-min)
 9. [Data Activator / Reflex Setup](#set-up-data-activator-alerts-manual--15-min)
 10. [Run Incremental Loads](#run-incremental-loads)
@@ -357,9 +357,9 @@ By default, the RTI notebooks run in **batch mode** (single batch → Delta tabl
 
 > **Note:** If the connection string wasn't printed by the setup notebook, open the Eventstream in the Fabric portal, click the Custom Endpoint source node, and copy the values from the details panel.
 
-### Future: Use Case 4 — Operations Agent
+### Use Case 4 — Operations Agent (HealthcareOpsAgent)
 
-> **Status: Architecture stub** (`NB_RTI_Operations_Agent`) — planned for next phase.
+> **Status: Deployed automatically** by Cell 7b of `Healthcare_Launcher`. The agent is created via the dedicated `/operationsAgents` REST API and configured with goals, instructions, and a KQL data source pointing to `Healthcare_RTI_DB`.
 
 The Operations Agent is an AI-powered operational intelligence layer that sits on top of the three RTI scoring outputs and unifies monitoring, triage, and action into a single interface.
 
@@ -367,10 +367,10 @@ The Operations Agent is an AI-powered operational intelligence layer that sits o
 |--------|------------|-------------|
 | **Unified Alert Triage** | Merges fraud + care gap + high-cost alerts into a single priority-ranked worklist, deduplicates by patient across alert types | KQL queries against Eventhouse |
 | **SLA & Throughput Monitoring** | Tracks data freshness per input table, pipeline completion SLA, alert-to-action latency | Fabric REST API + KQL |
-| **Automated Action Routing** | CRITICAL fraud → SIU queue, CRITICAL care gaps → provider EHR/fax, CRITICAL high-cost → care management referral | Fabric Data Activator (Reflex) |
-| **Natural Language Ops** | Ops teams query alerts conversationally: "What are today's top 10 priorities?" | Azure AI Foundry Agent with KQL tools |
+| **Automated Action Routing** | CRITICAL fraud → SIU queue, CRITICAL care gaps → provider EHR/fax, CRITICAL high-cost → care management referral | Power Automate flows |
+| **Natural Language Ops** | Ops teams query alerts conversationally: "What are today's top 10 priorities?" | Fabric OperationsAgent with KQL tools |
 
-**Sample Operations Agent questions (planned):**
+**Sample Operations Agent questions:**
 
 | # | Question |
 |---|----------|
@@ -380,6 +380,36 @@ The Operations Agent is an AI-powered operational intelligence layer that sits o
 | 41 | Show me patients who triggered both fraud and high-cost alerts simultaneously. |
 | 42 | How many CRITICAL alerts are unresolved from the last 24 hours? |
 | 43 | What is the average time between event ingestion and alert generation? |
+
+#### Post-Deployment Setup (Manual — ~10 min)
+
+After `Healthcare_Launcher` completes, the Operations Agent is created with goals, instructions, and KQL data source but needs **two manual steps** before it's fully operational:
+
+**Step 1: Add a Power Automate Action (Email Alerts)**
+
+1. Open **HealthcareOpsAgent** in the Fabric workspace
+2. Go to the **Actions** tab → **+ Add action** → **Custom action**
+3. **Workspace:** select your workspace (e.g., `healthcare-project-demo`)
+4. **Activator:** select the activator item (e.g., `Test21`)
+5. Wait for "Activator created successfully" ✅
+6. Copy the **connection string** shown on screen
+7. Click **Open flow builder** — this opens Power Automate
+8. In Power Automate, click the **"When an activator rule is triggered"** trigger card → paste the connection string to fix "Invalid parameters"
+9. Click **+ (Add an action)** below the trigger
+10. Search for **"Office 365 Outlook"** → select **"Send an email (V2)"**
+11. Configure the email:
+    - **To:** your team distribution list or individual email
+    - **Subject:** `Healthcare Alert: @{triggerBody()?['alertType']} - @{triggerBody()?['riskTier']}`
+    - **Body:** Use dynamic content from the trigger to include alert details
+12. Optionally add **"Respond to the agent"** (under AI capabilities) as a second action so the agent gets confirmation
+13. **Save** the flow → return to the Fabric tab → click **Apply**
+
+**Step 2: Activate the Agent**
+
+1. In the **HealthcareOpsAgent** overview, toggle the agent to **Active**
+2. Or via API: update the definition with `"shouldRun": true`
+
+> **Note:** The agent monitors 6 KQL tables (claims_events, adt_events, rx_events, fraud_scores, care_gap_alerts, highcost_alerts). Make sure RTI pipelines have run at least once so the tables contain data.
 
 ---
 

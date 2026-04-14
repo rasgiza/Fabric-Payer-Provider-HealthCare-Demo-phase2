@@ -11,52 +11,52 @@ Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the
 | 2 | What are the top 5 denial reasons by claim count and total billed amount? |
 | 3 | Which providers have the highest denial rates? Show the top 10 with their specialties. |
 | 4 | Show me all denied claims over $50,000 — include the patient, payer, denial reason, and billed amount. |
-| 5 | What is the total revenue at risk from claims flagged as high denial risk that haven't been denied yet? |
-| 6 | Compare the collection rate (paid / billed) across all payers. Which payer reimburses the least? |
-| 7 | How many claims are pending vs paid vs denied this month? Show the month-to-date trend. |
+| 5 | What is the total revenue at risk from claims flagged as high denial risk that haven’t been denied yet? |
+| 6 | Show me claims with high denial risk that are still pending. |
+| 7 | How many claims are in each denial risk category? |
 
 ### Readmissions & Patient Risk
 | # | Question |
 |---|----------|
-| 8 | What is the 30-day readmission rate? How does it trend by month over the past year? |
-| 9 | List the top 10 patients with the highest readmission risk scores. Include their age, insurance type, and number of prior encounters. |
-| 10 | What is the readmission rate by encounter type (inpatient, outpatient, emergency)? |
+| 8 | What is the 30-day readmission rate and how does it trend by month? |
+| 9 | List the top 10 patients with the highest readmission risk scores with their age and insurance type. |
+| 10 | What is the readmission rate by encounter type? |
 | 11 | Which facilities have the highest readmission rates? |
-| 12 | Show me the average length of stay for high-risk vs medium-risk vs low-risk readmission patients. |
-| 13 | How many patients are in each readmission risk category (high, medium, low)? |
+| 12 | Show me the average length of stay for high-risk vs low-risk readmission patients. |
+| 13 | How many encounters are in each readmission risk category? |
 
 ### Medication Adherence
 | # | Question |
 |---|----------|
-| 14 | How many patients are non-adherent (PDC < 0.8) for diabetes medications? |
-| 15 | What is the average PDC score by drug class? Which therapeutic area has the worst adherence? |
-| 16 | List patients who are on chronic medications and have PDC scores below 0.5 — include their drug class and gap days. |
-| 17 | What is the adherent vs non-adherent member count for statin therapy? |
-| 18 | Show the total medication cost by therapeutic area. Which drug class costs the most? |
+| 14 | Show me members who are non-adherent to their medications with their drug class and gap days. |
+| 15 | Show me medication adherence rates by drug class and therapeutic area. |
+| 16 | Which patients with chronic conditions are non-adherent to their medications? |
+| 17 | How many patients are adherent vs non-adherent? |
+| 18 | Show me prescription costs broken down by drug class and therapeutic area. |
 
 ### Social Determinants of Health (SDOH)
 | # | Question |
 |---|----------|
-| 19 | How many patients live in zip codes with a social vulnerability index above 0.75? |
-| 20 | What is the average readmission risk score for patients in high SDOH risk tier vs low risk tier? |
-| 21 | Show me zip codes flagged as food deserts — how many patients are in each? |
-| 22 | What is the denial rate for patients in high-poverty zip codes vs low-poverty zip codes? |
+| 19 | Show me members living in high social vulnerability zip codes with their risk factors. |
+| 20 | How does SDOH risk tier affect readmission risk? |
+| 21 | Which payers have the highest readmission rates? |
+| 22 | Show me readmitted patients with their social risk and adherence data. |
 
 ### Encounters & Providers
 | # | Question |
 |---|----------|
 | 23 | What is the average length of stay by encounter type? |
-| 24 | Which providers have the highest total charges? Show the top 10 with specialty and department. |
-| 25 | What are the top 10 most frequent ICD diagnoses across all encounters? |
-| 26 | How many encounters occurred this year by month? Show the trend. |
-| 27 | Which patients have had the most encounters in the past 12 months? |
+| 24 | What are the top diagnoses by volume? |
+| 25 | Which chronic conditions are most prevalent? |
+| 26 | Which patients have the highest prescription costs? |
+| 27 | How many patients are in each age group? |
 
 ### Cross-Domain Analytics
 | # | Question |
 |---|----------|
-| 28 | Show me patients who were readmitted AND are non-adherent to their medications. Include their risk scores and drug class. |
-| 29 | For patients in high SDOH risk zip codes, what is their average denial rate compared to the overall population? |
-| 30 | Which chronic conditions have the highest readmission rates? Show the top 5 ICD categories with readmission counts. |
+| 28 | Show me patients who were readmitted AND are non-adherent to their medications with their risk scores and drug class. |
+| 29 | Show me denied claims with their primary diagnosis. |
+| 30 | Which encounters are linked to denied claims? |
 
 ---
 

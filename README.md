@@ -431,7 +431,13 @@ The guide includes master configuration tables for all entities, relationships, 
 
 ### Set Up Data Activator Alerts (Manual — ~15 min)
 
-Data Activator (Reflex) monitors RTI KQL tables and fires **proactive alerts** via Email, Teams, or Power Automate when scoring thresholds are breached. No code required — configuration only.
+Data Activator (Reflex) is the **production-grade alerting layer** for this solution. It monitors RTI KQL tables in real time and fires **proactive alerts** via Email, Teams, or Power Automate when scoring thresholds are breached — no code required.
+
+> **Why Activator?** In real-world healthcare operations, compliance and audit teams need **deterministic, rule-based alerts** that fire consistently and can be traced back to exact thresholds. Activator provides this with built-in deduplication, configurable cadence, and direct integration with Teams/Email/Power Automate — making it the operational backbone for:
+> - **Fraud SIU teams** receiving immediate referrals when anomaly scores spike
+> - **Care coordinators** getting notified of overdue HEDIS gaps when patients are admitted
+> - **Case managers** flagged on high-cost member trajectories before costs escalate
+> - **IT/ops teams** alerted to pipeline staleness or data quality issues
 
 #### Step 1: Create a Reflex Item
 
@@ -446,38 +452,44 @@ Data Activator (Reflex) monitors RTI KQL tables and fires **proactive alerts** v
 
 #### Step 3: Configure Alert Rules
 
-**Rule 1 — Fraud Detection (Critical Claims)**
+**Rule 1 — Fraud Detection (SIU Referral)**
 
 | Setting | Value |
 |---------|-------|
 | **Table** | `fraud_scores` |
 | **Monitor** | `fraud_score` |
-| **Condition** | `fraud_score > 0.8 AND risk_tier == 'CRITICAL'` |
-| **Action 1** | **Teams** → post to `#fraud-investigations` channel |
-| **Action 2** | **Power Automate** → create SIU investigation case (optional) |
-| **Card fields** | claim_id, patient_id, provider_id, fraud_score, fraud_flags |
+| **Condition** | `fraud_score >= 50` |
+| **Action 1** | **Email** → notify SIU team |
+| **Action 2** | **Teams** → post to `#fraud-investigations` channel (optional) |
+| **Card fields** | claim_id, patient_id, provider_id, fraud_score, fraud_flags, risk_tier |
+| **Email Subject** | `🚨 CRITICAL Fraud Alert — SIU Referral: Patient {{patient_id}}` |
+| **Email Body** | `Claim {{claim_id}}, Score {{fraud_score}}, Flags: {{fraud_flags}}` |
 
-**Rule 2 — Care Gap Closure (High Priority)**
+**Rule 2 — Care Gap Outreach (Overdue HEDIS Gaps)**
 
 | Setting | Value |
 |---------|-------|
 | **Table** | `care_gap_alerts` |
-| **Monitor** | `alert_priority` |
-| **Condition** | `alert_priority == 'HIGH' AND gap_days_overdue > 30` |
-| **Action 1** | **Teams** → post to `#care-coordination` channel |
-| **Action 2** | **Email** → notify assigned care manager (optional) |
-| **Card fields** | patient_id, measure_name, gap_days_overdue, alert_text |
+| **Monitor** | `gap_days_overdue` |
+| **Condition** | `gap_days_overdue > 90` |
+| **Action 1** | **Email** → notify care coordinator |
+| **Action 2** | **Teams** → post to `#care-coordination` channel (optional) |
+| **Card fields** | patient_id, measure_name, gap_days_overdue, alert_priority, alert_text |
+| **Email Subject** | `⚠️ Care Gap Alert — {{measure_name}}: Patient {{patient_id}}` |
+| **Email Body** | `{{gap_days_overdue}} days overdue, Priority: {{alert_priority}}` |
 
-**Rule 3 — High-Cost Member Trajectory (Critical)**
+**Rule 3 — High-Cost Member (Care Management Referral)**
 
 | Setting | Value |
 |---------|-------|
 | **Table** | `highcost_alerts` |
-| **Monitor** | `rolling_spend_90d` |
-| **Condition** | `rolling_spend_90d > 50000 AND risk_tier == 'CRITICAL'` |
-| **Action 1** | **Power Automate** → trigger care management workflow |
-| **Action 2** | **Email** → notify case manager |
-| **Card fields** | patient_id, rolling_spend_90d, ed_visits_30d, cost_trend |
+| **Monitor** | `rolling_spend_30d` |
+| **Condition** | `rolling_spend_30d > 50000` |
+| **Action 1** | **Email** → notify case manager |
+| **Action 2** | **Power Automate** → trigger care management workflow (optional) |
+| **Card fields** | patient_id, rolling_spend_30d, ed_visits_30d, cost_trend, risk_tier |
+| **Email Subject** | `💰 High-Cost Alert — Patient {{patient_id}}: ${{rolling_spend_30d}} in 30d` |
+| **Email Body** | `ED Visits: {{ed_visits_30d}}, Trend: {{cost_trend}}, Tier: {{risk_tier}}` |
 
 #### Step 4: Verify Alerts Fire
 
@@ -486,6 +498,17 @@ Data Activator (Reflex) monitors RTI KQL tables and fires **proactive alerts** v
 3. Check your Teams channel / email for alert cards within ~60 seconds
 
 > **Power Automate integration**: For complex routing (create ServiceNow tickets, update EHR systems, page on-call staff), select **Power Automate** as the action and build a flow that reads the alert payload. The Reflex trigger passes all card fields as dynamic content to the flow.
+
+#### Real-World Pain Points Solved
+
+| Pain Point | How Activator Solves It |
+|------------|------------------------|
+| **Fraud goes undetected for days** | Fraud scores ≥ 50 trigger immediate SIU email — MTTD drops from days to minutes |
+| **Care gaps missed during admissions** | Patients with overdue HEDIS measures are flagged on admission — care coordinators act while the patient is still in-house |
+| **High-cost members escalate silently** | Spending trajectories > $50K/30d trigger proactive case management before costs spiral |
+| **Alert fatigue from noisy dashboards** | Activator fires only when thresholds breach — no polling, no dashboards to watch |
+| **Ops teams lack unified triage** | Combined with the Operations Agent, alerts from all 3 streams flow into a single prioritized view |
+| **Compliance audit trail gaps** | Every Activator trigger is logged with timestamp, threshold, and action taken — ready for audit |
 
 ### Run Incremental Loads
 

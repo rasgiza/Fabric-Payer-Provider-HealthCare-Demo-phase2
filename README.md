@@ -113,7 +113,7 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Pipelines (2)** | `PL_Healthcare_Full_Load`, `PL_Healthcare_Master` | Orchestration with full/incremental modes |
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent — lakehouse + semantic model (SQL aggregations) |
-| **Graph Agent** | `HealthcareGraphAgent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
+| **Graph Agent** | `Healthcare Ontology Agent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **manual UI setup** (see guide below) |
 | **Power BI Report** | `Healthcare Analytics Dashboard` | 6 pages, 60+ visuals — auto-deployed by fabric-cicd |
 | **Eventhouse** ⚡ | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine (`DEPLOY_STREAMING` only) |
@@ -246,7 +246,7 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 | **8** | Create & refresh `HealthcareDemoHLS` semantic model (Direct Lake, TMDL) |
 | **9** | Deploy ontology (`Healthcare_Demo_Ontology_HLS`) + run `NB_Deploy_Graph_Model` |
 | **10** | Patch `HealthcareHLSAgent` datasources with real lakehouse/SM IDs |
-| **11** | Create/patch `HealthcareGraphAgent` with real ontology/graph model IDs |
+| **11** | Create/patch `Healthcare Ontology Agent` with real ontology/graph model IDs |
 | **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent |
 | **13** ⚡ | Deploy Real-Time Dashboard (4-page KQL dashboard) |
 | **14** | Organize workspace folders + print deployment summary |
@@ -278,7 +278,7 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 The solution includes two complementary AI agents:
 
 - **HealthcareHLSAgent** — SQL-based agent for aggregations, rates, and trends ("What is the denial rate?", "Top 10 providers by cost")
-- **HealthcareGraphAgent** — Graph traversal agent for entity lookups and relationships ("Tell me about patient PAT0000001", "Who treated this patient?", "Trace claim CLM0009999 from patient to payer")
+- **Healthcare Ontology Agent** — Graph traversal agent for entity lookups and relationships ("Tell me about patient PAT0000001", "Who treated this patient?", "Trace claim CLM0009999 from patient to payer")
 
 See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ copy-paste questions organized by domain and agent.
 
@@ -656,7 +656,7 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 │   ├── PL_Healthcare_Master.DataPipeline/
 │   ├── HealthcareDemoHLS.SemanticModel/
 │   ├── HealthcareHLSAgent.DataAgent/
-│   └── HealthcareGraphAgent.DataAgent/
+│   └── Healthcare Ontology Agent.DataAgent/
 ├── ontology/                          # Ontology manifest (12 entities, 18 relationships) — deployed by Cell 10a
 │   └── Healthcare_Demo_Ontology_HLS/
 ├── healthcare_knowledge/              # AI agent knowledge base

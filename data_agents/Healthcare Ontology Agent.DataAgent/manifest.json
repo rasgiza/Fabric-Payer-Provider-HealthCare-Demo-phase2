@@ -1,5 +1,5 @@
 {
-  "agentName": "HealthcareGraphAgent",
+  "agentName": "Healthcare Ontology Agent",
   "exportedParts": [
     {
       "path": "Files/Config/data_agent.json",

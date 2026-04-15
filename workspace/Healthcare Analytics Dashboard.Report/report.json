@@ -1,0 +1,1333 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.0.0/schema.json",
+  "themeCollection": {
+    "baseTheme": {
+      "name": "CY24SU06",
+      "reportVersionAtImport": "5.55",
+      "type": "SharedResources"
+    }
+  },
+  "dataColors": [
+    "#0078D4",
+    "#107C10",
+    "#FFB900",
+    "#D13438",
+    "#605E5C",
+    "#0063B1",
+    "#E3008C",
+    "#00B7C3"
+  ],
+  "pages": [
+    {
+      "name": "page_executive",
+      "displayName": "Executive Summary",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Healthcare Payer / Provider Analytics — Executive Summary", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p1c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } },
+                      "queryRef": "dim_patient.Total Patients",
+                      "nativeQueryRef": "Total Patients"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Patients'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1c2",
+          "position": { "x": 225, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Readmission Rate" } },
+                      "queryRef": "fact_encounter.Readmission Rate",
+                      "nativeQueryRef": "Readmission Rate"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Readmission Rate (Target: 15%)'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1c3",
+          "position": { "x": 430, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } },
+                      "queryRef": "fact_claim.Denial Rate",
+                      "nativeQueryRef": "Denial Rate"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Rate (Target: 8%)'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1c4",
+          "position": { "x": 635, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 4 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "Adherent Rate" } },
+                      "queryRef": "agg_medication_adherence.Adherent Rate",
+                      "nativeQueryRef": "Adherent Rate"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Adherent Rate (Target: 80%)'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1c5",
+          "position": { "x": 840, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 5 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Charges" } },
+                      "queryRef": "fact_encounter.Total Charges",
+                      "nativeQueryRef": "Total Charges"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Charges'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1c6",
+          "position": { "x": 1045, "y": 56, "z": 0, "width": 195, "height": 100, "tabOrder": 6 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Collection Rate" } },
+                      "queryRef": "fact_claim.Collection Rate",
+                      "nativeQueryRef": "Collection Rate"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Collection Rate'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1line1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 600, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "lineChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "month_name" } },
+                      "queryRef": "dim_date.month_name",
+                      "nativeQueryRef": "month_name"
+                    }
+                  ]
+                },
+                "Y": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } },
+                      "queryRef": "fact_encounter.Total Encounters",
+                      "nativeQueryRef": "Total Encounters"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Encounters by Month'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1bar1",
+          "position": { "x": 640, "y": 166, "z": 0, "width": 620, "height": 260, "tabOrder": 8 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_payer" } }, "Property": "payer_name" } },
+                      "queryRef": "dim_payer.payer_name",
+                      "nativeQueryRef": "payer_name"
+                    }
+                  ]
+                },
+                "Y": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } },
+                      "queryRef": "fact_claim.Denial Rate",
+                      "nativeQueryRef": "Denial Rate"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Rate by Payer'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1donut1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 400, "height": 260, "tabOrder": 9 },
+          "visual": {
+            "visualType": "donutChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "readmission_risk_category" } },
+                      "queryRef": "fact_encounter.readmission_risk_category",
+                      "nativeQueryRef": "readmission_risk_category"
+                    }
+                  ]
+                },
+                "Y": {
+                  "projections": [
+                    {
+                      "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } },
+                      "queryRef": "fact_encounter.Total Encounters",
+                      "nativeQueryRef": "Total Encounters"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Risk Distribution'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1slicer1",
+          "position": { "x": 440, "y": 436, "z": 0, "width": 260, "height": 260, "tabOrder": 10 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "year" } },
+                      "queryRef": "dim_date.year",
+                      "nativeQueryRef": "year"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Year'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1slicer2",
+          "position": { "x": 720, "y": 436, "z": 0, "width": 260, "height": 260, "tabOrder": 11 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "quarter" } },
+                      "queryRef": "dim_date.quarter",
+                      "nativeQueryRef": "quarter"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Quarter'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p1slicer3",
+          "position": { "x": 1000, "y": 436, "z": 0, "width": 260, "height": 260, "tabOrder": 12 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    {
+                      "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "insurance_type" } },
+                      "queryRef": "dim_patient.insurance_type",
+                      "nativeQueryRef": "insurance_type"
+                    }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Insurance Type'" } } } } }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_claims",
+      "displayName": "Claim Denials & Revenue Cycle",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_p2title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Claim Denials & Revenue Cycle", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p2c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 235, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Claims" } }, "queryRef": "fact_claim.Total Claims", "nativeQueryRef": "Total Claims" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Claims'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2c2",
+          "position": { "x": 265, "y": 56, "z": 0, "width": 235, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Rate'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2c3",
+          "position": { "x": 510, "y": 56, "z": 0, "width": 235, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "At Risk Revenue" } }, "queryRef": "fact_claim.At Risk Revenue", "nativeQueryRef": "At Risk Revenue" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'At Risk Revenue'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2c4",
+          "position": { "x": 755, "y": 56, "z": 0, "width": 235, "height": 100, "tabOrder": 4 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Billed" } }, "queryRef": "fact_claim.Total Billed", "nativeQueryRef": "Total Billed" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Billed'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2c5",
+          "position": { "x": 1000, "y": 56, "z": 0, "width": 260, "height": 100, "tabOrder": 5 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Paid" } }, "queryRef": "fact_claim.Total Paid", "nativeQueryRef": "Total Paid" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Paid'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2bar1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 400, "height": 260, "tabOrder": 6 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_payer" } }, "Property": "payer_name" } }, "queryRef": "dim_payer.payer_name", "nativeQueryRef": "payer_name" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Rate by Payer'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2bar2",
+          "position": { "x": 430, "y": 166, "z": 0, "width": 420, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "primary_denial_reason" } }, "queryRef": "fact_claim.primary_denial_reason", "nativeQueryRef": "primary_denial_reason" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Claims" } }, "queryRef": "fact_claim.Total Claims", "nativeQueryRef": "Total Claims" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Top Denial Reasons'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2line1",
+          "position": { "x": 860, "y": 166, "z": 0, "width": 400, "height": 260, "tabOrder": 8 },
+          "visual": {
+            "visualType": "lineChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "month_name" } }, "queryRef": "dim_date.month_name", "nativeQueryRef": "month_name" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Trend'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2tbl1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 620, "height": 260, "tabOrder": 9 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "display_name" } }, "queryRef": "dim_provider.display_name", "nativeQueryRef": "Provider" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "specialty" } }, "queryRef": "dim_provider.specialty", "nativeQueryRef": "Specialty" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Claims" } }, "queryRef": "fact_claim.Total Claims", "nativeQueryRef": "Claims" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial %" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Provider Denial Rates'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2donut1",
+          "position": { "x": 660, "y": 436, "z": 0, "width": 300, "height": 260, "tabOrder": 10 },
+          "visual": {
+            "visualType": "donutChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "claim_status" } }, "queryRef": "fact_claim.claim_status", "nativeQueryRef": "claim_status" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Claims" } }, "queryRef": "fact_claim.Total Claims", "nativeQueryRef": "Total Claims" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Claims by Status'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p2bar3",
+          "position": { "x": 970, "y": 436, "z": 0, "width": 290, "height": 260, "tabOrder": 11 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_payer" } }, "Property": "payer_name" } }, "queryRef": "dim_payer.payer_name", "nativeQueryRef": "payer_name" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Collection Rate" } }, "queryRef": "fact_claim.Collection Rate", "nativeQueryRef": "Collection Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Collection Rate by Payer'" } } } } }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_readmission",
+      "displayName": "Readmission Risk",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_p3title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Readmission Risk Analytics", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p3c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Readmission Rate" } }, "queryRef": "fact_encounter.Readmission Rate", "nativeQueryRef": "Readmission Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Readmission Rate'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3c2",
+          "position": { "x": 325, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "High Risk Readmissions" } }, "queryRef": "fact_encounter.High Risk Readmissions", "nativeQueryRef": "High Risk Readmissions" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'High Risk Readmissions'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3c3",
+          "position": { "x": 630, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Length of Stay" } }, "queryRef": "fact_encounter.Avg Length of Stay", "nativeQueryRef": "Avg Length of Stay" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Avg Length of Stay'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3c4",
+          "position": { "x": 935, "y": 56, "z": 0, "width": 325, "height": 100, "tabOrder": 4 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Readmission Risk" } }, "queryRef": "fact_encounter.Avg Readmission Risk", "nativeQueryRef": "Avg Readmission Risk" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Avg Readmission Risk Score'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3line1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 600, "height": 260, "tabOrder": 5 },
+          "visual": {
+            "visualType": "lineChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "month_name" } }, "queryRef": "dim_date.month_name", "nativeQueryRef": "month_name" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Readmission Rate" } }, "queryRef": "fact_encounter.Readmission Rate", "nativeQueryRef": "Readmission Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Readmission Trend by Month'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3bar1",
+          "position": { "x": 640, "y": 166, "z": 0, "width": 300, "height": 260, "tabOrder": 6 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "readmission_risk_category" } }, "queryRef": "fact_encounter.readmission_risk_category", "nativeQueryRef": "readmission_risk_category" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } }, "queryRef": "fact_encounter.Total Encounters", "nativeQueryRef": "Total Encounters" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Risk Distribution'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3bar2",
+          "position": { "x": 950, "y": 166, "z": 0, "width": 310, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "encounter_type" } }, "queryRef": "fact_encounter.encounter_type", "nativeQueryRef": "encounter_type" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Readmission Risk" } }, "queryRef": "fact_encounter.Avg Readmission Risk", "nativeQueryRef": "Avg Readmission Risk" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Risk by Encounter Type'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3tbl1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 830, "height": 260, "tabOrder": 8 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "first_name" } }, "queryRef": "dim_patient.first_name", "nativeQueryRef": "First Name" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "last_name" } }, "queryRef": "dim_patient.last_name", "nativeQueryRef": "Last Name" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "age" } }, "queryRef": "dim_patient.age", "nativeQueryRef": "Age" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "readmission_risk_score" } }, "queryRef": "fact_encounter.readmission_risk_score", "nativeQueryRef": "Risk Score" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "readmission_risk_category" } }, "queryRef": "fact_encounter.readmission_risk_category", "nativeQueryRef": "Risk Category" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Top High-Risk Patients'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p3bar3",
+          "position": { "x": 860, "y": 436, "z": 0, "width": 400, "height": 260, "tabOrder": 9 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "readmission_risk_category" } }, "queryRef": "fact_encounter.readmission_risk_category", "nativeQueryRef": "readmission_risk_category" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Length of Stay" } }, "queryRef": "fact_encounter.Avg Length of Stay", "nativeQueryRef": "Avg Length of Stay" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'LOS by Risk Category'" } } } } }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_adherence",
+      "displayName": "Medication Adherence",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_p4title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Medication Adherence — HEDIS / Star Rating Alignment", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p4c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "Adherent Rate" } }, "queryRef": "agg_medication_adherence.Adherent Rate", "nativeQueryRef": "Adherent Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Adherent Rate (PDC ≥ 80%)'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4c2",
+          "position": { "x": 325, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "Avg PDC Score" } }, "queryRef": "agg_medication_adherence.Avg PDC Score", "nativeQueryRef": "Avg PDC Score" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Avg PDC Score'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4c3",
+          "position": { "x": 630, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_prescription" } }, "Property": "Total Fills" } }, "queryRef": "fact_prescription.Total Fills", "nativeQueryRef": "Total Fills" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Prescription Fills'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4c4",
+          "position": { "x": 935, "y": 56, "z": 0, "width": 325, "height": 100, "tabOrder": 4 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_prescription" } }, "Property": "Total Rx Cost" } }, "queryRef": "fact_prescription.Total Rx Cost", "nativeQueryRef": "Total Rx Cost" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Rx Cost'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4bar1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 600, "height": 260, "tabOrder": 5 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_medication" } }, "Property": "drug_class" } }, "queryRef": "dim_medication.drug_class", "nativeQueryRef": "drug_class" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "Avg PDC Score" } }, "queryRef": "agg_medication_adherence.Avg PDC Score", "nativeQueryRef": "Avg PDC Score" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Adherence by Drug Class'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4donut1",
+          "position": { "x": 640, "y": 166, "z": 0, "width": 300, "height": 260, "tabOrder": 6 },
+          "visual": {
+            "visualType": "donutChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "adherence_category" } }, "queryRef": "agg_medication_adherence.adherence_category", "nativeQueryRef": "adherence_category" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } }, "queryRef": "dim_patient.Total Patients", "nativeQueryRef": "Total Patients" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Adherence Distribution'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4tree1",
+          "position": { "x": 950, "y": 166, "z": 0, "width": 310, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "treemap",
+            "query": {
+              "queryState": {
+                "Group": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_medication" } }, "Property": "therapeutic_area" } }, "queryRef": "dim_medication.therapeutic_area", "nativeQueryRef": "therapeutic_area" }]
+                },
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_prescription" } }, "Property": "Total Rx Cost" } }, "queryRef": "fact_prescription.Total Rx Cost", "nativeQueryRef": "Total Rx Cost" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Cost by Therapeutic Area'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4tbl1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 830, "height": 260, "tabOrder": 8 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "first_name" } }, "queryRef": "dim_patient.first_name", "nativeQueryRef": "First Name" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "last_name" } }, "queryRef": "dim_patient.last_name", "nativeQueryRef": "Last Name" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_medication" } }, "Property": "drug_class" } }, "queryRef": "dim_medication.drug_class", "nativeQueryRef": "Drug Class" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "pdc_score" } }, "queryRef": "agg_medication_adherence.pdc_score", "nativeQueryRef": "PDC Score" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "gap_days" } }, "queryRef": "agg_medication_adherence.gap_days", "nativeQueryRef": "Gap Days" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Non-Adherent Patients'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4slicer1",
+          "position": { "x": 860, "y": 436, "z": 0, "width": 200, "height": 260, "tabOrder": 9 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_medication" } }, "Property": "drug_class" } }, "queryRef": "dim_medication.drug_class", "nativeQueryRef": "drug_class" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Drug Class'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p4slicer2",
+          "position": { "x": 1070, "y": 436, "z": 0, "width": 190, "height": 260, "tabOrder": 10 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "agg_medication_adherence" } }, "Property": "adherence_category" } }, "queryRef": "agg_medication_adherence.adherence_category", "nativeQueryRef": "adherence_category" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Adherence'" } } } } }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_sdoh",
+      "displayName": "Social Determinants of Health",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_p5title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Social Determinants of Health (SDOH) — Population Stratification", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p5c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } }, "queryRef": "dim_patient.Total Patients", "nativeQueryRef": "Total Patients" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Patients'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5c2",
+          "position": { "x": 325, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Readmission Risk" } }, "queryRef": "fact_encounter.Avg Readmission Risk", "nativeQueryRef": "Avg Readmission Risk" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Avg Readmission Risk'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5donut1",
+          "position": { "x": 640, "y": 56, "z": 0, "width": 300, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "donutChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "risk_tier" } }, "queryRef": "dim_sdoh.risk_tier", "nativeQueryRef": "risk_tier" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } }, "queryRef": "dim_patient.Total Patients", "nativeQueryRef": "Total Patients" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'SDOH Risk Tier Distribution'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5bar1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 400, "height": 260, "tabOrder": 4 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "risk_tier" } }, "queryRef": "dim_sdoh.risk_tier", "nativeQueryRef": "risk_tier" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Readmission Risk" } }, "queryRef": "fact_encounter.Avg Readmission Risk", "nativeQueryRef": "Avg Readmission Risk" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Readmission Risk by SDOH Tier'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5scatter1",
+          "position": { "x": 430, "y": 166, "z": 0, "width": 420, "height": 260, "tabOrder": 5 },
+          "visual": {
+            "visualType": "scatterChart",
+            "query": {
+              "queryState": {
+                "X": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "poverty_rate" } }, "queryRef": "dim_sdoh.poverty_rate", "nativeQueryRef": "poverty_rate" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial Rate" }]
+                },
+                "Size": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } }, "queryRef": "dim_patient.Total Patients", "nativeQueryRef": "Total Patients" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Denial Rate by Poverty Level'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5bar2",
+          "position": { "x": 860, "y": 166, "z": 0, "width": 400, "height": 260, "tabOrder": 6 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "food_desert_flag" } }, "queryRef": "dim_sdoh.food_desert_flag", "nativeQueryRef": "food_desert_flag" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Readmission Rate" } }, "queryRef": "fact_encounter.Readmission Rate", "nativeQueryRef": "Readmission Rate" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Food Desert Impact on Readmissions'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5tbl1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 940, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "zip_code" } }, "queryRef": "dim_sdoh.zip_code", "nativeQueryRef": "Zip Code" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "poverty_rate" } }, "queryRef": "dim_sdoh.poverty_rate", "nativeQueryRef": "Poverty Rate" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "social_vulnerability_index" } }, "queryRef": "dim_sdoh.social_vulnerability_index", "nativeQueryRef": "SVI" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "food_desert_flag" } }, "queryRef": "dim_sdoh.food_desert_flag", "nativeQueryRef": "Food Desert" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "dim_patient" } }, "Property": "Total Patients" } }, "queryRef": "dim_patient.Total Patients", "nativeQueryRef": "Patients" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'SDOH by Zip Code'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5slicer1",
+          "position": { "x": 970, "y": 436, "z": 0, "width": 140, "height": 130, "tabOrder": 8 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "risk_tier" } }, "queryRef": "dim_sdoh.risk_tier", "nativeQueryRef": "risk_tier" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Risk Tier'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p5slicer2",
+          "position": { "x": 1120, "y": 436, "z": 0, "width": 140, "height": 130, "tabOrder": 9 },
+          "visual": {
+            "visualType": "slicer",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_sdoh" } }, "Property": "food_desert_flag" } }, "queryRef": "dim_sdoh.food_desert_flag", "nativeQueryRef": "food_desert_flag" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Food Desert'" } } } } }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "page_provider",
+      "displayName": "Provider Performance",
+      "displayOption": 0,
+      "height": 720,
+      "width": 1280,
+      "visuals": [
+        {
+          "name": "v_p6title",
+          "position": { "x": 20, "y": 8, "z": 0, "width": 1240, "height": 40, "tabOrder": 0 },
+          "visual": {
+            "visualType": "textbox",
+            "objects": {
+              "general": [{ "properties": { "paragraphs": [{ "textRuns": [{ "value": "Provider Performance & Contract Analytics", "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "16px", "color": "#0078D4" } }] }] } }]
+            }
+          }
+        },
+        {
+          "name": "v_p6c1",
+          "position": { "x": 20, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 1 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } }, "queryRef": "fact_encounter.Total Encounters", "nativeQueryRef": "Total Encounters" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Encounters'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6c2",
+          "position": { "x": 325, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 2 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Charges" } }, "queryRef": "fact_encounter.Total Charges", "nativeQueryRef": "Total Charges" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Total Charges'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6c3",
+          "position": { "x": 630, "y": 56, "z": 0, "width": 295, "height": 100, "tabOrder": 3 },
+          "visual": {
+            "visualType": "card",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "YoY Charge Growth" } }, "queryRef": "fact_encounter.YoY Charge Growth", "nativeQueryRef": "YoY Charge Growth" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'YoY Charge Growth'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6bar1",
+          "position": { "x": 20, "y": 166, "z": 0, "width": 600, "height": 260, "tabOrder": 4 },
+          "visual": {
+            "visualType": "clusteredBarChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "display_name" } }, "queryRef": "dim_provider.display_name", "nativeQueryRef": "display_name" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Charges" } }, "queryRef": "fact_encounter.Total Charges", "nativeQueryRef": "Total Charges" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Top Providers by Charges'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6donut1",
+          "position": { "x": 640, "y": 166, "z": 0, "width": 300, "height": 260, "tabOrder": 5 },
+          "visual": {
+            "visualType": "donutChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "specialty" } }, "queryRef": "dim_provider.specialty", "nativeQueryRef": "specialty" }]
+                },
+                "Y": {
+                  "projections": [{ "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } }, "queryRef": "fact_encounter.Total Encounters", "nativeQueryRef": "Total Encounters" }]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Encounters by Specialty'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6line1",
+          "position": { "x": 950, "y": 166, "z": 0, "width": 310, "height": 260, "tabOrder": 6 },
+          "visual": {
+            "visualType": "lineChart",
+            "query": {
+              "queryState": {
+                "Category": {
+                  "projections": [{ "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_date" } }, "Property": "month_name" } }, "queryRef": "dim_date.month_name", "nativeQueryRef": "month_name" }]
+                },
+                "Y": {
+                  "projections": [
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Charges" } }, "queryRef": "fact_encounter.Total Charges", "nativeQueryRef": "Total Charges" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "PY Charges" } }, "queryRef": "fact_encounter.PY Charges", "nativeQueryRef": "PY Charges" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Charges YoY Growth'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6tbl1",
+          "position": { "x": 20, "y": 436, "z": 0, "width": 620, "height": 260, "tabOrder": 7 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "display_name" } }, "queryRef": "dim_provider.display_name", "nativeQueryRef": "Provider" },
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "specialty" } }, "queryRef": "dim_provider.specialty", "nativeQueryRef": "Specialty" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Total Claims" } }, "queryRef": "fact_claim.Total Claims", "nativeQueryRef": "Claims" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_claim" } }, "Property": "Denial Rate" } }, "queryRef": "fact_claim.Denial Rate", "nativeQueryRef": "Denial %" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'Provider Denial Rates'" } } } } }] }
+          }
+        },
+        {
+          "name": "v_p6tbl2",
+          "position": { "x": 660, "y": 436, "z": 0, "width": 600, "height": 260, "tabOrder": 8 },
+          "visual": {
+            "visualType": "tableEx",
+            "query": {
+              "queryState": {
+                "Values": {
+                  "projections": [
+                    { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "dim_provider" } }, "Property": "display_name" } }, "queryRef": "dim_provider.display_name", "nativeQueryRef": "Provider" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Avg Length of Stay" } }, "queryRef": "fact_encounter.Avg Length of Stay", "nativeQueryRef": "Avg LOS" },
+                    { "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "fact_encounter" } }, "Property": "Total Encounters" } }, "queryRef": "fact_encounter.Total Encounters", "nativeQueryRef": "Encounters" }
+                  ]
+                }
+              },
+              "sortDefinition": { "isDefaultSort": true, "sort": [] }
+            },
+            "objects": {},
+            "vcObjects": { "title": [{ "properties": { "show": { "expr": { "Literal": { "Value": "true" } } }, "text": { "expr": { "Literal": { "Value": "'LOS by Provider'" } } } } }] }
+          }
+        }
+      ]
+    }
+  ]
+}

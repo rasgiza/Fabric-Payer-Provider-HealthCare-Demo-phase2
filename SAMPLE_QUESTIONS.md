@@ -60,13 +60,13 @@ Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the
 
 ---
 
-## Graph Agent (HealthcareGraphAgent)
+## Graph Agent (Healthcare Ontology Agent)
 
-Open **HealthcareGraphAgent** in your Fabric workspace. This agent navigates the Healthcare_Demo_Ontology_HLS graph — tracing relationships between providers, payers, claims, encounters, and patients. Unlike HealthcareHLSAgent (which does SQL aggregations), the Graph Agent excels at **entity profiles**, **relationship traversal**, and **network exploration**.
+Open **Healthcare Ontology Agent** in your Fabric workspace. This agent navigates the Healthcare_Demo_Ontology_HLS graph — tracing relationships between providers, payers, claims, encounters, and patients. Unlike HealthcareHLSAgent (which does SQL aggregations), the Graph Agent excels at **entity profiles**, **relationship traversal**, and **network exploration**.
 
 > **When to use which agent:**
 > - **HealthcareHLSAgent** → "How many?", "What rate?", "Top 10", "Monthly trend" (aggregations)
-> - **HealthcareGraphAgent** → "Show me this provider's network", "Which payers denied these claims?", "Trace this claim end-to-end" (traversals)
+> - **Healthcare Ontology Agent** → "Show me this provider's network", "Which payers denied these claims?", "Trace this claim end-to-end" (traversals)
 
 ### Provider Operations & Network
 | # | Question |

@@ -98,9 +98,11 @@ All from a single workspace deployed in minutes.
    *(Workspace → Import → Notebook → upload the .ipynb file)*
 3. **Run All** — wait ~15-20 minutes
 
-> **That's it — no configuration needed.** The notebook pulls from the public repo `rasgiza/Fabric-Payer-Provider-HealthCare-Demo` by default. If you want to change settings, edit Cell 3 (the Configuration cell) before running — for example, set `DEPLOY_RTI = False` to skip Real-Time Intelligence, or point `GITHUB_OWNER` to your own fork.
+> **That's it — no configuration needed.** The notebook pulls from the public repo `rasgiza/Fabric-Payer-Provider-HealthCare-Demo` by default. If you want to change settings, edit the CONFIG cell before running — for example, set `DEPLOY_STREAMING = True` to enable Real-Time Intelligence (Eventhouse + KQL + scoring), or point `GITHUB_OWNER` to your own fork.
+>
+> **First deployment** deploys ETL + Agents (Cells 1-11). Set `DEPLOY_STREAMING = True` for the full RTI stack (Cells 12-13).
 
-The launcher creates a deploy lakehouse, downloads the repo, deploys all artifacts in the correct stage order, generates sample data, runs the ETL pipeline, and sets up RTI — fully automated.
+The launcher creates a deploy lakehouse, downloads the repo, deploys all artifacts in the correct stage order, generates sample data, runs the ETL pipeline, creates the semantic model, deploys the ontology + graph, and patches Data/Graph Agents — fully automated. RTI is opt-in via `DEPLOY_STREAMING = True`.
 
 ## What Gets Deployed
 
@@ -113,10 +115,14 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent — lakehouse + semantic model (SQL aggregations) |
 | **Graph Agent** | `HealthcareGraphAgent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **manual UI setup** (see guide below) |
-| **Eventhouse** | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine |
-| **KQL Database** | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) |
-| **Eventstream** | `Healthcare_RTI_Eventstream` | API-created at deploy-time (Custom Endpoint source) |
-| **RTI Notebooks (6)** | Event Simulator, Post-Deploy Setup, 3 Scoring, Ops Agent (stub) | Real-Time Intelligence for fraud, care gaps, high-cost trajectory + ops agent |
+| **Power BI Report** | `Healthcare Analytics Dashboard` | 6 pages, 60+ visuals — auto-deployed by fabric-cicd |
+| **Eventhouse** ⚡ | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine (`DEPLOY_STREAMING` only) |
+| **KQL Database** ⚡ | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) (`DEPLOY_STREAMING` only) |
+| **OpsAgent** ⚡ | `HealthcareOpsAgent` | KQL-backed operations agent (`DEPLOY_STREAMING` only) |
+| **RTI Notebooks (5)** ⚡ | Event Simulator, Setup, 3 Scoring | RTI for fraud, care gaps, high-cost trajectory (`DEPLOY_STREAMING` only) |
+| **RTI Dashboard** ⚡ | `Healthcare RTI Dashboard` | 4-page KQL dashboard, 30s auto-refresh (`DEPLOY_STREAMING` only) |
+
+> ⚡ = Only deployed when `DEPLOY_STREAMING = True`
 
 ### Data Volumes (Default)
 
@@ -227,38 +233,39 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 
 ### What happens when you click "Run All"
 
-1. **Install** `fabric-launcher` library (`%pip install fabric-launcher`)
-2. **Initialize** the launcher — auto-detects workspace ID, validates workspace is empty
-3. **Download** this GitHub repo as a ZIP archive from the configured branch
-4. **Extract** to the notebook's default lakehouse at `Files/src/<repo-name>/`
-   — the `workspace/` folder contains all Fabric item definitions (`.platform`, notebook content, TMDL, pipeline JSON, Eventhouse/KQL artifacts)
-5. **Deploy Stage 1 — Lakehouses** — `lh_bronze_raw`, `lh_silver_stage`, `lh_silver_ods`, `lh_gold_curated`
-   (must exist before notebooks that reference them as default lakehouses)
-6. **Deploy Stage 2 — Eventhouse + KQL Database** — Git-tracked RTI infrastructure
-   (`Healthcare_RTI_Eventhouse` + `Healthcare_RTI_DB` with `DatabaseSchema.kql`)
-7. **Deploy Stage 3 — Notebooks** — 12 notebooks (5 ETL + 2 data gen + 5 RTI + 1 ops agent stub)
-   (must exist before pipelines reference them as activities)
-8. **Deploy Stage 4 — Data Pipelines** — `PL_Healthcare_Full_Load`, `PL_Healthcare_Master`
-9. **Deploy Stage 5 — Semantic Model + Data Agents** — `HealthcareDemoHLS` (TMDL star schema) + `HealthcareHLSAgent` (SQL Copilot) + `HealthcareGraphAgent` (Graph Copilot)
-10. **Validate** all deployed items — checks each item exists and has correct type
-11. **Upload** healthcare knowledge docs from `healthcare_knowledge/` to `lh_gold_curated/Files/healthcare_knowledge/`
-12. **Run** `NB_Generate_Sample_Data` — generates ~10K patients, 100K encounters, HEDIS measures, care gaps
-13. **Trigger** `PL_Healthcare_Master` with `load_mode=full` — runs Bronze → Silver → Gold ETL (~8-15 min)
-14. **Run** `NB_RTI_Setup_Eventhouse` — discovers deployed Eventhouse by name, creates 6 KQL tables + streaming policies, creates Eventstream with Custom Endpoint, outputs connection string
-15. **Run** RTI scoring notebooks — Event Simulator (batch), Fraud Detection, Care Gap Alerts, High-Cost Trajectory
-16. **Print** ontology setup instructions — user follows `ONTOLOGY_GRAPH_SETUP_GUIDE.md` manually (~10 min)
+| Cell | What It Does |
+|------|-------------|
+| **1** | Install `fabric-launcher` library |
+| **CONFIG** | Set `GITHUB_OWNER`, `DEPLOY_STREAMING`, and other flags |
+| **2** | Initialize launcher — auto-detect workspace ID, validate workspace is empty |
+| **3** | Download repo ZIP → deploy artifacts in staged order (Lakehouses → Notebooks → Pipelines → DataAgent; + Eventhouse/KQL/OpsAgent if streaming) |
+| **4** | Convert `.py` notebook sources to `.ipynb` and push via `updateDefinition` |
+| **5** | Upload healthcare knowledge docs to `lh_gold_curated` |
+| **6** | Run `NB_Generate_Sample_Data` — ~10K patients, 100K encounters, HEDIS measures |
+| **7** | Trigger `PL_Healthcare_Master` with `load_mode=full` — Bronze → Silver → Gold ETL (~8-15 min) |
+| **8** | Create & refresh `HealthcareDemoHLS` semantic model (Direct Lake, TMDL) |
+| **9** | Deploy ontology (`Healthcare_Demo_Ontology_HLS`) + run `NB_Deploy_Graph_Model` |
+| **10** | Patch `HealthcareHLSAgent` datasources with real lakehouse/SM IDs |
+| **11** | Create/patch `HealthcareGraphAgent` with real ontology/graph model IDs |
+| **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent |
+| **13** ⚡ | Deploy Real-Time Dashboard (4-page KQL dashboard) |
+| **14** | Organize workspace folders + print deployment summary |
+
+> ⚡ = Only runs when `DEPLOY_STREAMING = True`
 
 > **No manual lakehouse creation required.** Unlike manual deployment approaches that require creating a `deploy_staging` lakehouse and uploading folders, `fabric-launcher` handles repo download, extraction, and artifact reading automatically using the notebook's built-in default lakehouse.
 
-### Deployment Stages Detail
+### Deployment Stages (Cell 3)
 
-| Stage | Item Types | Count | Why This Order |
-|-------|-----------|-------|----------------|
-| 1 | Lakehouse | 4 | Notebooks reference lakehouses via `logicalId` in `.metadata` — lakehouses must exist first |
-| 2 | Eventhouse, KQLDatabase | 2 | RTI infra must be provisioned before `NB_RTI_Setup_Eventhouse` discovers them |
-| 3 | Notebook | 12 | Pipelines reference notebooks as activities — notebooks must exist first |
-| 4 | DataPipeline | 2 | Pipelines orchestrate notebook execution |
-| 5 | SemanticModel, DataAgent | 3 | Semantic model needs Gold tables populated; Data Agents need semantic model and ontology |
+| Stage | Item Types | When |
+|-------|-----------|------|
+| 1 | Lakehouse (4) | Always — notebooks reference lakehouses via `logicalId` |
+| 2 | Eventhouse | `DEPLOY_STREAMING` only — async provisioning |
+| 3 | KQLDatabase | `DEPLOY_STREAMING` only — needs Eventhouse ready |
+| 4-5 | Notebook (create + updateDefinition) | Always — pipelines reference notebooks |
+| 6 | DataPipeline (2) | Always — orchestrate notebook execution |
+| 7 | DataAgent | Always — Data Agent (SM wired in Cell 8) |
+| 8 | OperationsAgent | `DEPLOY_STREAMING` only — needs KQL DB |
 
 ## After Deployment
 
@@ -281,7 +288,20 @@ For the complete agent configuration -- AI instructions, concept-to-table routin
 
 ### Power BI Dashboard
 
-To build Power BI reports on the `HealthcareDemoHLS` semantic model (26 pre-built DAX measures, 6 recommended report pages, formatting, and Direct Lake tips) -- see **[POWERBI_DASHBOARD_GUIDE.md](POWERBI_DASHBOARD_GUIDE.md)**.
+The **Healthcare Analytics Dashboard** Power BI report is auto-deployed by fabric-cicd from the `workspace/Healthcare Analytics Dashboard.Report/` definition. It includes:
+
+| Page | Focus | Key Visuals |
+|------|-------|-------------|
+| Executive Summary | KPIs, denial rates, encounter volume | Card KPIs, trend lines, donut charts |
+| Claim Denials | Root cause, payer breakdown, financial impact | Waterfall, stacked bar, matrix |
+| Readmission Risk | 30-day readmission by facility & diagnosis | Heatmap, scatter, decomposition tree |
+| Medication Adherence | PDC rates, non-adherent populations | Gauge, grouped bar, line chart |
+| Social Determinants | SDOH risk by zip code, demographics | Map, bar, correlation scatter |
+| Provider Performance | Provider metrics, outlier detection | Table, bullet chart, ranking |
+
+The report binds to the `HealthcareDemoHLS` semantic model via Direct Lake (live connection). It starts working as soon as the semantic model refresh completes (Cell 8).
+
+For customization guidance (26 DAX measures, formatting tips, Direct Lake best practices) -- see **[POWERBI_DASHBOARD_GUIDE.md](POWERBI_DASHBOARD_GUIDE.md)**.
 
 ### Azure AI Foundry (Optional)
 
@@ -293,7 +313,7 @@ For troubleshooting hybrid query failures (compound questions, instruction trunc
 
 ## Real-Time Intelligence (RTI) — 3 Payer/Provider Use Cases
 
-When `DEPLOY_RTI=True`, the launcher deploys a full RTI stack: **Eventhouse + KQL Database + 3 scoring notebooks** that address high-value payer/provider pain points where batch analytics fall short.
+When `DEPLOY_STREAMING=True`, the launcher deploys a full RTI stack: **Eventhouse + KQL Database + 3 scoring notebooks + OpsAgent + RTI Dashboard** that address high-value payer/provider pain points where batch analytics fall short.
 
 ### Use Case 1: Claims Fraud Detection
 
@@ -359,7 +379,7 @@ By default, the RTI notebooks run in **batch mode** (single batch → Delta tabl
 
 ### Use Case 4 — Operations Agent (HealthcareOpsAgent)
 
-> **Status: Deployed automatically** by Cell 7b of `Healthcare_Launcher`. The agent is created via the dedicated `/operationsAgents` REST API and configured with goals, instructions, and a KQL data source pointing to `Healthcare_RTI_DB`.
+> **Status: Deployed automatically** by Cell 12 of `Healthcare_Launcher` (requires `DEPLOY_STREAMING=True`). The agent is created via the dedicated `/operationsAgents` REST API and configured with goals, instructions, and a KQL data source pointing to `Healthcare_RTI_DB`.
 
 The Operations Agent is an AI-powered operational intelligence layer that sits on top of the three RTI scoring outputs and unifies monitoring, triage, and action into a single interface.
 
@@ -590,7 +610,7 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 | `GENERATE_DATA` | `True` | Generate fresh synthetic data |
 | `RUN_PIPELINE` | `True` | Run the full-load pipeline |
 | `UPLOAD_KNOWLEDGE_DOCS` | `True` | Upload knowledge docs for AI agent |
-| `DEPLOY_RTI` | `True` | Deploy Real-Time Intelligence (Eventhouse + scoring notebooks) |
+| `DEPLOY_STREAMING` | `False` | Deploy Real-Time Intelligence (Eventhouse + KQL + scoring + OpsAgent). Set `True` for RTI. |
 
 > **Restricted networks:** The launcher downloads from GitHub at runtime. If your environment blocks `github.com` or `raw.githubusercontent.com`, fork this repo to an allowed internal location and update `GITHUB_OWNER` / `GITHUB_REPO` accordingly.
 

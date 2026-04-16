@@ -5,7 +5,7 @@
       "connectionString": null,
       "pbiServiceModelId": null,
       "pbiModelVirtualServerName": "sobe_wowvirtualserver",
-      "pbiModelDatabaseName": "d4000004-0004-0004-0004-000000000001",
+      "pbiModelDatabaseName": "00000000-0000-0000-0000-000000000000",
       "name": "EntityDataSource",
       "connectionType": "pbiServiceXmlaStyleLive"
     }

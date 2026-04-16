@@ -176,6 +176,14 @@
       "children": []
     },
     {
+      "id": "d410000b-000b-000b-000b-00000000000b",
+      "is_selected": true,
+      "display_name": "prescribedBy",
+      "type": "graph.edgeType",
+      "description": "Prescription -> Provider (provider_key)",
+      "children": []
+    },
+    {
       "id": "d410000d-000d-000d-000d-00000000000d",
       "is_selected": true,
       "display_name": "originatesFrom",

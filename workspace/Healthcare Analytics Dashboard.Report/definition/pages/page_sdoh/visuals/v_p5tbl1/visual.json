@@ -1,0 +1,120 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "v_p5tbl1",
+  "position": {
+    "x": 20,
+    "y": 436,
+    "z": 0,
+    "width": 940,
+    "height": 260,
+    "tabOrder": 7
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_sdoh"
+                    }
+                  },
+                  "Property": "zip_code"
+                }
+              },
+              "queryRef": "dim_sdoh.zip_code",
+              "nativeQueryRef": "Zip Code"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_sdoh"
+                    }
+                  },
+                  "Property": "poverty_rate"
+                }
+              },
+              "queryRef": "dim_sdoh.poverty_rate",
+              "nativeQueryRef": "Poverty Rate"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_sdoh"
+                    }
+                  },
+                  "Property": "social_vulnerability_index"
+                }
+              },
+              "queryRef": "dim_sdoh.social_vulnerability_index",
+              "nativeQueryRef": "SVI"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_sdoh"
+                    }
+                  },
+                  "Property": "food_desert_flag"
+                }
+              },
+              "queryRef": "dim_sdoh.food_desert_flag",
+              "nativeQueryRef": "Food Desert"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_patient"
+                    }
+                  },
+                  "Property": "Total Patients"
+                }
+              },
+              "queryRef": "dim_patient.Total Patients",
+              "nativeQueryRef": "Patients"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "isDefaultSort": true,
+        "sort": []
+      }
+    },
+    "objects": {},
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'SDOH by Zip Code'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

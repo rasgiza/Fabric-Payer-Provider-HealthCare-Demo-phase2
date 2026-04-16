@@ -1,0 +1,12 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.0.0/schema.json",
+  "pageOrder": [
+    "page_executive",
+    "page_claims",
+    "page_readmission",
+    "page_adherence",
+    "page_sdoh",
+    "page_provider"
+  ],
+  "activePageName": "page_executive"
+}

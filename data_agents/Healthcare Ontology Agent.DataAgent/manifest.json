@@ -10,11 +10,11 @@
       "payloadType": "InlineBase64"
     },
     {
-      "path": "Files/Config/draft/graph-Healthcare_Ontology_Demo/datasource.json",
+      "path": "Files/Config/draft/graph-Healthcare_Demo_Graph/datasource.json",
       "payloadType": "InlineBase64"
     },
     {
-      "path": "Files/Config/draft/graph-Healthcare_Ontology_Demo/fewshots.json",
+      "path": "Files/Config/draft/graph-Healthcare_Demo_Graph/fewshots.json",
       "payloadType": "InlineBase64"
     },
     {
@@ -26,11 +26,11 @@
       "payloadType": "InlineBase64"
     },
     {
-      "path": "Files/Config/published/graph-Healthcare_Ontology_Demo/datasource.json",
+      "path": "Files/Config/published/graph-Healthcare_Demo_Graph/datasource.json",
       "payloadType": "InlineBase64"
     },
     {
-      "path": "Files/Config/published/graph-Healthcare_Ontology_Demo/fewshots.json",
+      "path": "Files/Config/published/graph-Healthcare_Demo_Graph/fewshots.json",
       "payloadType": "InlineBase64"
     },
     {

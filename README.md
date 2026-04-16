@@ -142,13 +142,13 @@ Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intell
 
 ### Solution Architecture
 
-![Provider Healthcare Solution with Microsoft Fabric & AI](diagrams/healthcare-architecture.svg)
+![Provider Healthcare Solution with Microsoft Fabric & AI](diagrams/healthcare-architecture.png)
 
 > *Open the [interactive Draw.io diagram](diagrams/healthcare-architecture.drawio) in VS Code or [app.diagrams.net](https://app.diagrams.net) for full detail.*
 
 ### Healthcare Ontology — Entity Relationship Diagram
 
-![Healthcare Ontology ERD — 12 Entities, 18 Relationships](diagrams/healthcare-ontology-erd.svg)
+![Healthcare Ontology ERD — 12 Entities, 18 Relationships](diagrams/healthcare-ontology-erd.png)
 
 > *Open the [interactive Draw.io diagram](diagrams/healthcare-ontology-erd.drawio) for entity-level detail.*
 

@@ -10,8 +10,8 @@
   },
   "sourceKeyRefBindings": [
     {
-      "sourceColumnName": "provider_key",
-      "targetPropertyId": "1214894396886615404"
+      "sourceColumnName": "prescription_key",
+      "targetPropertyId": "1214894028149169513"
     }
   ],
   "targetKeyRefBindings": [

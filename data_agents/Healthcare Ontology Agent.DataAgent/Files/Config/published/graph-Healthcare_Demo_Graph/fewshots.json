@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/fewShots/1.0.0/schema.json",
   "fewShots": [
     {
@@ -7,7 +7,7 @@
     },
     {
       "question": "Which providers have submitted claims that were denied? Show each provider with their denied claims, denial reasons, payers, and patients.",
-      "answer": "I'll start from denied claims and trace back to providers.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 10)\n2. Follow submittedBy → Provider (get provider_name, specialty)\n3. Follow ClaimHasPayer → Payer (get payer_name)\n4. Follow covers → Patient (get patient_id, first_name, last_name)\n\nFor each denied claim I show: claim_id, billed_amount, primary_denial_reason, recommended_action, the submitting provider, the payer, and the patient. I group results by provider so the user sees each provider's denied claims together."
+      "answer": "I'll start from denied claims and trace back to providers.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 10)\n2. Follow submittedBy → Provider (get display_name, specialty)\n3. Follow ClaimHasPayer → Payer (get payer_name)\n4. Follow covers → Patient (get patient_id, first_name, last_name)\n\nFor each denied claim I show: claim_id, billed_amount, primary_denial_reason, recommended_action, the submitting provider, the payer, and the patient. I group results by provider so the user sees each provider's denied claims together."
     },
     {
       "question": "Show me prescribing patterns for Cardiology providers — what medications, which patients, and which payers cover the prescriptions.",
@@ -15,11 +15,11 @@
     },
     {
       "question": "Show me all claims for payer Aetna — which providers submitted them, which patients, and what were the outcomes.",
-      "answer": "I'll start from the payer and trace all claims.\n\n**Traversal plan:**\n1. Find Payer where payer_name contains 'Aetna'\n2. Follow ClaimHasPayer (inverse) → Claims (limit 10, get claim_status, billed_amount, paid_amount, denial_flag)\n3. Follow submittedBy → Provider (get provider_name, specialty)\n4. Follow covers → Patient (get patient_id, first_name, last_name)\n5. Follow billsFor → Encounter (get encounter_type)\n\nFor each claim I show the financial picture: billed vs paid amounts, claim status, denial flag. I group by outcome (paid vs denied) and highlight any denied claims with their denial reasons."
+      "answer": "I'll start from the payer and trace all claims.\n\n**Traversal plan:**\n1. Find Payer where payer_name contains 'Aetna'\n2. Follow ClaimHasPayer (inverse) → Claims (limit 10, get claim_status, billed_amount, paid_amount, denial_flag)\n3. Follow submittedBy → Provider (get display_name, specialty)\n4. Follow covers → Patient (get patient_id, first_name, last_name)\n5. Follow billsFor → Encounter (get encounter_type)\n\nFor each claim I show the financial picture: billed vs paid amounts, claim status, denial flag. I group by outcome (paid vs denied) and highlight any denied claims with their denial reasons."
     },
     {
       "question": "Which payers have the most denied claims? For each payer show the denials with provider, patient, encounter, and denial reason.",
-      "answer": "I'll find denied claims and group by payer.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 15)\n2. Follow ClaimHasPayer → Payer (get payer_name, payer_type)\n3. Follow submittedBy → Provider (get provider_name)\n4. Follow covers → Patient (get patient_id, first_name)\n5. Follow billsFor → Encounter (get encounter_type)\n\nI group the denied claims by payer, showing each payer's count of denials and the details: claim_id, billed_amount, primary_denial_reason, the submitting provider, patient, and encounter type. I present payers sorted by number of denied claims."
+      "answer": "I'll find denied claims and group by payer.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 15)\n2. Follow ClaimHasPayer → Payer (get payer_name, payer_type)\n3. Follow submittedBy → Provider (get display_name)\n4. Follow covers → Patient (get patient_id, first_name)\n5. Follow billsFor → Encounter (get encounter_type)\n\nI group the denied claims by payer, showing each payer's count of denials and the details: claim_id, billed_amount, primary_denial_reason, the submitting provider, patient, and encounter type. I present payers sorted by number of denied claims."
     },
     {
       "question": "Trace claim CLM0009999 end-to-end — from patient through encounter, provider, and payer.",
@@ -27,11 +27,11 @@
     },
     {
       "question": "Show me all denied claims with the complete story — which provider submitted, to which payer, for which patient, and why denied.",
-      "answer": "I'll find denied claims and trace all four directions.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 10)\n2. For each claim, follow all outbound relationships:\n   - covers → Patient\n   - submittedBy → Provider\n   - ClaimHasPayer → Payer\n   - billsFor → Encounter\n\nFor each denied claim I present the complete story: Patient [name] had an [encounter_type] encounter treated by Dr. [provider_name] ([specialty]). The claim for $[billed_amount] was submitted to [payer_name] and denied. Reason: [primary_denial_reason]. Recommended action: [recommended_action]."
+      "answer": "I'll find denied claims and trace all four directions.\n\n**Traversal plan:**\n1. Find Claims where denial_flag = 1 (limit 10)\n2. For each claim, follow all outbound relationships:\n   - covers → Patient\n   - submittedBy → Provider\n   - ClaimHasPayer → Payer\n   - billsFor → Encounter\n\nFor each denied claim I present the complete story: Patient [name] had an [encounter_type] encounter treated by Dr. [display_name] ([specialty]). The claim for $[billed_amount] was submitted to [payer_name] and denied. Reason: [primary_denial_reason]. Recommended action: [recommended_action]."
     },
     {
       "question": "How are providers and payers connected through claims? Show me the provider-payer claims network.",
-      "answer": "I'll map the provider-payer network through claims.\n\n**Traversal plan:**\n1. Find Claims (limit 15, sample across different statuses)\n2. Follow submittedBy → Provider (get provider_name, specialty)\n3. Follow ClaimHasPayer → Payer (get payer_name, payer_type)\n\nI build a network view showing which providers submit claims to which payers. For each provider-payer pair I show: number of claims sampled, total billed amount, denial count. This reveals the billing relationships across the network."
+      "answer": "I'll map the provider-payer network through claims.\n\n**Traversal plan:**\n1. Find Claims (limit 15, sample across different statuses)\n2. Follow submittedBy → Provider (get display_name, specialty)\n3. Follow ClaimHasPayer → Payer (get payer_name, payer_type)\n\nI build a network view showing which providers submit claims to which payers. For each provider-payer pair I show: number of claims sampled, total billed amount, denial count. This reveals the billing relationships across the network."
     },
     {
       "question": "Show me patients with poor medication adherence — who are their providers and which payers cover them?",

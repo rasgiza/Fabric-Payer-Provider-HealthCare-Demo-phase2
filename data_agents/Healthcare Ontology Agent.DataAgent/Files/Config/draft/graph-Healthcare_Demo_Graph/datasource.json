@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
   "artifactId": "00000000-0000-0000-0000-000000000000",
   "workspaceId": "00000000-0000-0000-0000-000000000000",

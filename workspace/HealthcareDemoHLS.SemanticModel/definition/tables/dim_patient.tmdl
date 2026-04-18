@@ -2,7 +2,7 @@ table dim_patient
 	lineageTag: 4561faba-7b31-4169-89fb-e770bc638d2e
 	sourceLineageTag: [dbo].[dim_patient]
 
-	measure 'Total Patients' = CALCULATE(COUNTROWS(dim_patient), dim_patient[is_current] = TRUE())
+	measure 'Total Patients' = CALCULATE(COUNTROWS(dim_patient), dim_patient[is_current] = 1)
 		formatString: 0
 		lineageTag: 2ee4248c-38d4-4fb1-befd-867f16b66c40
 

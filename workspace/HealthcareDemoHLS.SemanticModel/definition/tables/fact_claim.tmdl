@@ -10,7 +10,7 @@ table fact_claim
 
 	measure 'Denial Rate' =
 			
-			VAR _num = CALCULATE(COUNTROWS(fact_claim), fact_claim[denial_flag] = TRUE())
+			VAR _num = CALCULATE(COUNTROWS(fact_claim), fact_claim[denial_flag] = 1)
 			VAR _den = COUNTROWS(fact_claim)
 			RETURN
 			DIVIDE(_num, _den)

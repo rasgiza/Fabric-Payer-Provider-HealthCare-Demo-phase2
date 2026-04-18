@@ -10,7 +10,7 @@ table fact_encounter
 
 	measure 'Readmission Rate' =
 			
-			VAR _num = CALCULATE(COUNTROWS(fact_encounter), fact_encounter[readmission_flag] = TRUE())
+			VAR _num = CALCULATE(COUNTROWS(fact_encounter), fact_encounter[readmission_flag] = 1)
 			VAR _den = COUNTROWS(fact_encounter)
 			RETURN
 			DIVIDE(_num, _den)

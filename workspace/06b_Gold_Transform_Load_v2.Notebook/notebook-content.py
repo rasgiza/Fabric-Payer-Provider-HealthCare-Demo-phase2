@@ -1337,7 +1337,7 @@ if df_prescriptions is not None:
     payer_filled = spark.table(PRESCRIPTION_TABLE).filter("payer_key IS NOT NULL").count()
     print(f"   ✓ fact_prescription: {rx_count:,} rows")
     print(f"      Unique patients: {df_fact_rx.select('patient_key').distinct().count():,}")
-    print(f"      Payer coverage:  {payer_filled:,}/{rx_count:,} ({payer_filled * 100 // max(rx_count, 1)}%)")
+    print(f"      Payer coverage:  {payer_filled:,}/{rx_count:,} ({payer_filled * 100 // _bi.max(rx_count, 1)}%)")
 else:
     print("   ⏭️ Skipped fact_prescription (no source data)")
 

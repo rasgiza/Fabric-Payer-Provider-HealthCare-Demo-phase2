@@ -94,14 +94,6 @@
       "payloadType": "InlineBase64"
     },
     {
-      "path": "EntityTypes/296512183960612/definition.json",
-      "payloadType": "InlineBase64"
-    },
-    {
-      "path": "EntityTypes/296512183960612/DataBindings/e1a2b3c4-2222-4aaa-bbbb-000000000002.json",
-      "payloadType": "InlineBase64"
-    },
-    {
       "path": "RelationshipTypes/1214712840303642502/definition.json",
       "payloadType": "InlineBase64"
     },
@@ -235,14 +227,6 @@
     },
     {
       "path": "RelationshipTypes/4100000000000000002/Contextualizations/f1a2b3c4-4444-4aaa-bbbb-000000000004.json",
-      "payloadType": "InlineBase64"
-    },
-    {
-      "path": "RelationshipTypes/4100000000000000003/definition.json",
-      "payloadType": "InlineBase64"
-    },
-    {
-      "path": "RelationshipTypes/4100000000000000003/Contextualizations/f1a2b3c4-5555-4aaa-bbbb-000000000005.json",
       "payloadType": "InlineBase64"
     },
     {

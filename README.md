@@ -24,7 +24,7 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
    - [Care Gap Closure](#use-case-2-care-gap-closure-at-point-of-care)
    - [High-Cost Member Trajectory](#use-case-3-high-cost-member-trajectory)
    - [RTI Data Tables](#rti-data-tables)
-   - [Switching to Live Streaming](#switching-to-live-streaming)
+   - [RTI Ingestion — Two Approaches](#rti-ingestion--two-approaches)
    - [Operations Agent](#use-case-4--operations-agent-healthcareopsagent)
 8. [Ontology & Graph Model Setup](#create-the-ontology--graph-model-manual--10-min)
 9. [Data Activator / Reflex Setup](#set-up-data-activator-alerts-manual--15-min)
@@ -119,6 +119,7 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Eventhouse** ⚡ | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine (`DEPLOY_STREAMING` only) |
 | **KQL Database** ⚡ | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) (`DEPLOY_STREAMING` only) |
 | **OpsAgent** ⚡ | `HealthcareOpsAgent` | KQL-backed operations agent (`DEPLOY_STREAMING` only) |
+| **Eventstream** ⚡ | `Healthcare_RTI_Eventstream` | Optional dual-write endpoint + Activator routing (`DEPLOY_STREAMING` only) |
 | **RTI Notebooks (5)** ⚡ | Event Simulator, Setup, 3 Scoring | RTI for fraud, care gaps, high-cost trajectory (`DEPLOY_STREAMING` only) |
 | **RTI Dashboard** ⚡ | `Healthcare RTI Dashboard` | 4-page KQL dashboard, 30s auto-refresh (`DEPLOY_STREAMING` only) |
 
@@ -261,7 +262,7 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 | **9** | Deploy ontology (`Healthcare_Demo_Ontology_HLS`) + run `NB_Deploy_Graph_Model` |
 | **10** | Patch `HealthcareHLSAgent` datasources with real lakehouse/SM IDs |
 | **11** | Create/patch `Healthcare Ontology Agent` with real ontology/graph model IDs |
-| **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent |
+| **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent + create Eventstream (prints portal setup steps) |
 | **13** ⚡ | Deploy Real-Time Dashboard (4-page KQL dashboard) |
 | **14** | Organize workspace folders + print deployment summary |
 
@@ -379,17 +380,70 @@ Risk tiers: **CRITICAL** (high spend + frequent ED) → **HIGH** (high spend) �
 | `rti_care_gap_alerts` | Point-of-care gap closure alerts | varies |
 | `rti_highcost_alerts` | Members on escalating cost trajectory | varies |
 
-### Switching to Live Streaming
+### RTI Ingestion — Two Approaches
 
-By default, the RTI notebooks run in **batch mode** (single batch → Delta tables). To enable continuous streaming:
+The RTI Event Simulator supports two ingestion approaches. **Approach 1 is the default** and requires zero configuration. Approach 2 is optional and adds Eventstream routing for Data Activator triggers.
 
-1. The launcher already deployed the **Eventhouse** and **KQL Database** as Git artifacts
-2. **NB_RTI_Setup_Eventhouse** discovers them, creates 6 KQL tables with streaming ingestion policies, and creates the **Eventstream** with a **Custom Endpoint** source
-3. The notebook prints the Custom Endpoint **connection string** and **event hub name**
-4. Open **NB_RTI_Event_Simulator** → set `MODE = "stream"`, paste `EVENTSTREAM_CONN_STR` and `EVENTHUB_NAME`
-5. Run — events flow continuously every 5 seconds through Eventstream → KQL DB
+#### Approach 1 — Direct Kusto (Default, Zero-Config)
 
-> **Note:** If the connection string wasn't printed by the setup notebook, open the Eventstream in the Fabric portal, click the Custom Endpoint source node, and copy the values from the details panel.
+Events flow directly from the Simulator notebook into the KQL Database via `ManagedStreamingIngestClient`. This is fully automated — the notebook discovers the Eventhouse and KQL Database by name and starts writing immediately.
+
+```
+NB_RTI_Event_Simulator ──► Healthcare_RTI_DB (KQL tables)
+                              ManagedStreamingIngestClient
+```
+
+- **No setup required** — works out of the box after deployment
+- **Batch mode** (`MODE = "batch"`): one-shot push of all events
+- **Stream mode** (`MODE = "stream"`): continuous events every 5 seconds
+- KQL Dashboard, Data Agent, and Operations Agent all query the KQL tables directly
+
+#### Approach 2 — Eventstream Dual-Write (Optional)
+
+Adds a parallel write path through an Eventstream Custom App endpoint. Events are written to **both** KQL (direct) and Eventstream simultaneously. This enables **Data Activator (Reflex)** triggers, Lakehouse archival, and other Eventstream destinations.
+
+```
+NB_RTI_Event_Simulator
+    ├──► Healthcare_RTI_DB (direct Kusto)        ✅ always
+    └──► Healthcare_RTI_Eventstream (EventHub)   ✅ if ES_CONNECTION_STRING set
+              │
+              ├──► Activator / Reflex destination (portal)
+              ├──► KQL Database destination (portal, optional — redundant)
+              └──► Lakehouse destination (portal, optional — archival)
+```
+
+**To enable Approach 2:**
+
+1. Open the **Healthcare_RTI_Eventstream** in the Fabric portal (Cell 12 prints the URL)
+2. Click **+ Add source** → **Custom App** → copy the **connection string**
+3. Paste the connection string into `ES_CONNECTION_STRING` in **NB_RTI_Event_Simulator**
+4. *(Optional)* Add destinations in the Eventstream: Activator, KQL Database, Lakehouse
+
+#### API vs Portal Capabilities (Eventstream Limitation)
+
+The Fabric REST API can **create** the Eventstream item but **cannot** wire its sources or destinations. This is a platform limitation — the same constraint applies to all Fabric Eventstream integrations (including the [ontology-coldchain](https://github.com/microsoft/ontology-coldchain) reference architecture, which also requires manual `.env` setup).
+
+| Action | API | Portal |
+|---|---|---|
+| Create Eventstream item | ✅ Done by Cell 12 | ✅ |
+| Add Custom App source | ❌ Not supported | ✅ Portal only |
+| Get connection string | ❌ Not supported | ✅ Portal only |
+| Add KQL Database destination | ❌ Not supported | ✅ Portal only |
+| Add Activator/Reflex destination | ❌ Not supported | ✅ Portal only |
+| Add Lakehouse destination | ❌ Not supported | ✅ Portal only |
+| Configure routing rules | ❌ Not supported | ✅ Portal only |
+
+> **Why we kept Direct Kusto as default:** Since Eventstream plumbing requires portal clicks, we don't want new users to hit a wall on first deployment. Approach 1 works end-to-end with zero manual steps. Approach 2 adds Activator/routing capabilities for users who need them.
+
+#### When to Use Which Approach
+
+| Scenario | Recommended |
+|---|---|
+| First-time demo / quick deploy | **Approach 1** — zero-config, everything works immediately |
+| Need Data Activator alerts (email/Teams) | **Approach 2** — wire Activator as Eventstream destination |
+| Need Lakehouse archival of raw events | **Approach 2** — add Lakehouse destination |
+| Fan-out to multiple downstream consumers | **Approach 2** — Eventstream handles routing |
+| Production with single KQL sink | **Approach 1** — simpler, fewer moving parts |
 
 ### Use Case 4 — Operations Agent (HealthcareOpsAgent)
 
@@ -624,7 +678,8 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 | `GENERATE_DATA` | `True` | Generate fresh synthetic data |
 | `RUN_PIPELINE` | `True` | Run the full-load pipeline |
 | `UPLOAD_KNOWLEDGE_DOCS` | `True` | Upload knowledge docs for AI agent |
-| `DEPLOY_STREAMING` | `False` | Deploy Real-Time Intelligence (Eventhouse + KQL + scoring + OpsAgent). Set `True` for RTI. |
+| `DEPLOY_STREAMING` | `False` | Deploy Real-Time Intelligence (Eventhouse + KQL + scoring + OpsAgent + Eventstream). Set `True` for RTI. |
+| `ES_CONNECTION_STRING` | `""` | *(In NB_RTI_Event_Simulator)* Eventstream Custom App connection string. Leave blank for Approach 1 (direct Kusto only). Paste connection string for Approach 2 (dual-write). |
 
 > **Restricted networks:** The launcher downloads from GitHub at runtime. If your environment blocks `github.com` or `raw.githubusercontent.com`, fork this repo to an allowed internal location and update `GITHUB_OWNER` / `GITHUB_REPO` accordingly.
 

@@ -15,15 +15,19 @@
 # - `batch` -- Generate one batch, save as Delta tables + push to KQL (used by launcher)
 # - `stream` -- Continuously push events to KQL in a loop (for live demos)
 # 
-# **Ingestion:** Direct Kusto (`azure-kusto-ingest`, pre-installed in Fabric)
-# - Zero config: token from `notebookutils.credentials.getToken("kusto")`
-# - No Eventstream, connection strings, or manual portal steps
+# **Ingestion (two approaches):**
 # 
-# > **Note:** This demo uses direct Kusto ingestion because it can be deployed entirely
-# > programmatically with no manual portal steps. In a production environment, events would
-# > flow from **Eventstream Custom Endpoints**, **IoT Hub** (medical devices / wearables),
-# > or **Azure Event Hub** into the same KQL tables. The scoring notebooks and KQL dashboards
-# > work identically regardless of the ingestion source.
+# **Approach 1 — Direct Kusto (default, zero-config)**
+# - `azure-kusto-ingest` ManagedStreamingIngestClient
+# - Token from `notebookutils.credentials.getToken("kusto")` — no setup needed
+# - Used automatically by the Launcher (batch mode)
+# 
+# **Approach 2 — Eventstream dual-write (optional)**
+# - Set `ES_CONNECTION_STRING` parameter to your Eventstream Custom App connection string
+# - Events go to BOTH KQL (direct) AND the Eventstream Custom Endpoint
+# - Enables Fabric Data Activator / Reflex triggers on the live event stream
+# - Requires 3 portal steps: create Eventstream → add Custom App source → copy connection string
+# - See: https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-source-custom-app
 # 
 # **Default lakehouse:** `lh_gold_curated`
 
@@ -116,7 +120,7 @@ del _req, _ws_id, _tok, _hdr, _lh_resp
 
 # CELL **{"language":"python"}**
 
-%pip install azure-kusto-data azure-kusto-ingest azure-core>=1.31.0 --quiet
+%pip install azure-kusto-data azure-kusto-ingest azure-eventhub azure-core>=1.31.0 --quiet
 
 # METADATA **{"language":"python"}**
 
@@ -132,6 +136,11 @@ STREAM_BATCHES = 10      # number of batches in stream mode (0 = infinite)
 KUSTO_QUERY_URI = ""     # Auto-detected from Eventhouse API if blank
 KUSTO_INGEST_URI = ""    # Auto-detected from Eventhouse API if blank
 KQL_DB_NAME = "Healthcare_RTI_DB"
+
+# Eventstream (Approach 2 — optional)
+# Paste the connection string from your Eventstream Custom App source.
+# Leave blank to use direct Kusto only (Approach 1 — default).
+ES_CONNECTION_STRING = ""
 
 # METADATA **{"language":"python"}**
 
@@ -192,6 +201,20 @@ if KUSTO_QUERY_URI and KUSTO_INGEST_URI:
 else:
     print("  WARN: Could not discover Kusto URIs -- KQL ingestion will be skipped")
     print("  Delta tables will still be written to lh_gold_curated")
+
+# ── Optional: Eventstream Custom Endpoint (Approach 2) ──────────
+_es_producer = None
+if ES_CONNECTION_STRING:
+    try:
+        from azure.eventhub import EventHubProducerClient, EventData
+        _es_producer = EventHubProducerClient.from_connection_string(ES_CONNECTION_STRING)
+        print("Eventstream: Connected to Custom Endpoint (dual-write enabled)")
+    except Exception as _es_err:
+        print(f"Eventstream WARN: Could not connect -- {_es_err}")
+        print("  Falling back to direct Kusto only")
+else:
+    print("Eventstream: Not configured (direct Kusto only -- Approach 1)")
+    print("  To enable dual-write: set ES_CONNECTION_STRING parameter")
 
 # METADATA **{"language":"python"}**
 
@@ -283,6 +306,45 @@ def push_to_kql(df_pandas, table_name, mapping_name):
     except Exception as e:
         print(f"  KQL WARN: {table_name} ingestion failed: {e}")
         return False
+
+
+def push_to_eventstream(df_pandas, table_name):
+    """Push events to Eventstream Custom Endpoint (Approach 2).
+    
+    Each row is sent as a JSON event with a '_table' field for downstream routing.
+    Enables Fabric Data Activator / Reflex to trigger on live events.
+    """
+    if _es_producer is None:
+        return False
+    try:
+        records = df_pandas.to_dict(orient="records")
+        batch = _es_producer.create_batch()
+        for record in records:
+            record["_table"] = table_name
+            for k, v in record.items():
+                if hasattr(v, 'isoformat'):
+                    record[k] = v.isoformat()
+            event = EventData(json.dumps(record))
+            try:
+                batch.add(event)
+            except ValueError:
+                _es_producer.send_batch(batch)
+                batch = _es_producer.create_batch()
+                batch.add(event)
+        _es_producer.send_batch(batch)
+        print(f"  Eventstream: {len(df_pandas)} events -> {table_name}")
+        return True
+    except Exception as e:
+        print(f"  Eventstream WARN: {table_name} push failed: {e}")
+        return False
+
+
+def push_events(df_pandas, table_name, mapping_name):
+    """Push to KQL (always) + Eventstream (if configured). Approach 1+2 unified."""
+    kql_ok = push_to_kql(df_pandas, table_name, mapping_name)
+    if _es_producer:
+        push_to_eventstream(df_pandas, table_name)
+    return kql_ok
 
 # METADATA **{"language":"python"}**
 
@@ -516,12 +578,14 @@ if MODE == "batch":
 
     print(f"  Delta: rti_claims_events ({len(claims_pdf)}), rti_adt_events ({len(adt_pdf)}), rti_rx_events ({len(rx_pdf)})")
 
-    # Push to KQL for real-time dashboard/alerting
-    push_to_kql(claims_pdf, "claims_events", "claims_events_mapping")
-    push_to_kql(adt_pdf, "adt_events", "adt_events_mapping")
-    push_to_kql(rx_pdf, "rx_events", "rx_events_mapping")
+    # Push to KQL (+ Eventstream if configured)
+    push_events(claims_pdf, "claims_events", "claims_events_mapping")
+    push_events(adt_pdf, "adt_events", "adt_events_mapping")
+    push_events(rx_pdf, "rx_events", "rx_events_mapping")
 
     print("Batch mode complete -- Delta tables + KQL ingestion done.")
+    if _es_producer:
+        print("  Eventstream dual-write: events also sent to Custom Endpoint")
 
 # METADATA **{"language":"python"}**
 
@@ -553,10 +617,10 @@ if MODE == "stream":
             adt_pdf = generate_adt_events(BATCH_SIZE // 2)
             rx_pdf = generate_rx_events(BATCH_SIZE // 3)
 
-            # Push to KQL
-            push_to_kql(claims_pdf, "claims_events", "claims_events_mapping")
-            push_to_kql(adt_pdf, "adt_events", "adt_events_mapping")
-            push_to_kql(rx_pdf, "rx_events", "rx_events_mapping")
+            # Push to KQL (+ Eventstream if configured)
+            push_events(claims_pdf, "claims_events", "claims_events_mapping")
+            push_events(adt_pdf, "adt_events", "adt_events_mapping")
+            push_events(rx_pdf, "rx_events", "rx_events_mapping")
 
             # Also append to Delta for historical tracking
             spark.createDataFrame(claims_pdf).write.format("delta").mode("append").saveAsTable("lh_gold_curated.rti_claims_events")
@@ -595,9 +659,16 @@ elif MODE == "stream":
     print("Events streamed to KQL via direct Kusto ingestion")
     print("Delta tables also updated for batch analysis")
 print()
-print("Ingestion method: Managed Streaming (azure-kusto-ingest)")
+print("Ingestion: KQL via Managed Streaming (azure-kusto-ingest)")
 print("  Tries streaming first (seconds latency), falls back to queued")
-print("  No Eventstream or connection strings needed")
+if _es_producer:
+    print("Eventstream: Dual-write ACTIVE (azure-eventhub -> Custom Endpoint)")
+    print("  Data Activator / Reflex can trigger on live events")
+    _es_producer.close()
+    print("  Eventstream producer closed")
+else:
+    print("Eventstream: Not configured (Approach 1 -- direct Kusto only)")
+    print("  To enable: set ES_CONNECTION_STRING in Parameters cell")
 print("=" * 60)
 
 # METADATA **{"language":"python"}**

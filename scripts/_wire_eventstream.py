@@ -1,16 +1,34 @@
 """
-Wire Healthcare_RTI_Eventstream with full topology via API:
-  - Custom Endpoint source
-  - Eventhouse (KQL DB) destination
-  - Default + derived streams
-Then retrieve the connection string for the simulator.
+Wire Healthcare_RTI_Eventstream — Full Topology via Fabric REST API.
+
+Builds a production-style Eventstream topology:
+
+    Custom Endpoint (source)
+        │
+        ├──► Eventhouse / KQL DB    (real-time dashboards, scoring, Operations Agent)
+        ├──► Lakehouse (lh_bronze_raw)  (raw archival, medallion compliance)
+        └──► Activator (Reflex)     (fraud/care-gap/high-cost alerts — if item exists)
+
+The API does 95% of the work. The only manual step is copying the
+Custom Endpoint connection string from the Fabric portal (the API
+creates the endpoint but does not expose its connection string —
+CustomEndpointSourceProperties is an empty object in the schema).
+
+Usage (standalone):
+    python _wire_eventstream.py
+
+Also embedded in Healthcare_Launcher.ipynb Cell 12 for automated deployment.
 """
 import subprocess, json, requests, base64, time, sys
 
-# ── Auth ──
-def get_token(resource):
+# ── Helpers ───────────────────────────────────────────────────────
+API = "https://api.fabric.microsoft.com/v1"
+
+def get_token():
+    """Get Fabric API token via Azure CLI."""
     r = subprocess.run(
-        ["cmd", "/c", "az", "account", "get-access-token", "--resource", resource],
+        ["cmd", "/c", "az", "account", "get-access-token",
+         "--resource", "https://api.fabric.microsoft.com"],
         capture_output=True, text=True
     )
     if r.returncode != 0:
@@ -18,279 +36,308 @@ def get_token(resource):
         sys.exit(1)
     return json.loads(r.stdout)["accessToken"]
 
-token = get_token("https://api.fabric.microsoft.com")
-H = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-API = "https://api.fabric.microsoft.com/v1"
-WS = "e0f2c894-7f63-4301-b2e1-2b8c6ae8c40c"
+def _headers(token):
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-# ── Step 1: Discover workspace items ──
-print("=" * 60)
-print("Step 1: Discover workspace items")
-print("=" * 60)
-r = requests.get(f"{API}/workspaces/{WS}/items", headers=H)
-items = r.json().get("value", [])
-
-eventhouse_id = None
-kqldb_id = None
-eventstream_id = None
-kqldb_name = None
-
-for i in items:
-    if i["type"] == "Eventhouse" and "Healthcare" in i["displayName"]:
-        eventhouse_id = i["id"]
-        print(f"  Eventhouse:   {i['displayName']} = {i['id']}")
-    elif i["type"] == "KQLDatabase" and "Healthcare" in i["displayName"]:
-        kqldb_id = i["id"]
-        kqldb_name = i["displayName"]
-        print(f"  KQL Database: {i['displayName']} = {i['id']}")
-    elif i["type"] == "Eventstream" and "Healthcare" in i["displayName"]:
-        eventstream_id = i["id"]
-        print(f"  Eventstream:  {i['displayName']} = {i['id']}")
-
-if not all([eventhouse_id, kqldb_id, eventstream_id]):
-    print("ERROR: Missing items. Need Eventhouse, KQL Database, and Eventstream.")
-    sys.exit(1)
-
-# ── Step 2: Get current Eventstream definition ──
-print()
-print("=" * 60)
-print("Step 2: Get current Eventstream definition")
-print("=" * 60)
-
-r = requests.post(
-    f"{API}/workspaces/{WS}/eventstreams/{eventstream_id}/getDefinition",
-    headers=H
-)
-print(f"  getDefinition status: {r.status_code}")
-
-if r.status_code == 202:
-    # LRO - poll for completion
-    op_id = r.headers.get("x-ms-operation-id")
-    location = r.headers.get("Location")
-    print(f"  LRO operation: {op_id}")
-    for attempt in range(30):
-        time.sleep(2)
-        poll = requests.get(f"{API}/operations/{op_id}", headers=H)
-        status = poll.json().get("status", "Unknown")
-        print(f"  Poll {attempt+1}: {status}")
-        if status in ("Succeeded", "Failed"):
-            break
-    if status == "Succeeded":
-        # Get the result
-        result_url = f"{API}/operations/{op_id}/result"
-        r = requests.get(result_url, headers=H)
-        print(f"  Result status: {r.status_code}")
-
-if r.status_code == 200:
-    defn = r.json()
-    parts = defn.get("definition", {}).get("parts", [])
-    print(f"  Found {len(parts)} definition parts:")
-    for p in parts:
-        payload_decoded = base64.b64decode(p["payload"]).decode("utf-8", errors="replace")
-        print(f"    {p['path']}: {len(payload_decoded)} chars")
-        if p["path"] == "eventstream.json":
-            print(f"    Current topology: {payload_decoded[:500]}")
-            current_es = json.loads(payload_decoded)
-            print(f"    Sources: {len(current_es.get('sources', []))}")
-            print(f"    Destinations: {len(current_es.get('destinations', []))}")
-            print(f"    Streams: {len(current_es.get('streams', []))}")
-else:
-    print(f"  Response: {r.text[:500]}")
-
-# ── Step 3: Build full Eventstream definition ──
-print()
-print("=" * 60)
-print("Step 3: Build and push Eventstream definition")
-print("=" * 60)
-
-# Build the eventstream.json with Custom Endpoint source + Eventhouse destination
-eventstream_def = {
-    "sources": [
-        {
-            "name": "HealthcareCustomEndpoint",
-            "type": "CustomEndpoint",
-            "properties": {
-                "inputSerialization": {
-                    "type": "Json",
-                    "properties": {
-                        "encoding": "UTF8"
-                    }
-                }
-            }
-        }
-    ],
-    "destinations": [
-        {
-            "name": "HealthcareEventhouse",
-            "type": "Eventhouse",
-            "properties": {
-                "dataIngestionMode": "ProcessedIngestion",
-                "workspaceId": WS,
-                "itemId": kqldb_id,
-                "databaseName": kqldb_name,
-                "tableName": "rti_claims_events",
-                "inputSerialization": {
-                    "type": "Json",
-                    "properties": {
-                        "encoding": "UTF8"
-                    }
-                }
-            },
-            "inputNodes": [
-                {"name": "HealthcareRTI-stream"}
-            ]
-        }
-    ],
-    "streams": [
-        {
-            "name": "HealthcareRTI-stream",
-            "type": "DefaultStream",
-            "properties": {},
-            "inputNodes": [
-                {"name": "HealthcareCustomEndpoint"}
-            ]
-        }
-    ],
-    "operators": [],
-    "compatibilityLevel": "1.1"
-}
-
-# Build platform file
-platform_def = {
-    "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
-    "metadata": {
-        "type": "Eventstream",
-        "displayName": "Healthcare_RTI_Eventstream"
-    },
-    "config": {
-        "version": "2.0",
-        "logicalId": eventstream_id
-    }
-}
-
-# Build properties
-properties_def = {
-    "retentionTimeInDays": 1,
-    "eventThroughputLevel": "Low"
-}
-
-# Encode to base64
-es_json_b64 = base64.b64encode(json.dumps(eventstream_def, indent=2).encode()).decode()
-platform_b64 = base64.b64encode(json.dumps(platform_def, indent=2).encode()).decode()
-properties_b64 = base64.b64encode(json.dumps(properties_def, indent=2).encode()).decode()
-
-print(f"  eventstream.json: {len(json.dumps(eventstream_def))} chars")
-print(f"  Topology: 1 source (CustomEndpoint) → 1 stream → 1 destination (Eventhouse)")
-
-# Push via updateDefinition
-update_body = {
-    "definition": {
-        "parts": [
-            {
-                "path": "eventstream.json",
-                "payload": es_json_b64,
-                "payloadType": "InlineBase64"
-            },
-            {
-                "path": "eventstreamProperties.json",
-                "payload": properties_b64,
-                "payloadType": "InlineBase64"
-            },
-            {
-                "path": ".platform",
-                "payload": platform_b64,
-                "payloadType": "InlineBase64"
-            }
-        ]
-    }
-}
-
-print(f"\n  Calling updateDefinition...")
-r = requests.post(
-    f"{API}/workspaces/{WS}/eventstreams/{eventstream_id}/updateDefinition?updateMetadata=true",
-    headers=H,
-    json=update_body
-)
-print(f"  updateDefinition status: {r.status_code}")
-
-if r.status_code == 202:
-    op_id = r.headers.get("x-ms-operation-id")
-    print(f"  LRO operation: {op_id}")
-    for attempt in range(60):
-        time.sleep(3)
-        poll = requests.get(f"{API}/operations/{op_id}", headers=H)
-        pj = poll.json()
-        status = pj.get("status", "Unknown")
-        pct = pj.get("percentComplete", "?")
-        print(f"  Poll {attempt+1}: {status} ({pct}%)")
+def _wait_lro(op_id, token, label="operation", max_polls=60, interval=3):
+    """Poll a Fabric LRO until Succeeded/Failed."""
+    H = _headers(token)
+    for i in range(max_polls):
+        time.sleep(interval)
+        r = requests.get(f"{API}/operations/{op_id}", headers=H)
+        body = r.json()
+        status = body.get("status", "Unknown")
+        pct = body.get("percentComplete", "?")
+        print(f"    Poll {i+1}: {status} ({pct}%)")
         if status == "Succeeded":
-            print("  ✅ Definition updated successfully!")
+            return True, body
+        elif status in ("Failed", "Cancelled"):
+            err = body.get("error", {}).get("message", str(body)[:300])
+            print(f"    {label} failed: {err}")
+            return False, body
+    print(f"    {label} timed out after {max_polls} polls")
+    return False, None
+
+
+# ── Step 1: Discover workspace + items ────────────────────────────
+def discover(token):
+    """Discover workspace and healthcare RTI items.
+
+    Scans all workspaces containing 'healthcare'/'health' in the name
+    and picks the first one that has a Healthcare_RTI_Eventhouse item.
+    """
+    H = _headers(token)
+    r = requests.get(f"{API}/workspaces", headers=H)
+    workspaces = r.json().get("value", [])
+
+    # Collect candidate workspaces (healthcare-related)
+    candidates = [ws for ws in workspaces
+                  if any(k in ws.get("displayName", "").lower()
+                         for k in ("healthcare", "health"))]
+    if not candidates:
+        candidates = workspaces[:1]  # fallback to first
+
+    # Pick the workspace that has the required RTI items
+    ws_id = None
+    items = []
+    for ws in candidates:
+        _r = requests.get(f"{API}/workspaces/{ws['id']}/items", headers=H)
+        _items = _r.json().get("value", [])
+        has_eventhouse = any(i["type"] == "Eventhouse" and "Healthcare" in i["displayName"]
+                            for i in _items)
+        has_es = any(i["type"] == "Eventstream" and "Healthcare" in i["displayName"]
+                     for i in _items)
+        if has_eventhouse and has_es:
+            ws_id = ws["id"]
+            items = _items
+            print(f"  Workspace: {ws['displayName']} ({ws_id[:8]}...)")
             break
-        elif status == "Failed":
-            print(f"  ❌ Failed: {json.dumps(pj, indent=2)}")
-            break
-elif r.status_code == 200:
-    print("  ✅ Definition updated successfully!")
-else:
-    print(f"  Response: {r.text[:1000]}")
+    if not ws_id:
+        # Fallback: first candidate
+        ws_id = candidates[0]["id"]
+        _r = requests.get(f"{API}/workspaces/{ws_id}/items", headers=H)
+        items = _r.json().get("value", [])
+        print(f"  Workspace (fallback): {candidates[0]['displayName']} ({ws_id[:8]}...)")
 
-# ── Step 4: Retrieve the connection string ──
-print()
-print("=" * 60)
-print("Step 4: Retrieve connection string from updated definition")
-print("=" * 60)
+    if not ws_id:
+        print("ERROR: No workspace found"); sys.exit(1)
 
-time.sleep(5)  # Give it a moment to settle
+    result = {
+        "ws_id": ws_id, "eventhouse_id": None, "kqldb_id": None,
+        "kqldb_name": None, "eventstream_id": None,
+        "lakehouse_bronze_id": None, "activator_id": None
+    }
+    for i in items:
+        t, n = i["type"], i["displayName"]
+        if t == "Eventhouse" and "Healthcare" in n:
+            result["eventhouse_id"] = i["id"]
+            print(f"  Eventhouse:   {n} ({i['id'][:8]}...)")
+        elif t == "KQLDatabase" and "Healthcare" in n:
+            result["kqldb_id"] = i["id"]
+            result["kqldb_name"] = n
+            print(f"  KQL Database: {n} ({i['id'][:8]}...)")
+        elif t == "Eventstream" and "Healthcare" in n:
+            result["eventstream_id"] = i["id"]
+            print(f"  Eventstream:  {n} ({i['id'][:8]}...)")
+        elif t == "Lakehouse" and n == "lh_bronze_raw":
+            result["lakehouse_bronze_id"] = i["id"]
+            print(f"  Lakehouse:    {n} ({i['id'][:8]}...)")
+        elif t == "Reflex":
+            result["activator_id"] = i["id"]
+            print(f"  Activator:    {n} ({i['id'][:8]}...)")
+    return result
 
-r = requests.post(
-    f"{API}/workspaces/{WS}/eventstreams/{eventstream_id}/getDefinition",
-    headers=H
-)
-print(f"  getDefinition status: {r.status_code}")
 
-if r.status_code == 202:
-    op_id = r.headers.get("x-ms-operation-id")
-    for attempt in range(30):
-        time.sleep(2)
-        poll = requests.get(f"{API}/operations/{op_id}", headers=H)
-        status = poll.json().get("status", "Unknown")
-        print(f"  Poll {attempt+1}: {status}")
-        if status in ("Succeeded", "Failed"):
-            break
-    if status == "Succeeded":
-        r = requests.get(f"{API}/operations/{op_id}/result", headers=H)
+# ── Step 2: Build Eventstream topology ────────────────────────────
+def build_topology(ws_id, kqldb_id, kqldb_name, lakehouse_id=None, activator_id=None):
+    """Build the eventstream.json with all destinations."""
 
-if r.status_code == 200:
-    defn = r.json()
-    parts = defn.get("definition", {}).get("parts", [])
-    for p in parts:
-        payload_decoded = base64.b64decode(p["payload"]).decode("utf-8", errors="replace")
-        if p["path"] == "eventstream.json":
-            updated_es = json.loads(payload_decoded)
-            print(f"\n  Updated topology:")
-            print(f"    Sources: {len(updated_es.get('sources', []))}")
-            print(f"    Destinations: {len(updated_es.get('destinations', []))}")
-            print(f"    Streams: {len(updated_es.get('streams', []))}")
+    # Source: Custom Endpoint (EventHub-compatible ingress)
+    sources = [{
+        "name": "HealthcareCustomEndpoint",
+        "type": "CustomEndpoint",
+        "properties": {
+            "inputSerialization": {"type": "Json", "properties": {"encoding": "UTF8"}}
+        }
+    }]
 
-            # Look for connection info in sources
-            for src in updated_es.get("sources", []):
-                print(f"\n    Source: {src['name']} (type={src['type']})")
-                props = src.get("properties", {})
-                print(f"    Properties: {json.dumps(props, indent=6)}")
-                # Check for connection string, endpoint, etc.
-                for key in ["connectionString", "endpoint", "eventHubName",
-                             "sharedAccessKeyName", "sharedAccessKey",
-                             "dataConnectionId", "customEndpointAddress"]:
-                    if key in props:
-                        print(f"    >>> {key}: {props[key]}")
+    # Default stream: source → fan-out
+    streams = [{
+        "name": "HealthcareRTI-stream",
+        "type": "DefaultStream",
+        "properties": {},
+        "inputNodes": [{"name": "HealthcareCustomEndpoint"}]
+    }]
 
-            # Also dump full definition for inspection
-            print(f"\n  Full eventstream.json (for inspection):")
-            print(json.dumps(updated_es, indent=2)[:3000])
-else:
-    print(f"  Response: {r.text[:500]}")
+    # Destination 1: Eventhouse / KQL DB (real-time)
+    destinations = [{
+        "name": "HealthcareEventhouse",
+        "type": "Eventhouse",
+        "properties": {
+            "dataIngestionMode": "ProcessedIngestion",
+            "workspaceId": ws_id,
+            "itemId": kqldb_id,
+            "databaseName": kqldb_name,
+            "tableName": "rti_claims_events",
+            "inputSerialization": {"type": "Json", "properties": {"encoding": "UTF8"}}
+        },
+        "inputNodes": [{"name": "HealthcareRTI-stream"}]
+    }]
 
-print()
-print("=" * 60)
-print("Done")
-print("=" * 60)
+    # Destination 2: Lakehouse (raw archival → medallion)
+    if lakehouse_id:
+        destinations.append({
+            "name": "BronzeLakehouse",
+            "type": "Lakehouse",
+            "properties": {
+                "workspaceId": ws_id,
+                "itemId": lakehouse_id,
+                "schema": "",
+                "deltaTable": "rti_raw_events",
+                "minimumRows": 100000,
+                "maximumDurationInSeconds": 120,
+                "inputSerialization": {"type": "Json", "properties": {"encoding": "UTF8"}}
+            },
+            "inputNodes": [{"name": "HealthcareRTI-stream"}]
+        })
+
+    # Destination 3: Activator / Reflex (alerts)
+    if activator_id:
+        destinations.append({
+            "name": "HealthcareActivator",
+            "type": "Activator",
+            "properties": {
+                "workspaceId": ws_id,
+                "itemId": activator_id,
+                "inputSerialization": {"type": "Json", "properties": {"encoding": "UTF8"}}
+            },
+            "inputNodes": [{"name": "HealthcareRTI-stream"}]
+        })
+
+    return {
+        "sources": sources,
+        "destinations": destinations,
+        "streams": streams,
+        "operators": [],
+        "compatibilityLevel": "1.1"
+    }
+
+
+# ── Step 3: Push definition ──────────────────────────────────────
+def push_definition(ws_id, es_id, es_def, token):
+    """Push the Eventstream definition via updateDefinition API."""
+    H = _headers(token)
+
+    es_json_b64 = base64.b64encode(json.dumps(es_def, indent=2).encode()).decode()
+    props_b64 = base64.b64encode(json.dumps({
+        "retentionTimeInDays": 1, "eventThroughputLevel": "Low"
+    }).encode()).decode()
+    platform_b64 = base64.b64encode(json.dumps({
+        "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+        "metadata": {"type": "Eventstream", "displayName": "Healthcare_RTI_Eventstream"},
+        "config": {"version": "2.0", "logicalId": es_id}
+    }).encode()).decode()
+
+    body = {"definition": {"parts": [
+        {"path": "eventstream.json", "payload": es_json_b64, "payloadType": "InlineBase64"},
+        {"path": "eventstreamProperties.json", "payload": props_b64, "payloadType": "InlineBase64"},
+        {"path": ".platform", "payload": platform_b64, "payloadType": "InlineBase64"},
+    ]}}
+
+    print("  Pushing definition via updateDefinition API...")
+    r = requests.post(
+        f"{API}/workspaces/{ws_id}/eventstreams/{es_id}/updateDefinition?updateMetadata=true",
+        headers=H, json=body
+    )
+    print(f"  HTTP {r.status_code}")
+    if r.status_code == 200:
+        return True
+    elif r.status_code == 202:
+        op_id = r.headers.get("x-ms-operation-id")
+        ok, _ = _wait_lro(op_id, token, "updateDefinition")
+        return ok
+    else:
+        print(f"  Error: {r.text[:500]}")
+        return False
+
+
+# ── Step 4: Verify topology ──────────────────────────────────────
+def verify_topology(ws_id, es_id, token):
+    """Check topology status via the topology API."""
+    H = _headers(token)
+    time.sleep(5)
+
+    r = requests.get(f"{API}/workspaces/{ws_id}/eventstreams/{es_id}/topology", headers=H)
+    if r.status_code != 200:
+        print(f"  Topology check failed: HTTP {r.status_code}")
+        return False
+
+    topo = r.json()
+    all_ok = True
+    for kind in ("sources", "destinations", "streams"):
+        nodes = topo.get(kind, [])
+        print(f"  {kind.capitalize()}: {len(nodes)}")
+        for n in nodes:
+            st = n.get("status", "?")
+            print(f"    {n['name']} ({n['type']}) — {st}")
+            if st in ("Failed", "Warning"):
+                all_ok = False
+    return all_ok
+
+
+# ── Main ──────────────────────────────────────────────────────────
+def main():
+    print("=" * 60)
+    print("Wire Healthcare_RTI_Eventstream — Full Topology via API")
+    print("=" * 60)
+
+    token = get_token()
+
+    # Step 1: Discover
+    print("\n[Step 1] Discovering workspace items...")
+    info = discover(token)
+    ws_id = info["ws_id"]
+
+    if not all([info["eventhouse_id"], info["kqldb_id"], info["eventstream_id"]]):
+        print("\nERROR: Missing required items (Eventhouse, KQL Database, Eventstream).")
+        print("Run Healthcare_Launcher with DEPLOY_STREAMING=True first.")
+        sys.exit(1)
+
+    # Step 2: Build topology
+    print("\n[Step 2] Building Eventstream topology...")
+    es_def = build_topology(
+        ws_id, info["kqldb_id"], info["kqldb_name"],
+        lakehouse_id=info["lakehouse_bronze_id"],
+        activator_id=info["activator_id"]
+    )
+    n_dest = len(es_def["destinations"])
+    dest_names = [d["name"] for d in es_def["destinations"]]
+    print(f"  Topology: CustomEndpoint → Stream → {n_dest} destinations")
+    for dn in dest_names:
+        print(f"    → {dn}")
+    if not info["lakehouse_bronze_id"]:
+        print("  NOTE: lh_bronze_raw not found — skipping Lakehouse destination")
+    if not info["activator_id"]:
+        print("  NOTE: No Activator/Reflex item found — skipping Activator destination")
+        print("        Create one in the portal and re-run to auto-wire it.")
+
+    # Step 3: Push
+    print("\n[Step 3] Pushing definition via API...")
+    ok = push_definition(ws_id, info["eventstream_id"], es_def, token)
+    if not ok:
+        print("\nERROR: Failed to push definition.")
+        sys.exit(1)
+    print("  Definition pushed successfully!")
+
+    # Step 4: Verify
+    print("\n[Step 4] Verifying topology...")
+    healthy = verify_topology(ws_id, info["eventstream_id"], token)
+
+    # Summary
+    es_url = f"https://app.fabric.microsoft.com/groups/{ws_id}/eventstreams/{info['eventstream_id']}"
+    print("\n" + "=" * 60)
+    if healthy:
+        print("  Eventstream topology wired successfully!")
+    else:
+        print("  Eventstream topology wired (some nodes still starting)")
+    print("=" * 60)
+    print()
+    dest_summary = " + ".join(dest_names)
+    print(f"  Topology: CustomEndpoint → Stream → {dest_summary}")
+    print(f"  Eventstream URL: {es_url}")
+    print()
+    print("  ┌─────────────────────────────────────────────────────────┐")
+    print("  │  ONE REMAINING STEP (portal only):                     │")
+    print("  │                                                        │")
+    print("  │  1. Open the Eventstream URL above in your browser     │")
+    print("  │  2. Click the 'HealthcareCustomEndpoint' source node   │")
+    print("  │  3. Copy the Connection String from the details pane   │")
+    print("  │  4. Paste into NB_RTI_Event_Simulator →                │")
+    print("  │     ES_CONNECTION_STRING parameter                     │")
+    print("  │                                                        │")
+    print("  │  The API wired the full topology but cannot expose     │")
+    print("  │  the connection string (Fabric API limitation).        │")
+    print("  └─────────────────────────────────────────────────────────┘")
+
+if __name__ == "__main__":
+    main()

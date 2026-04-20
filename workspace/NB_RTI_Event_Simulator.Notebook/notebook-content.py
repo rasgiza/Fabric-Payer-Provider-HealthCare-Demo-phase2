@@ -15,19 +15,22 @@
 # - `batch` -- Generate one batch, save as Delta tables + push to KQL (used by launcher)
 # - `stream` -- Continuously push events to KQL in a loop (for live demos)
 # 
-# **Ingestion (two approaches):**
+# **Ingestion:**
 # 
-# **Approach 1 — Direct Kusto (default, zero-config)**
+# **Direct Kusto (always active, zero-config)**
 # - `azure-kusto-ingest` ManagedStreamingIngestClient
 # - Token from `notebookutils.credentials.getToken("kusto")` — no setup needed
 # - Used automatically by the Launcher (batch mode)
 # 
-# **Approach 2 — Eventstream dual-write (optional)**
-# - Set `ES_CONNECTION_STRING` parameter to your Eventstream Custom App connection string
-# - Events go to BOTH KQL (direct) AND the Eventstream Custom Endpoint
-# - Enables Fabric Data Activator / Reflex triggers on the live event stream
-# - Requires 3 portal steps: create Eventstream → add Custom App source → copy connection string
-# - See: https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-source-custom-app
+# **Eventstream (recommended for production — 1 manual step)**
+# - Cell 12 of Healthcare_Launcher wires the full Eventstream topology via API:
+#   `Custom Endpoint → Stream → Eventhouse + Lakehouse + Activator`
+# - Set `ES_CONNECTION_STRING` to enable dual-write (KQL direct + Eventstream)
+# - **1 manual step:** Copy the connection string from the Fabric portal
+#   (the API creates the endpoint but cannot expose the connection string)
+# - Open the Eventstream → click 'HealthcareCustomEndpoint' → copy Connection String
+# - Eventstream routes events to: KQL DB (real-time), Bronze Lakehouse (archival),
+#   and Activator/Reflex (alerts) — all wired automatically by Cell 12
 # 
 # **Default lakehouse:** `lh_gold_curated`
 

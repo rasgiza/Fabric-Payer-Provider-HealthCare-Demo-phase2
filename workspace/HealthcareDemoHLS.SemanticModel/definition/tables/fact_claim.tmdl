@@ -45,7 +45,14 @@ table fact_claim
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	measure 'At Risk Revenue' = CALCULATE(SUM(fact_claim[billed_amount]), fact_claim[denial_risk_category] IN {"High", "Medium"})
+	measure 'At Risk Revenue' =
+			VAR _result =
+				CALCULATE(
+					SUM(fact_claim[billed_amount]),
+					fact_claim[denial_risk_category] = "High"
+						|| fact_claim[denial_risk_category] = "Medium"
+				)
+			RETURN IF(ISBLANK(_result), 0, _result)
 		lineageTag: a6a466d3-36d3-4a12-9a2a-1fddc232bd31
 
 		changedProperty = Name

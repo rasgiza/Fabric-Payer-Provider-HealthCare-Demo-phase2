@@ -1060,10 +1060,39 @@ df_fact_encounter = df_enc.select(
     coalesce(col("e.length_of_stay").cast("int"), lit(1)).alias("length_of_stay"),
     coalesce(col("e.total_charges").cast("double"), lit(0.0)).alias("total_charges"),
     (coalesce(col("e.total_charges").cast("double"), lit(0.0)) * 0.7).alias("total_cost"),
-    when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(0.0), lit(0.0)) >= 0.5, lit(1)).otherwise(lit(0)).alias("readmission_flag"),
-    coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(None), lit(0.25)).alias("readmission_risk_score"),
-    when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(0.25), lit(0.25)) >= 0.7, "High")
-    .when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(0.25), lit(0.25)) >= 0.3, "Medium")
+    when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(None),
+             # Rule-based risk score when no ML: derive from encounter attributes
+             when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 10, lit(0.80))
+             .when((coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 5) &
+                   (lower(coalesce(col("e.encounter_type"), lit(""))) == "inpatient"), lit(0.65))
+             .when(lower(coalesce(col("e.encounter_type"), lit(""))) == "emergency", lit(0.55))
+             .when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 3, lit(0.35))
+             .otherwise(lit(0.15))
+             ), lit(0.0)) >= 0.5, lit(1)).otherwise(lit(0)).alias("readmission_flag"),
+    coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(None),
+             when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 10, lit(0.80))
+             .when((coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 5) &
+                   (lower(coalesce(col("e.encounter_type"), lit(""))) == "inpatient"), lit(0.65))
+             .when(lower(coalesce(col("e.encounter_type"), lit(""))) == "emergency", lit(0.55))
+             .when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 3, lit(0.35))
+             .otherwise(lit(0.15))
+             ).alias("readmission_risk_score"),
+    when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(None),
+             when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 10, lit(0.80))
+             .when((coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 5) &
+                   (lower(coalesce(col("e.encounter_type"), lit(""))) == "inpatient"), lit(0.65))
+             .when(lower(coalesce(col("e.encounter_type"), lit(""))) == "emergency", lit(0.55))
+             .when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 3, lit(0.35))
+             .otherwise(lit(0.15))
+             ) >= 0.7, "High")
+    .when(coalesce(col("e.readmission_risk").cast("double") if has_encounter_risk else lit(None),
+             when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 10, lit(0.80))
+             .when((coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 5) &
+                   (lower(coalesce(col("e.encounter_type"), lit(""))) == "inpatient"), lit(0.65))
+             .when(lower(coalesce(col("e.encounter_type"), lit(""))) == "emergency", lit(0.55))
+             .when(coalesce(col("e.length_of_stay").cast("int"), lit(1)) >= 3, lit(0.35))
+             .otherwise(lit(0.15))
+             ) >= 0.3, "Medium")
     .otherwise("Low").alias("readmission_risk_category"),
     current_timestamp().alias("_load_timestamp")
 ).dropDuplicates(["encounter_id"])
@@ -1156,9 +1185,28 @@ df_fact_claim = df_clm.select(
     coalesce(col("c.paid_amount").cast("double"), col("c.billed_amount").cast("double") * 0.80, lit(0.0)).alias("paid_amount"),
     when(lower(col("c.claim_status")).contains("denied"), lit(1))
     .otherwise(lit(0)).alias("denial_flag"),
-    coalesce(col("ml.denial_risk_score").cast("double") if has_denial_ml else lit(None), lit(0.15)).alias("denial_risk_score"),
-    when(coalesce(col("ml.denial_risk_score") if has_denial_ml else lit(0.15), lit(0.15)) >= 0.6, "High")
-    .when(coalesce(col("ml.denial_risk_score") if has_denial_ml else lit(0.15), lit(0.15)) >= 0.3, "Medium")
+    coalesce(col("ml.denial_risk_score").cast("double") if has_denial_ml else lit(None),
+             # Rule-based risk score when no ML model: derive from claim attributes
+             when(lower(col("c.claim_status")).contains("denied"), lit(0.75))
+             .when(col("c.billed_amount").cast("double") > 50000, lit(0.55))
+             .when(col("c.billed_amount").cast("double") > 20000, lit(0.40))
+             .when(col("c.billed_amount").cast("double") > 10000, lit(0.30))
+             .otherwise(lit(0.15))
+             ).alias("denial_risk_score"),
+    when(coalesce(col("ml.denial_risk_score").cast("double") if has_denial_ml else lit(None),
+             when(lower(col("c.claim_status")).contains("denied"), lit(0.75))
+             .when(col("c.billed_amount").cast("double") > 50000, lit(0.55))
+             .when(col("c.billed_amount").cast("double") > 20000, lit(0.40))
+             .when(col("c.billed_amount").cast("double") > 10000, lit(0.30))
+             .otherwise(lit(0.15))
+             ) >= 0.6, "High")
+    .when(coalesce(col("ml.denial_risk_score").cast("double") if has_denial_ml else lit(None),
+             when(lower(col("c.claim_status")).contains("denied"), lit(0.75))
+             .when(col("c.billed_amount").cast("double") > 50000, lit(0.55))
+             .when(col("c.billed_amount").cast("double") > 20000, lit(0.40))
+             .when(col("c.billed_amount").cast("double") > 10000, lit(0.30))
+             .otherwise(lit(0.15))
+             ) >= 0.3, "Medium")
     .otherwise("Low").alias("denial_risk_category"),
     when(lower(col("c.claim_status")).contains("denied"),
          coalesce(col("c.denial_reason"),

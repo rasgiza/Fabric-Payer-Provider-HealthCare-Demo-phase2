@@ -8,6 +8,35 @@ table dim_patient
 
 		changedProperty = Name
 
+	measure 'Chronic Patients' =
+			VAR _chronic_patients =
+				CALCULATE(
+					DISTINCTCOUNT(fact_diagnosis[patient_key]),
+					dim_diagnosis[is_chronic] = 1
+				)
+			RETURN _chronic_patients
+		formatString: 0
+		lineageTag: a1b2c3d4-1111-4111-8111-000000000001
+
+	measure 'Chronic Rate' =
+			DIVIDE([Chronic Patients], [Total Patients])
+		lineageTag: a1b2c3d4-1111-4111-8111-000000000002
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Avg Patient Age' = AVERAGE(dim_patient[age])
+		lineageTag: a1b2c3d4-1111-4111-8111-000000000003
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Female Patients' = CALCULATE([Total Patients], dim_patient[gender] = "Female")
+		formatString: 0
+		lineageTag: a1b2c3d4-1111-4111-8111-000000000004
+
+	measure 'Male Patients' = CALCULATE([Total Patients], dim_patient[gender] = "Male")
+		formatString: 0
+		lineageTag: a1b2c3d4-1111-4111-8111-000000000005
+
 	column patient_id
 		dataType: string
 		lineageTag: db969a63-83e0-41af-86f9-bc56e34a42db

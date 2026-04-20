@@ -13,6 +13,27 @@ table fact_prescription
 
 		changedProperty = Name
 
+	measure 'Avg Rx Cost Per Fill' = DIVIDE([Total Rx Cost], [Total Fills])
+		lineageTag: a1b2c3d4-4444-4444-8444-000000000001
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Generic Fill Rate' =
+			VAR _generic = CALCULATE(COUNTROWS(fact_prescription), fact_prescription[is_generic] = 1)
+			VAR _total = COUNTROWS(fact_prescription)
+			RETURN DIVIDE(_generic, _total)
+		lineageTag: a1b2c3d4-4444-4444-8444-000000000002
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Payer Rx Cost' = SUM(fact_prescription[payer_paid])
+		lineageTag: a1b2c3d4-4444-4444-8444-000000000003
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	measure 'Patient Copay Total' = SUM(fact_prescription[patient_copay])
+		lineageTag: a1b2c3d4-4444-4444-8444-000000000004
+
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	column prescription_id

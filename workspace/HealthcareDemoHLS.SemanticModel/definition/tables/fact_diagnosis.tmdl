@@ -2,6 +2,26 @@ table fact_diagnosis
 	lineageTag: 58737eb4-8811-404d-a0f5-da20fea8ca83
 	sourceLineageTag: [dbo].[fact_diagnosis]
 
+	measure 'Unique Diagnoses' = DISTINCTCOUNT(fact_diagnosis[diagnosis_key])
+		formatString: 0
+		lineageTag: a1b2c3d4-3333-4333-8333-000000000001
+
+	measure 'Chronic Diagnoses' =
+			CALCULATE(
+				DISTINCTCOUNT(fact_diagnosis[diagnosis_key]),
+				dim_diagnosis[is_chronic] = 1
+			)
+		formatString: 0
+		lineageTag: a1b2c3d4-3333-4333-8333-000000000002
+
+	measure 'Patients with Chronic Conditions' =
+			CALCULATE(
+				DISTINCTCOUNT(fact_diagnosis[patient_key]),
+				dim_diagnosis[is_chronic] = 1
+			)
+		formatString: 0
+		lineageTag: a1b2c3d4-3333-4333-8333-000000000003
+
 	column fact_diagnosis_key
 		dataType: int64
 		formatString: 0

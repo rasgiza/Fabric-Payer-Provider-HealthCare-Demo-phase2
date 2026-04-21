@@ -1,10 +1,10 @@
 {
     "properties": {
-        "description": "Real-Time Intelligence pipeline. Generates new streaming events (batch mode), then scores them for fraud, care gaps, and high-cost trajectories. Schedule every 15 minutes for continuous RTI refresh, or run on-demand for demos. Independent of the daily batch ETL pipeline (PL_Healthcare_Master).",
+        "description": "Real-Time Intelligence pipeline. Streams events via Eventstream Custom Endpoint, then scores them for fraud, care gaps, and high-cost trajectories. Run on-demand for demos or schedule for continuous RTI refresh. Independent of the daily batch ETL pipeline (PL_Healthcare_Master).",
         "activities": [
             {
                 "name": "RTI_Event_Simulator",
-                "description": "Generate a batch of claims, ADT, and Rx events → Delta tables + KQL ingestion",
+                "description": "Stream claims, ADT, and Rx events → Eventstream → Eventhouse + Lakehouse + Activator",
                 "type": "TridentNotebook",
                 "dependsOn": [],
                 "policy": {
@@ -18,12 +18,19 @@
                     "notebookId": "b2000002-0002-0002-0002-000000000008",
                     "workspaceId": "00000000-0000-0000-0000-000000000000",
                     "parameters": {
-                        "MODE": {
+                        "ES_CONNECTION_STRING": {
                             "value": {
-                                "value": "@pipeline().parameters.simulator_mode",
+                                "value": "@pipeline().parameters.ES_CONNECTION_STRING",
                                 "type": "Expression"
                             },
                             "type": "string"
+                        },
+                        "STREAM_BATCHES": {
+                            "value": {
+                                "value": "@pipeline().parameters.STREAM_BATCHES",
+                                "type": "Expression"
+                            },
+                            "type": "int"
                         }
                     }
                 }
@@ -105,9 +112,13 @@
             }
         ],
         "parameters": {
-            "simulator_mode": {
+            "ES_CONNECTION_STRING": {
                 "type": "string",
-                "defaultValue": "batch"
+                "defaultValue": ""
+            },
+            "STREAM_BATCHES": {
+                "type": "int",
+                "defaultValue": 10
             }
         }
     }

@@ -140,10 +140,13 @@ STREAM_BATCHES = 10      # number of batches (0 = infinite)
 # │  1. Open Healthcare_RTI_Eventstream in the Fabric portal       │
 # │  2. Click 'HealthcareCustomEndpoint' source node               │
 # │  3. Copy the Connection String → paste below                   │
+# │                                                                │
+# │  Or run PL_Healthcare_RTI pipeline with ES_CONNECTION_STRING   │
+# │  parameter — it passes the value to this notebook.             │
 # └─────────────────────────────────────────────────────────────────┘
 ES_CONNECTION_STRING = ""
 
-# METADATA **{"language":"python"}**
+# METADATA **{"language":"python","tags":["parameters"]}**
 
 # CELL **{"language":"python"}**
 

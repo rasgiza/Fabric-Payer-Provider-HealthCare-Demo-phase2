@@ -129,7 +129,36 @@ from pyspark.sql.types import StringType
 # ---------- Load data ----------
 print("Loading ADT events and care gap data...")
 
-df_adt = spark.table("lh_gold_curated.rti_adt_events")
+# Wait for rti_adt_events (OneLake shortcut from KQL) to have data.
+# After the simulator streams to Eventhouse, OneLake mirroring flushes
+# delta files every ~5 minutes. Retry until data is available.
+import time as _wait_time
+
+df_adt = None
+_max_wait = 12   # 12 × 30s = 6 minutes max
+for _attempt in range(1, _max_wait + 1):
+    try:
+        _df = spark.table("lh_gold_curated.rti_adt_events")
+        _cnt = _df.count()
+        if _cnt > 0:
+            df_adt = _df
+            print(f"  rti_adt_events: {_cnt} rows")
+            break
+        else:
+            print(f"  [{_attempt}/{_max_wait}] rti_adt_events is empty — waiting for OneLake sync...")
+    except Exception as _e:
+        print(f"  [{_attempt}/{_max_wait}] rti_adt_events not ready — {_e}")
+    if _attempt < _max_wait:
+        _wait_time.sleep(30)
+
+if df_adt is None:
+    raise RuntimeError(
+        "rti_adt_events has no data after waiting 6 minutes.\n"
+        "Check: (1) OneLake Availability is enabled on Healthcare_RTI_DB,\n"
+        "       (2) The simulator ran and pushed events to Eventstream,\n"
+        "       (3) The OneLake shortcut exists in lh_gold_curated."
+    )
+
 df_patients = spark.sql("""
     SELECT patient_id, first_name, last_name, gender, date_of_birth, zip_code
     FROM lh_gold_curated.dim_patient WHERE is_current = true

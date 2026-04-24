@@ -119,7 +119,36 @@ import math
 # ---------- Load events and reference data ----------
 print("Loading claims events and reference data...")
 
-df_claims = spark.table("lh_gold_curated.rti_claims_events")
+# Wait for rti_claims_events (OneLake shortcut from KQL) to have data.
+# After the simulator streams to Eventhouse, OneLake mirroring flushes
+# delta files every ~5 minutes. Retry until data is available.
+import time as _wait_time
+
+df_claims = None
+_max_wait = 12   # 12 × 30s = 6 minutes max
+for _attempt in range(1, _max_wait + 1):
+    try:
+        _df = spark.table("lh_gold_curated.rti_claims_events")
+        _cnt = _df.count()
+        if _cnt > 0:
+            df_claims = _df
+            print(f"  rti_claims_events: {_cnt} rows")
+            break
+        else:
+            print(f"  [{_attempt}/{_max_wait}] rti_claims_events is empty — waiting for OneLake sync...")
+    except Exception as _e:
+        print(f"  [{_attempt}/{_max_wait}] rti_claims_events not ready — {_e}")
+    if _attempt < _max_wait:
+        _wait_time.sleep(30)
+
+if df_claims is None:
+    raise RuntimeError(
+        "rti_claims_events has no data after waiting 6 minutes.\n"
+        "Check: (1) OneLake Availability is enabled on Healthcare_RTI_DB,\n"
+        "       (2) The simulator ran and pushed events to Eventstream,\n"
+        "       (3) The OneLake shortcut exists in lh_gold_curated."
+    )
+
 df_providers = spark.sql("""
     SELECT provider_id, display_name AS provider_name, specialty
     FROM lh_gold_curated.dim_provider WHERE is_current = true

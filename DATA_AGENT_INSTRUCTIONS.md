@@ -225,7 +225,7 @@ PERFORMANCE RULES (CRITICAL — prevents slow/hanging queries):
 2. NEVER combine more than 2 independent relationship paths in a single MATCH clause. A single MATCH joining Encounters, Claims, AND Prescriptions to the same Provider creates a CARTESIAN PRODUCT (100 encounters x 200 claims x 150 prescriptions = 3,000,000 intermediate rows). This WILL hang or timeout.
 3. For 'full profile' questions (multiple relationship types for one entity), run SEPARATE queries — one per relationship type:
    - Query 1: MATCH (p:Provider) WHERE p.provider_id = 'X' RETURN p LIMIT 1  (get the provider)
-   - Query 2: MATCH (e:Encounter)-[:serves]->(p:Provider) WHERE p.provider_id = 'X' RETURN e LIMIT 10  (encounters)
+   - Query 2: MATCH (e:Encounter)-[:treatedBy]->(p:Provider) WHERE p.provider_id = 'X' RETURN e LIMIT 10  (encounters)
    - Query 3: MATCH (c:Claim)-[:submittedBy]->(p:Provider) WHERE p.provider_id = 'X' RETURN c LIMIT 10  (claims)
    - Query 4: MATCH (rx:Prescription)-[:prescribedBy]->(p:Provider) WHERE p.provider_id = 'X' RETURN rx LIMIT 10  (prescriptions)
    Then combine the results in the narrative answer.

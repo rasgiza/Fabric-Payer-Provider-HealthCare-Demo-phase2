@@ -126,8 +126,51 @@ READMIT_WINDOW_DAYS = 30       # Readmission = re-admit within this many days
 # ---------- Load events ----------
 print("Loading claims and ADT events...")
 
-df_claims = spark.table("lh_gold_curated.rti_claims_events")
-df_adt = spark.table("lh_gold_curated.rti_adt_events")
+# Wait for OneLake shortcut tables to have data.
+# After the simulator streams to Eventhouse, OneLake mirroring flushes
+# delta files every ~5 minutes. Retry until data is available.
+import time as _wait_time
+
+_tables_to_wait = {
+    "rti_claims_events": None,
+    "rti_adt_events": None,
+}
+_max_wait = 12   # 12 × 30s = 6 minutes max
+
+for _attempt in range(1, _max_wait + 1):
+    _all_ready = True
+    for _tbl in list(_tables_to_wait.keys()):
+        if _tables_to_wait[_tbl] is not None:
+            continue
+        try:
+            _df = spark.table(f"lh_gold_curated.{_tbl}")
+            _cnt = _df.count()
+            if _cnt > 0:
+                _tables_to_wait[_tbl] = _df
+                print(f"  {_tbl}: {_cnt} rows")
+            else:
+                _all_ready = False
+                print(f"  [{_attempt}/{_max_wait}] {_tbl} is empty — waiting for OneLake sync...")
+        except Exception as _e:
+            _all_ready = False
+            print(f"  [{_attempt}/{_max_wait}] {_tbl} not ready — {_e}")
+    if _all_ready:
+        break
+    if _attempt < _max_wait:
+        _wait_time.sleep(30)
+
+for _tbl, _df in _tables_to_wait.items():
+    if _df is None:
+        raise RuntimeError(
+            f"{_tbl} has no data after waiting 6 minutes.\n"
+            "Check: (1) OneLake Availability is enabled on Healthcare_RTI_DB,\n"
+            "       (2) The simulator ran and pushed events to Eventstream,\n"
+            "       (3) The OneLake shortcut exists in lh_gold_curated."
+        )
+
+df_claims = _tables_to_wait["rti_claims_events"]
+df_adt = _tables_to_wait["rti_adt_events"]
+
 df_patients = spark.sql("""
     SELECT patient_id, first_name, last_name, date_of_birth, zip_code
     FROM lh_gold_curated.dim_patient WHERE is_current = true

@@ -1645,8 +1645,16 @@ try:
         ) \
         .withColumn("_load_timestamp", current_timestamp())
 
+    # Generate surrogate key for graph ontology (composite keys not supported)
+    from pyspark.sql.functions import monotonically_increasing_id
+    df_adherence = df_adherence.withColumn(
+        "adherence_key",
+        (col("fp.patient_key") * lit(100000) + col("fp.medication_key")).cast("long")
+    )
+
     # Select final columns
     df_adherence_final = df_adherence.select(
+        col("adherence_key").cast("long"),
         "patient_key", "medication_key", "drug_class", "therapeutic_area",
         "measurement_period_start", "measurement_period_end",
         "total_fills", "total_days_supply", "days_in_period", "covered_days",

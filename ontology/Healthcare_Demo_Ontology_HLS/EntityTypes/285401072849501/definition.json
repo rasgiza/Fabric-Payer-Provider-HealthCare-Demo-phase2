@@ -5,13 +5,19 @@
   "baseEntityTypeId": null,
   "name": "MedicationAdherence",
   "entityIdParts": [
-    "1318860001000000001",
-    "1318860001000000002"
+    "1318860001000000000"
   ],
   "displayNamePropertyId": "1318860001000000003",
   "namespaceType": "Custom",
   "visibility": "Visible",
   "properties": [
+    {
+      "id": "1318860001000000000",
+      "name": "adherence_key",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
     {
       "id": "1318860001000000001",
       "name": "patient_key",

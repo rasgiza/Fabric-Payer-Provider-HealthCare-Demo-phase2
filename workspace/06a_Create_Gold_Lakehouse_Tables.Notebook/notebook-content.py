@@ -479,6 +479,7 @@ print("✓ agg_denial_by_date created")
 # agg_medication_adherence (PDC by patient + medication)
 spark.sql("""
     CREATE TABLE IF NOT EXISTS agg_medication_adherence (
+        adherence_key BIGINT,
         patient_key BIGINT,
         medication_key BIGINT,
         drug_class STRING,

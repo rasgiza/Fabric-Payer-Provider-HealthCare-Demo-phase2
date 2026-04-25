@@ -5,6 +5,10 @@
     "dataBindingType": "NonTimeSeries",
     "propertyBindings": [
       {
+        "sourceColumnName": "adherence_key",
+        "targetPropertyId": "1318860001000000000"
+      },
+      {
         "sourceColumnName": "patient_key",
         "targetPropertyId": "1318860001000000001"
       },

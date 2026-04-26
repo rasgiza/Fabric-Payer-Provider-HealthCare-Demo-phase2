@@ -28,3 +28,6 @@ desktop.ini
 
 # Fabric local
 .lakehouse/
+
+# Temp fix/debug scripts
+_scratch/

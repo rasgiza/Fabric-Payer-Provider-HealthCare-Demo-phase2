@@ -132,7 +132,7 @@ del _req, _ws_id, _tok, _hdr, _lh_resp
 # ---------- Parameters (override from pipeline or %run) ----------
 BATCH_SIZE = 500         # events per streaming batch
 STREAM_INTERVAL_SEC = 5  # seconds between batches
-STREAM_BATCHES = 10      # number of batches (0 = infinite)
+STREAM_BATCHES = STREAM_BATCHES if "STREAM_BATCHES" in dir() and STREAM_BATCHES else 10
 
 # ┌─────────────────────────────────────────────────────────────────┐
 # │  PASTE YOUR EVENTSTREAM CONNECTION STRING BELOW                │
@@ -144,7 +144,7 @@ STREAM_BATCHES = 10      # number of batches (0 = infinite)
 # │  Or run PL_Healthcare_RTI pipeline with ES_CONNECTION_STRING   │
 # │  parameter — it passes the value to this notebook.             │
 # └─────────────────────────────────────────────────────────────────┘
-ES_CONNECTION_STRING = ""
+ES_CONNECTION_STRING = ES_CONNECTION_STRING if "ES_CONNECTION_STRING" in dir() and ES_CONNECTION_STRING else ""
 
 # METADATA **{"language":"python","tags":["parameters"]}**
 

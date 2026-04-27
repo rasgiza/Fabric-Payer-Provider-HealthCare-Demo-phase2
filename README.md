@@ -528,7 +528,7 @@ See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ tested questions acro
 
 #### Create the Ontology Agent (Manual — Fabric UI)
 
-The **Healthcare Ontology Agent** (graph agent) must be created manually in the Fabric UI — it cannot be fully deployed via API.
+The **HealthcareHLSOntology Agent** (graph agent) must be created manually in the Fabric UI — it cannot be fully deployed via API.
 
 **Step 1: Create the Agent**
 
@@ -536,7 +536,7 @@ The **Healthcare Ontology Agent** (graph agent) must be created manually in the 
 
    ![Data agent card](docs/images/agent-new-item.png)
 
-2. Name it `Healthcare Ontology Agent` → click **Create**
+2. Name it `HealthcareHLSOntology Agent` → click **Create**
 
    ![Create data agent dialog](docs/images/agent-create-dialog.png)
 

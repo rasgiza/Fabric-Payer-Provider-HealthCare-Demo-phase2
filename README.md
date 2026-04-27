@@ -27,7 +27,7 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
    - [RTI Ingestion — Two Approaches](#rti-ingestion--two-approaches)
    - [Operations Agent](#use-case-4--operations-agent-healthcareopsagent)
 8. [Ontology & Graph Model (Automated)](#ontology--graph-model-automated)
-9. [Set Up the Data Agent](#set-up-the-data-agent-manual--fabric-ui)
+9. [Data Agents](#data-agents)
 10. [Data Activator / Reflex Setup](#set-up-data-activator-alerts-manual--15-min)
 10. [Run Incremental Loads](#run-incremental-loads)
 11. [Configuration Options](#configuration-options)
@@ -513,49 +513,63 @@ The ontology and graph model are now **deployed automatically** by Cell 10a of t
 - **Cell 10a** creates the ontology from the `ontology/Healthcare_Demo_Ontology_HLS/` manifest (12 entities, 18 relationships)
 - **Cell 10b** patches the graph agent definition with the correct ontology/graph IDs
 
-> **Fallback:** If automated deployment fails, see [ONTOLOGY_GRAPH_SETUP_GUIDE.md](ONTOLOGY_GRAPH_SETUP_GUIDE.md) for manual UI steps.
-
 ---
 
-### Set Up the Data Agent (Manual — Fabric UI)
+### Data Agents
 
-Fabric Data Agents are created and configured in the Fabric UI. The launcher deploys the agent definitions via Git Integration, but you must configure the **data source** and **AI instructions** manually.
+The **HealthcareHLSAgent** (SQL agent) is deployed programmatically by the launcher — no manual setup required. It connects to the `HealthcareDemoHLS` semantic model and includes AI instructions and data source configuration automatically.
 
-#### Step 1: Open the Data Agent
+To test it, open the agent in your workspace and try a sample question:
+- *"What is the overall denial rate by payer?"*
+- *"Show me the top 10 providers by total billed amount"*
+- *"Which patients have the highest readmission risk?"*
 
-1. In your workspace, find the **HealthcareHLSAgent** item (type: Data Agent)
-2. Click to open it — you'll see the agent configuration page
+See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ tested questions across all domains.
 
-> If the agent was not deployed via Git Integration, create one manually:  
-> **+ New item** → **Data agent** → name it `HealthcareHLSAgent`
+#### Create the Ontology Agent (Manual — Fabric UI)
 
-#### Step 2: Add the Data Source
+The **Healthcare Ontology Agent** (graph agent) must be created manually in the Fabric UI — it cannot be fully deployed via API.
 
-1. Click **+ Add data** → **Data source**
-2. Browse to **OneLake data hub** → select **HealthcareDemoHLS** (the semantic model in your workspace)
-3. The agent will connect to the star schema (12 tables: 4 fact + 8 dimension)
+**Step 1: Create the Agent**
 
-#### Step 3: Configure AI Instructions
+1. In your workspace → **+ New item** → **Data agent**
+
+   ![Data agent card](docs/images/agent-new-item.png)
+
+2. Name it `Healthcare Ontology Agent` → click **Create**
+
+   ![Create data agent dialog](docs/images/agent-create-dialog.png)
+
+**Step 2: Add the Data Source**
+
+1. Click **Add Data** → **Data source**
+
+   ![Add Data dropdown](docs/images/agent-add-data-source.png)
+
+2. Browse to your workspace → select the ontology **`Healthcare_Demo_Ontology_HLS`** (Graph model)
+
+   ![Select ontology graph](docs/images/agent-select-ontology.png)
+
+3. The agent will connect to the graph model (12 entities, 18 relationships)
+
+**Step 3: Configure AI Instructions**
 
 1. Click **Agent instructions** (top toolbar)
-2. Copy the AI instructions text from **[DATA_AGENT_INSTRUCTIONS.md](DATA_AGENT_INSTRUCTIONS.md)** → Section **1a — AI Instructions**
+
+   ![Agent instructions panel](docs/images/agent-instructions.png)
+
+2. Copy the AI instructions text from **[DATA_AGENT_INSTRUCTIONS.md](DATA_AGENT_INSTRUCTIONS.md)** → Section **2a — AI Instructions**
 3. Paste into the instructions text box → click **Apply**
 
-> These instructions tell the agent about the star schema, define business rules (e.g., denial rate = denied/total claims), and provide few-shot SQL examples.
+> These instructions tell the agent about the ontology entities, relationships, and graph traversal patterns for healthcare queries.
 
-#### Step 4: Test the Agent
+**Step 4: Test the Agent**
 
 1. In the agent chat panel, try a sample question:
-   - *"What is the overall denial rate by payer?"*
-   - *"Show me the top 10 providers by total billed amount"*
-   - *"Which patients have the highest readmission risk?"*
-2. See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ tested questions across all domains
-
-#### Repeat for the Graph Agent
-
-Follow the same steps for **Healthcare Ontology Agent** (the graph-based agent):
-- Data source: the ontology graph (`Healthcare_Demo_Ontology_HLS`)
-- AI instructions: **[DATA_AGENT_INSTRUCTIONS.md](DATA_AGENT_INSTRUCTIONS.md)** → Section **2a — AI Instructions**
+   - *"Which providers treat patients covered by Aetna?"*
+   - *"Show the care pathway for patient P-1001"*
+   - *"What prescriptions are linked to claims denied for medical necessity?"*
+2. See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** → **Graph Agent** section for more questions
 
 ---
 

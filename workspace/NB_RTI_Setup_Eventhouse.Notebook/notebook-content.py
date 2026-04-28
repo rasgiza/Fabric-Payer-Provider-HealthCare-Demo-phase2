@@ -188,6 +188,24 @@ else:
 print("Step 3: Executing KQL schema commands...")
 
 KQL_COMMANDS = [
+    # --- LANDING TABLE (all events from Eventstream land here) ---
+    # The Eventstream writes ALL event types into this single table.
+    # KQL update policies (defined below) automatically route rows
+    # into the typed per-event tables based on the _table field.
+    """.create-merge table rti_all_events (
+        event_id: string, event_timestamp: datetime, event_type: string,
+        _table: string,
+        claim_id: string, patient_id: string, provider_id: string,
+        facility_id: string, facility_name: string, payer_id: string,
+        diagnosis_code: string, procedure_code: string,
+        claim_type: string, claim_amount: real,
+        admission_type: string, primary_diagnosis: string,
+        medication_code: string, medication_name: string, drug_class: string,
+        quantity: int, days_supply: int,
+        latitude: real, longitude: real,
+        injected_fraud_flags: string,
+        has_open_care_gaps: bool, open_gap_measures: string
+    )""",
     # --- INPUT TABLES ---
     """.create-merge table claims_events (
         event_id: string, event_timestamp: datetime, event_type: string,
@@ -228,13 +246,42 @@ KQL_COMMANDS = [
         readmission_flag: bool, risk_tier: string, cost_trend: string,
         latitude: real, longitude: real
     )""",
-    # --- STREAMING INGESTION POLICIES (all 6 tables) ---
+    # --- STREAMING INGESTION POLICIES (landing + 6 typed tables) ---
+    ".alter table rti_all_events policy streamingingestion enable",
     ".alter table claims_events policy streamingingestion enable",
     ".alter table adt_events policy streamingingestion enable",
     ".alter table rx_events policy streamingingestion enable",
     ".alter table fraud_scores policy streamingingestion enable",
     ".alter table care_gap_alerts policy streamingingestion enable",
     ".alter table highcost_alerts policy streamingingestion enable",
+    # --- UPDATE POLICIES (auto-route from rti_all_events → typed tables) ---
+    # These server-side policies fire on every ingestion batch into rti_all_events,
+    # extracting rows by _table field and appending them to the target tables.
+    """.create-or-alter function ExtractClaimsEvents() {
+        rti_all_events
+        | where _table == "claims_events"
+        | project event_id, event_timestamp, event_type, claim_id, patient_id,
+                  provider_id, facility_id, payer_id, diagnosis_code,
+                  procedure_code, claim_type, claim_amount, latitude, longitude,
+                  injected_fraud_flags
+    }""",
+    """.create-or-alter function ExtractAdtEvents() {
+        rti_all_events
+        | where _table == "adt_events"
+        | project event_id, event_timestamp, event_type, patient_id, facility_id,
+                  facility_name, admission_type, primary_diagnosis, latitude,
+                  longitude, has_open_care_gaps, open_gap_measures
+    }""",
+    """.create-or-alter function ExtractRxEvents() {
+        rti_all_events
+        | where _table == "rx_events"
+        | project event_id, event_timestamp, event_type, patient_id, provider_id,
+                  medication_code, medication_name, drug_class, quantity,
+                  days_supply, latitude, longitude
+    }""",
+    ".alter table claims_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractClaimsEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
+    ".alter table adt_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractAdtEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
+    ".alter table rx_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractRxEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
     # --- ONELAKE MIRRORING POLICIES (5-minute flush for demos) ---
     # OneLake Availability must be enabled on the KQL DB first (portal toggle).
     # These policies set the delta-table flush to 5 minutes instead of the
@@ -243,6 +290,8 @@ KQL_COMMANDS = [
     ".alter-merge table adt_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
     ".alter-merge table rx_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
     # --- JSON INGESTION MAPPINGS ---
+    """.create-or-alter table rti_all_events ingestion json mapping 'rti_all_events_mapping'
+    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"_table","path":"$._table","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"admission_type","path":"$.admission_type","datatype":"string"},{"column":"primary_diagnosis","path":"$.primary_diagnosis","datatype":"string"},{"column":"medication_code","path":"$.medication_code","datatype":"string"},{"column":"medication_name","path":"$.medication_name","datatype":"string"},{"column":"drug_class","path":"$.drug_class","datatype":"string"},{"column":"quantity","path":"$.quantity","datatype":"int"},{"column":"days_supply","path":"$.days_supply","datatype":"int"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"},{"column":"has_open_care_gaps","path":"$.has_open_care_gaps","datatype":"bool"},{"column":"open_gap_measures","path":"$.open_gap_measures","datatype":"string"}]'""",
     """.create-or-alter table claims_events ingestion json mapping 'claims_events_mapping'
     '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"}]'""",
     """.create-or-alter table adt_events ingestion json mapping 'adt_events_mapping'
@@ -353,7 +402,8 @@ print(f"  KQL DB:        {KQL_DB_NAME} ({kql_db_id})")
 print(f"  Query URI:     {KUSTO_QUERY_URI}")
 print(f"  Ingestion URI: {KUSTO_INGEST_URI}")
 print()
-print("  KQL Tables (6):")
+print("  KQL Tables (7):")
+print("    LANDING: rti_all_events (Eventstream → update policies split to typed tables)")
 print("    INPUT:  claims_events, adt_events, rx_events")
 print("    OUTPUT: fraud_scores, care_gap_alerts, highcost_alerts")
 print()

@@ -169,17 +169,16 @@ def _kql_query_to_records(query, db=_KQL_DB_NAME):
     rows = [[val for val in row] for row in primary]
     return cols, rows
 
-# Poll KQL until rti_all_events has ADT data
-# NOTE: Eventstream writes ALL events to rti_all_events (unified landing table).
-# We filter by event_type to get ADT events only.
+# Poll KQL until adt_events has data
+# Data flow: Eventstream → rti_all_events → adt_events (via KQL update policy)
 df_adt = None
 _max_wait = 6   # 6 × 10s = 60 seconds max
 for _attempt in range(1, _max_wait + 1):
-    _cols, _rows = _kql_query_to_records("rti_all_events | where event_type has 'ADT' or event_type has 'ADMIT' or event_type has 'DISCHARGE' or event_type has 'TRANSFER' | count")
+    _cols, _rows = _kql_query_to_records("adt_events | count")
     _cnt = int(_rows[0][0]) if _rows and _rows[0] else 0
     if _cnt > 0:
-        print(f"  ADT events in rti_all_events: {_cnt} rows")
-        _cols, _rows = _kql_query_to_records("rti_all_events | where event_type has 'ADT' or event_type has 'ADMIT' or event_type has 'DISCHARGE' or event_type has 'TRANSFER' | project event_id, event_timestamp, event_type, patient_id, facility_id, facility_name, admission_type, primary_diagnosis, latitude, longitude, has_open_care_gaps, open_gap_measures")
+        print(f"  adt_events in KQL: {_cnt} rows")
+        _cols, _rows = _kql_query_to_records("adt_events | project event_id, event_timestamp, event_type, patient_id, facility_id, facility_name, admission_type, primary_diagnosis, latitude, longitude, has_open_care_gaps, open_gap_measures")
         _records = [dict(zip(_cols, row)) for row in _rows]
         df_adt = spark.createDataFrame(_records)
         df_adt = (df_adt
@@ -189,15 +188,16 @@ for _attempt in range(1, _max_wait + 1):
         )
         break
     else:
-        print(f"  [{_attempt}/{_max_wait}] No ADT events in rti_all_events yet — waiting...")
+        print(f"  [{_attempt}/{_max_wait}] adt_events is empty — waiting for update policy...")
     if _attempt < _max_wait:
         _wait_time.sleep(10)
 
 if df_adt is None:
     raise RuntimeError(
-        "No ADT events in rti_all_events after waiting 60 seconds.\n"
+        "adt_events has no data in KQL after waiting 60 seconds.\n"
         "Check: (1) The simulator ran and pushed events,\n"
-        "       (2) Healthcare_RTI_DB has streaming ingestion policies enabled."
+        "       (2) NB_RTI_Setup_Eventhouse created update policies,\n"
+        "       (3) Healthcare_RTI_DB has streaming ingestion enabled."
     )
 
 df_patients = spark.sql("""

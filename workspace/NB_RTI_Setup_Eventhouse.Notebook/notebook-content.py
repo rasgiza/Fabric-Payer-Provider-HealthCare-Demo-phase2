@@ -355,40 +355,21 @@ KQL_COMMANDS = [
     '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
 ]
 
-def run_kql_command(db_id, command):
-    """Execute a single KQL management command against the database."""
-    url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/kqlDatabases/{db_id}/runCommand"
-    return requests.post(url, headers=get_headers(), json={"script": command.strip()})
+# --- Use Kusto SDK directly (Fabric /runCommand API is unreliable) ---
+from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
+from azure.kusto.data.exceptions import KustoServiceError
 
-def _is_kql_success(resp):
-    """Check if KQL command succeeded (HTTP 200 can still contain errors)."""
-    if resp.status_code not in (200, 201):
-        return False
-    try:
-        body = resp.json()
-        # Check for error objects in the response
-        if "error" in body:
-            return False
-        # Check results frames for errors
-        for frame in body.get("results", []):
-            if frame.get("hasErrors"):
-                return False
-    except Exception:
-        pass
-    return True
+_kql_token = get_kusto_token()
+_kcs = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_QUERY_URI, _kql_token)
+_kusto_client = KustoClient(_kcs)
 
-def _get_kql_error(resp):
-    """Extract error message from KQL response."""
-    try:
-        body = resp.json()
-        if "error" in body:
-            return body["error"].get("message", str(body["error"]))[:200]
-        for frame in body.get("results", []):
-            if frame.get("hasErrors"):
-                return str(frame.get("errors", "unknown error"))[:200]
-    except Exception:
-        pass
-    return resp.text[:200]
+def run_kql_mgmt(command):
+    """Execute a KQL management command via Kusto SDK."""
+    return _kusto_client.execute_mgmt(KQL_DB_NAME, command.strip())
+
+def run_kql_query(query):
+    """Execute a KQL query via Kusto SDK."""
+    return _kusto_client.execute(KQL_DB_NAME, query.strip())
 
 success_count = 0
 fail_count = 0
@@ -404,13 +385,15 @@ for cmd in KQL_COMMANDS:
         label = "mapping: " + cmd_clean.split("table ")[-1].split(" ")[0]
     else:
         label = cmd_clean[:60]
-    resp = run_kql_command(kql_db_id, cmd_clean)
-    if _is_kql_success(resp):
+    try:
+        run_kql_mgmt(cmd_clean)
         print(f"  OK: {label}")
         success_count += 1
-    else:
-        err_msg = _get_kql_error(resp)
-        print(f"  WARN ({resp.status_code}): {label} -- {err_msg}")
+    except KustoServiceError as e:
+        print(f"  WARN: {label} -- {str(e)[:200]}")
+        fail_count += 1
+    except Exception as e:
+        print(f"  WARN: {label} -- {str(e)[:200]}")
         fail_count += 1
 
 print(f"\nSchema execution complete: {success_count} succeeded, {fail_count} failed")
@@ -436,36 +419,32 @@ BACKFILL_COMMANDS = [
 ]
 
 # First check if rti_all_events has any data
-_check_resp = run_kql_command(kql_db_id, "rti_all_events | count")
 _landing_count = 0
-if _check_resp.status_code == 200:
-    try:
-        _frames = _check_resp.json().get("results", [{}])
-        if _frames and _frames[0].get("rows"):
-            _landing_count = int(_frames[0]["rows"][0][0])
-    except Exception:
-        pass
+try:
+    _result = run_kql_query("rti_all_events | count")
+    for row in _result.primary_results[0]:
+        _landing_count = int(row[0])
+except Exception:
+    pass
 
 if _landing_count > 0:
     print(f"  rti_all_events has {_landing_count} rows — checking typed tables...")
     for _tbl_name, _backfill_cmd in BACKFILL_COMMANDS:
         # Check if target already has data
-        _cnt_resp = run_kql_command(kql_db_id, f"{_tbl_name} | count")
         _tbl_count = 0
-        if _cnt_resp.status_code == 200:
-            try:
-                _f = _cnt_resp.json().get("results", [{}])
-                if _f and _f[0].get("rows"):
-                    _tbl_count = int(_f[0]["rows"][0][0])
-            except Exception:
-                pass
+        try:
+            _cnt_result = run_kql_query(f"{_tbl_name} | count")
+            for row in _cnt_result.primary_results[0]:
+                _tbl_count = int(row[0])
+        except Exception:
+            pass
         if _tbl_count == 0:
             print(f"  Backfilling {_tbl_name} from rti_all_events...")
-            _bf_resp = run_kql_command(kql_db_id, _backfill_cmd)
-            if _bf_resp.status_code in (200, 201):
+            try:
+                run_kql_mgmt(_backfill_cmd)
                 print(f"    OK: {_tbl_name} backfilled")
-            else:
-                print(f"    WARN ({_bf_resp.status_code}): {_tbl_name} -- {_bf_resp.text[:200]}")
+            except Exception as e:
+                print(f"    WARN: {_tbl_name} -- {str(e)[:200]}")
         else:
             print(f"  {_tbl_name}: already has {_tbl_count} rows — skipping backfill")
 else:
@@ -480,24 +459,13 @@ else:
 # ============================================================================
 print("\nStep 4: Verifying RTI setup...")
 
-verify_url = f"{BASE_URL}/workspaces/{WORKSPACE_ID}/kqlDatabases/{kql_db_id}/runCommand"
-verify_body = {"script": ".show tables | project TableName | order by TableName asc"}
-resp = requests.post(verify_url, headers=get_headers(), json=verify_body)
-
-if resp.status_code == 200:
-    try:
-        frames = resp.json().get("results", [{}])
-        if frames:
-            print("  KQL Database tables:")
-            for frame in frames:
-                for row in frame.get("rows", []):
-                    print(f"    - {row[0] if isinstance(row, list) else row}")
-        if not frames or not frames[0].get("rows"):
-            print("    (verified -- check KQL Database in portal for table list)")
-    except Exception:
-        print("    (verified -- check KQL Database in portal for table list)")
-else:
-    print(f"  Could not verify tables ({resp.status_code})")
+try:
+    _verify_result = run_kql_mgmt(".show tables | project TableName | order by TableName asc")
+    print("  KQL Database tables:")
+    for row in _verify_result.primary_results[0]:
+        print(f"    - {row[0]}")
+except Exception as e:
+    print(f"  Could not verify tables: {str(e)[:200]}")
 
 # METADATA **{"language":"python"}**
 

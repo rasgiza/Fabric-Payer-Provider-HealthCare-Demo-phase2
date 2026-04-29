@@ -355,9 +355,20 @@ KQL_COMMANDS = [
     '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
 ]
 
-# --- Use Kusto SDK directly (Fabric /runCommand API is unreliable) ---
-from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
-from azure.kusto.data.exceptions import KustoServiceError
+# --- Install Kusto SDK if not already present ---
+import subprocess, sys
+try:
+    from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
+    from azure.kusto.data.exceptions import KustoServiceError
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "azure-kusto-data"])
+    # Purge stale azure.* module refs so fresh import works
+    import importlib
+    for mod_name in list(sys.modules.keys()):
+        if mod_name.startswith("azure"):
+            del sys.modules[mod_name]
+    from azure.kusto.data import KustoClient, KustoConnectionStringBuilder
+    from azure.kusto.data.exceptions import KustoServiceError
 
 _kql_token = get_kusto_token()
 _kcs = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_QUERY_URI, _kql_token)

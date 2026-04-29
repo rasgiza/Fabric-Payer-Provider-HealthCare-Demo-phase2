@@ -121,7 +121,15 @@ print("Loading claims events from KQL Eventhouse (Kusto SDK)...")
 
 import requests as _kql_req
 import time as _wait_time
-from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
+import subprocess, sys
+try:
+    from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "azure-kusto-data", "azure-kusto-ingest"])
+    for _m in list(sys.modules.keys()):
+        if _m.startswith("azure"):
+            del sys.modules[_m]
+    from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
 
 # Discover Eventhouse query URI (same pattern used by KQL push section)
 _ws_id = notebookutils.runtime.context.get("currentWorkspaceId", "")

@@ -184,63 +184,74 @@ def _kql_mgmt(cmd, db=_KQL_DB_NAME):
     _c = KustoClient(_k)
     return _c.execute_mgmt(db, cmd)
 
-# ── Backfill typed tables from rti_all_events ──────────────────────────────
-# ProcessedIngestion mode does not trigger KQL update policies, so data may
-# land in rti_all_events but never reach the typed tables. This backfill
-# ensures the Extract functions populate them regardless of ingestion mode.
+# ── Wait for rti_all_events then backfill typed tables ─────────────────────
+# ProcessedIngestion mode has delivery latency (30-120s) and does NOT trigger
+# KQL update policies. We must:
+#   1. Wait for rti_all_events to receive data from Eventstream
+#   2. Backfill typed tables using Extract functions
+#   3. Confirm adt_events has data
 _backfill_map = {
     "claims_events": "ExtractClaimsEvents()",
     "adt_events": "ExtractAdtEvents()",
     "rx_events": "ExtractRxEvents()",
 }
+
+# Step 1: Wait for rti_all_events to have data (ProcessedIngestion latency)
+_max_source_wait = 18  # 18 × 10s = 180 seconds for ProcessedIngestion delivery
+_src_ready = False
+for _sw in range(1, _max_source_wait + 1):
+    _cols, _rows = _kql_query_to_records("rti_all_events | count")
+    _src_cnt = int(_rows[0][0]) if _rows and _rows[0] else 0
+    if _src_cnt > 0:
+        print(f"  rti_all_events: {_src_cnt} rows (source ready)")
+        _src_ready = True
+        break
+    print(f"  [{_sw}/{_max_source_wait}] rti_all_events empty — waiting for ProcessedIngestion delivery...")
+    _wait_time.sleep(10)
+
+if not _src_ready:
+    raise RuntimeError(
+        "rti_all_events has no data after waiting 180 seconds.\n"
+        "Check: (1) NB_RTI_Event_Simulator ran and pushed events to Eventstream,\n"
+        "       (2) Eventstream Eventhouse destination is Active/Running,\n"
+        "       (3) ProcessedIngestion mode is configured on the Eventhouse destination."
+    )
+
+# Step 2: Backfill typed tables from rti_all_events
 for _tbl, _fn in _backfill_map.items():
     _cols, _rows = _kql_query_to_records(f"{_tbl} | count")
     _cnt = int(_rows[0][0]) if _rows and _rows[0] else 0
     if _cnt == 0:
-        _cols2, _rows2 = _kql_query_to_records("rti_all_events | count")
-        _src_cnt = int(_rows2[0][0]) if _rows2 and _rows2[0] else 0
-        if _src_cnt > 0:
-            print(f"  Backfilling {_tbl} from rti_all_events ({_src_cnt} source rows)...")
-            try:
-                _kql_mgmt(f".set-or-append {_tbl} <| {_fn}")
-                _cols3, _rows3 = _kql_query_to_records(f"{_tbl} | count")
-                _new_cnt = int(_rows3[0][0]) if _rows3 and _rows3[0] else 0
-                print(f"    → {_tbl}: {_new_cnt} rows after backfill")
-            except Exception as _e:
-                print(f"    [WARN] Backfill {_tbl} failed: {_e}")
+        print(f"  Backfilling {_tbl} from rti_all_events...")
+        try:
+            _kql_mgmt(f".set-or-append {_tbl} <| {_fn}")
+            _cols3, _rows3 = _kql_query_to_records(f"{_tbl} | count")
+            _new_cnt = int(_rows3[0][0]) if _rows3 and _rows3[0] else 0
+            print(f"    → {_tbl}: {_new_cnt} rows after backfill")
+        except Exception as _e:
+            print(f"    [WARN] Backfill {_tbl} failed: {_e}")
     else:
         print(f"  {_tbl}: {_cnt} rows (already populated)")
 
-# Poll KQL until adt_events has data
-# Data flow: Eventstream → rti_all_events → adt_events (via KQL update policy or backfill above)
-df_adt = None
-_max_wait = 6   # 6 × 10s = 60 seconds max
-for _attempt in range(1, _max_wait + 1):
-    _cols, _rows = _kql_query_to_records("adt_events | count")
-    _cnt = int(_rows[0][0]) if _rows and _rows[0] else 0
-    if _cnt > 0:
-        print(f"  adt_events in KQL: {_cnt} rows")
-        _cols, _rows = _kql_query_to_records("adt_events | project event_id, event_timestamp, event_type, patient_id, facility_id, facility_name, admission_type, primary_diagnosis, latitude, longitude, has_open_care_gaps, open_gap_measures")
-        _records = [dict(zip(_cols, row)) for row in _rows]
-        df_adt = spark.createDataFrame(_records)
-        df_adt = (df_adt
-            .withColumn("event_timestamp", F.to_timestamp("event_timestamp"))
-            .withColumn("latitude", F.col("latitude").cast("double"))
-            .withColumn("longitude", F.col("longitude").cast("double"))
-        )
-        break
-    else:
-        print(f"  [{_attempt}/{_max_wait}] adt_events is empty — waiting for update policy...")
-    if _attempt < _max_wait:
-        _wait_time.sleep(10)
-
-if df_adt is None:
+# Step 3: Confirm adt_events has data
+_cols, _rows = _kql_query_to_records("adt_events | count")
+_cnt = int(_rows[0][0]) if _rows and _rows[0] else 0
+if _cnt == 0:
     raise RuntimeError(
-        "adt_events has no data in KQL after waiting 60 seconds.\n"
-        "Check: (1) The simulator ran and pushed events,\n"
-        "       (2) NB_RTI_Setup_Eventhouse created update policies,\n"
-        "       (3) Healthcare_RTI_DB has streaming ingestion enabled."
+        "adt_events is empty even after backfill from rti_all_events.\n"
+        "Check: (1) ExtractAdtEvents() function exists in KQL DB,\n"
+        "       (2) rti_all_events contains events with _table='adt_events'."
     )
+
+print(f"  adt_events in KQL: {_cnt} rows")
+_cols, _rows = _kql_query_to_records("adt_events | project event_id, event_timestamp, event_type, patient_id, facility_id, facility_name, admission_type, primary_diagnosis, latitude, longitude, has_open_care_gaps, open_gap_measures")
+_records = [dict(zip(_cols, row)) for row in _rows]
+df_adt = spark.createDataFrame(_records)
+df_adt = (df_adt
+    .withColumn("event_timestamp", F.to_timestamp("event_timestamp"))
+    .withColumn("latitude", F.col("latitude").cast("double"))
+    .withColumn("longitude", F.col("longitude").cast("double"))
+)
 
 df_patients = spark.sql("""
     SELECT patient_id, first_name, last_name, gender, date_of_birth, zip_code

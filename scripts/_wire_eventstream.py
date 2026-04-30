@@ -338,7 +338,7 @@ def main():
     print(f"  Eventstream URL: {es_url}")
     print()
     print("  ┌─────────────────────────────────────────────────────────┐")
-    print("  │  ONE REMAINING STEP (portal only):                     │")
+    print("  │  TWO REMAINING STEPS (portal only):                    │")
     print("  │                                                        │")
     print("  │  1. Open the Eventstream URL above in your browser     │")
     print("  │  2. Click the 'HealthcareCustomEndpoint' source node   │")
@@ -348,6 +348,14 @@ def main():
     print("  │                                                        │")
     print("  │  The API wired the full topology but cannot expose     │")
     print("  │  the connection string (Fabric API limitation).        │")
+    print("  │                                                        │")
+    print("  │  OPTIONAL (recommended for production):                │")
+    print("  │  Switch Eventhouse destination to Direct Ingestion:    │")
+    print("  │  1. Click HealthcareEventhouse node → Delete           │")
+    print("  │  2. Add destination → Eventhouse → rti_all_events      │")
+    print("  │  3. Choose 'Direct Ingestion' → Publish                │")
+    print("  │  This enables KQL update policies (sub-second routing) │")
+    print("  │  See RTI_STREAMING_GUIDE.md for details.               │")
     print("  └─────────────────────────────────────────────────────────┘")
 
 if __name__ == "__main__":

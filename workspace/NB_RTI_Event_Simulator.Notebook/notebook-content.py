@@ -11,23 +11,18 @@
 # 2. **Care Gap Closure** — ADT admit/discharge events triggering gap checks
 # 3. **High-Cost Member Trajectory** — Claims + ED visits for rolling cost analysis
 # 
-# **How it works — two ingestion paths:**
+# **How it works — Eventstream ingestion:**
 # 
 # ```
-# This Notebook  ──► KQL Eventhouse (direct .ingest inline via REST)
-#                │       └──► rti_all_events → update policies → scoring tables
-#                │
-#                └──► Eventstream Custom Endpoint (EventHub protocol)
+# This Notebook  ──► Eventstream Custom Endpoint (EventHub protocol)
+#                         ├──► Eventhouse (rti_all_events → update policies → scoring)
 #                         ├──► Lakehouse (lh_bronze_raw)  (raw archival)
 #                         └──► Activator / Reflex   (fraud/care-gap alerts)
 # ```
 # 
-# **KQL ingestion** is the primary path — events land directly in the Eventhouse
-# via Kusto REST API (`.ingest inline into table`). This is the same proven
-# pattern used by the Cold Chain Ontology demo. No SDK beyond `requests` needed.
-# 
-# **Eventstream** is the secondary path — feeds Lakehouse and Activator only.
-# The Eventstream connection string is optional; KQL ingestion works without it.
+# **Eventstream** is the primary ingestion path. Events are pushed to the
+# Custom Endpoint using EventHub protocol. The Eventstream topology routes
+# data to all destinations (Eventhouse, Lakehouse, Activator) automatically.
 # 
 # **Default lakehouse:** `lh_gold_curated`
 
@@ -44,8 +39,8 @@
 #   - High-Cost Member Trajectory (claims + ED events)
 #
 # Reads dimension/fact tables from lh_gold_curated, produces event batches.
-# Primary path: direct KQL ingestion via Kusto REST (.ingest inline)
-# Secondary path: Eventstream Custom Endpoint (Lakehouse + Activator)
+# Primary path: Eventstream Custom Endpoint (EventHub protocol)
+#   → Eventhouse + Lakehouse + Activator (all routed by Eventstream topology)
 # Default lakehouse: lh_gold_curated
 # ============================================================================
 
@@ -162,14 +157,30 @@ np.random.seed(None)  # Truly random for each run
 
 # CELL **{"language":"python"}**
 
-# ---------- Connect to KQL Eventhouse (primary) + Eventstream (secondary) ----------
+# ---------- Connect to Eventstream (primary) + KQL Eventhouse (verification) ----------
 #
-# Primary:   Direct .ingest inline via Kusto REST API → rti_all_events
-# Secondary: Eventstream Custom Endpoint → Lakehouse + Activator
+# Primary:   Eventstream Custom Endpoint → Eventhouse + Lakehouse + Activator
+# KQL query: Used only to verify data landed in Eventhouse after streaming
 
 WORKSPACE_ID = notebookutils.runtime.context.get("currentWorkspaceId", "")
 
-# ── Primary path: Discover Eventhouse Kusto URI ──
+# ── Primary path: Eventstream Custom Endpoint ──
+_es_producer = None
+if ES_CONNECTION_STRING:
+    try:
+        from azure.eventhub import EventHubProducerClient, EventData
+        _es_producer = EventHubProducerClient.from_connection_string(ES_CONNECTION_STRING)
+        print(f"  Eventstream: Connected (primary ingestion path)")
+        print(f"    → Eventhouse (rti_all_events → update policies → scoring)")
+        print(f"    → Lakehouse (raw archival)")
+        print(f"    → Activator (real-time alerts)")
+    except Exception as _es_err:
+        print(f"  Eventstream ERROR: Could not connect -- {_es_err}")
+else:
+    print("  ERROR: No ES_CONNECTION_STRING provided.")
+    print("  Copy from Healthcare_RTI_Eventstream → HealthcareCustomEndpoint → Connection String")
+
+# ── KQL query path (verification only — not used for ingestion) ──
 _KUSTO_QUERY_URI = ""
 _KQL_DB_NAME = "Healthcare_RTI_DB"
 _fabric_tok = notebookutils.credentials.getToken("pbi")
@@ -189,66 +200,27 @@ if _eh_resp.status_code == 200:
             if _props_resp.status_code == 200:
                 _props = _props_resp.json().get("properties", _props_resp.json())
                 _KUSTO_QUERY_URI = _props.get("queryServiceUri", "")
-            print(f"  Eventhouse: {_item['displayName']} ({_item['id'][:8]}...)")
             break
 
 if _KUSTO_QUERY_URI:
-    print(f"  Kusto URI: {_KUSTO_QUERY_URI}")
-    print(f"  KQL DB:    {_KQL_DB_NAME}")
-    print(f"  Mode:      .ingest inline into table (REST API)")
-else:
-    print("  WARNING: Could not discover Healthcare Eventhouse Kusto URI")
-    print("  KQL direct ingestion will be skipped")
+    print(f"  KQL verify: {_KUSTO_QUERY_URI} (query-only, not for ingestion)")
 
-# ── Secondary path: Eventstream (optional — for Lakehouse + Activator) ──
-_es_producer = None
-if ES_CONNECTION_STRING:
-    try:
-        from azure.eventhub import EventHubProducerClient, EventData
-        _es_producer = EventHubProducerClient.from_connection_string(ES_CONNECTION_STRING)
-        print(f"  Eventstream: Connected (Lakehouse + Activator)")
-    except Exception as _es_err:
-        print(f"  Eventstream WARN: Could not connect -- {_es_err}")
-else:
-    print("  Eventstream: Skipped (no ES_CONNECTION_STRING)")
-
-if not _KUSTO_QUERY_URI and not _es_producer:
+if not _es_producer:
     print("="*60)
-    print("  ERROR: Neither KQL nor Eventstream is available.")
-    print("  Run NB_RTI_Setup_Eventhouse first, then re-run this notebook.")
+    print("  ERROR: Eventstream is not available.")
+    print("  Set ES_CONNECTION_STRING and re-run this notebook.")
     print("="*60)
 
 # METADATA **{"language":"python"}**
 
 # CELL **{"language":"python"}**
 
-# ---------- KQL Ingestion via Kusto REST API ----------
-# Same proven pattern as the Cold Chain Ontology demo:
-#   POST /v1/rest/mgmt with ".ingest inline into table rti_all_events <| ..."
-# No SDKs needed — just requests + a Kusto token.
+# ---------- KQL Query (verification only) ----------
+# Used after streaming to confirm data landed in Eventhouse via Eventstream.
 
 def _get_kusto_token():
     """Get a fresh Kusto token (tokens expire, so refresh per batch)."""
     return notebookutils.credentials.getToken("kusto")
-
-def _kql_mgmt(command, token=None):
-    """Execute a KQL management command via REST API. Returns True on success."""
-    if not _KUSTO_QUERY_URI:
-        return False
-    tok = token or _get_kusto_token()
-    headers = {"Authorization": f"Bearer {tok}", "Content-Type": "application/json"}
-    for attempt in range(3):
-        resp = requests.post(
-            f"{_KUSTO_QUERY_URI}/v1/rest/mgmt",
-            headers=headers,
-            json={"db": _KQL_DB_NAME, "csl": command},
-        )
-        if resp.status_code == 429:
-            import time as _t
-            _t.sleep(2 ** attempt * 5)
-            continue
-        break
-    return resp.status_code == 200
 
 def _kql_query(query, token=None):
     """Execute a KQL query via REST API. Returns rows list or []."""
@@ -268,39 +240,10 @@ def _kql_query(query, token=None):
         return data["Tables"][0]["Rows"]
     return []
 
-def push_to_kql(df_pandas, table_name):
-    """Push events directly to rti_all_events via .ingest inline (Kusto REST).
-    
-    Each row is serialized as JSON. The _table field routes events to
-    claims_events / adt_events / rx_events via KQL update policies.
-    """
-    if not _KUSTO_QUERY_URI:
-        return False
-    try:
-        records = df_pandas.to_dict(orient="records")
-        for record in records:
-            record["_table"] = table_name
-            for k, v in record.items():
-                if hasattr(v, 'isoformat'):
-                    record[k] = v.isoformat()
-
-        # Build inline rows: each row is a JSON string in a single column
-        inline_rows = "\n".join(json.dumps(r) for r in records)
-        cmd = f".ingest inline into table rti_all_events <|\n{inline_rows}"
-        ok = _kql_mgmt(cmd)
-        if ok:
-            print(f"  KQL: {len(df_pandas)} events -> rti_all_events ({table_name})")
-        else:
-            print(f"  KQL WARN: {table_name} .ingest inline failed")
-        return ok
-    except Exception as e:
-        print(f"  KQL WARN: {table_name} ingest failed: {e}")
-        return False
-
-# ---------- Eventstream (secondary — Lakehouse + Activator only) ----------
+# ---------- Eventstream (primary ingestion path) ----------
 
 def push_to_eventstream(df_pandas, table_name):
-    """Push events to Eventstream Custom Endpoint (Lakehouse + Activator)."""
+    """Push events to Eventstream Custom Endpoint → Eventhouse + Lakehouse + Activator."""
     if _es_producer is None:
         return False
     try:
@@ -322,7 +265,7 @@ def push_to_eventstream(df_pandas, table_name):
         print(f"  Eventstream: {len(df_pandas)} events -> {table_name}")
         return True
     except Exception as e:
-        print(f"  Eventstream WARN: {table_name} push failed: {e}")
+        print(f"  Eventstream ERROR: {table_name} push failed: {e}")
         return False
 
 # METADATA **{"language":"python"}**
@@ -537,25 +480,22 @@ print("Event generators ready.")
 # CELL **{"language":"python"}**
 
 # ============================================================================
-# Stream Events — KQL primary, Eventstream secondary
+# Stream Events — Eventstream primary path
 # ============================================================================
-# KQL:         .ingest inline → rti_all_events → update policies → scoring
-# Eventstream: EventHub → Lakehouse + Activator (optional)
+# Eventstream: EventHub → Eventhouse + Lakehouse + Activator
+# All routing is handled by the Eventstream topology (no direct KQL ingestion)
 # ============================================================================
 
-if not _KUSTO_QUERY_URI and not _es_producer:
-    print("STOPPING: Neither KQL nor Eventstream is available.")
-    print("Run NB_RTI_Setup_Eventhouse first, then re-run this notebook.")
+if not _es_producer:
+    print("STOPPING: Eventstream is not available.")
+    print("Set ES_CONNECTION_STRING and re-run this notebook.")
 else:
     import time as _stream_time
 
     batch_num = 0
     max_batches = STREAM_BATCHES if STREAM_BATCHES > 0 else float("inf")
     print(f"Streaming {BATCH_SIZE} events/batch every {STREAM_INTERVAL_SEC}s...")
-    if _KUSTO_QUERY_URI:
-        print(f"  KQL:         .ingest inline → rti_all_events → scoring tables")
-    if _es_producer:
-        print(f"  Eventstream: EventHub → Lakehouse + Activator")
+    print(f"  Eventstream → Eventhouse + Lakehouse + Activator")
     if STREAM_BATCHES > 0:
         print(f"  Batches: {STREAM_BATCHES} (then stop)")
     else:
@@ -569,21 +509,13 @@ else:
             adt_pdf = generate_adt_events(BATCH_SIZE // 2)
             rx_pdf = generate_rx_events(BATCH_SIZE // 3)
 
-            # Primary: direct KQL ingestion (guaranteed data in Eventhouse)
-            push_to_kql(claims_pdf, "claims_events")
-            push_to_kql(adt_pdf, "adt_events")
-            push_to_kql(rx_pdf, "rx_events")
-
-            # Secondary: Eventstream (Lakehouse + Activator)
+            # Push to Eventstream (routes to all destinations)
             push_to_eventstream(claims_pdf, "claims_events")
             push_to_eventstream(adt_pdf, "adt_events")
             push_to_eventstream(rx_pdf, "rx_events")
 
             total = len(claims_pdf) + len(adt_pdf) + len(rx_pdf)
-            _paths = []
-            if _KUSTO_QUERY_URI: _paths.append("KQL")
-            if _es_producer: _paths.append("Eventstream")
-            print(f"  Batch {batch_num}: {total} events → {' + '.join(_paths)}")
+            print(f"  Batch {batch_num}: {total} events → Eventstream")
 
             if batch_num < max_batches:
                 _stream_time.sleep(STREAM_INTERVAL_SEC)
@@ -591,15 +523,18 @@ else:
     except KeyboardInterrupt:
         print(f"\nStreaming stopped by user after {batch_num} batches.")
 
-    # Verify data landed in KQL
+    # Verify data landed in KQL (via Eventstream → Eventhouse routing)
     if _KUSTO_QUERY_URI:
-        print("\nVerifying KQL table counts:")
+        import time as _verify_time
+        print("\nWaiting 10s for Eventstream → Eventhouse routing...")
+        _verify_time.sleep(10)
+        print("Verifying KQL table counts:")
         for _tbl in ["rti_all_events", "claims_events", "adt_events", "rx_events"]:
             _rows = _kql_query(f"{_tbl} | count")
             _cnt = _rows[0][0] if _rows else 0
             print(f"  {_tbl}: {_cnt} rows")
 
-    print(f"\nStreaming complete — {batch_num} batches pushed.")
+    print(f"\nStreaming complete — {batch_num} batches pushed via Eventstream.")
 
 # METADATA **{"language":"python"}**
 
@@ -610,13 +545,9 @@ print("\n" + "=" * 60)
 print("NB_RTI_Event_Simulator: COMPLETE")
 print("=" * 60)
 print()
-print("Ingestion paths:")
-if _KUSTO_QUERY_URI:
-    print("  ✓ KQL: .ingest inline → rti_all_events → scoring tables")
-else:
-    print("  ✗ KQL (Eventhouse not found)")
+print("Ingestion path:")
 if _es_producer:
-    print("  ✓ Eventstream → Lakehouse + Activator")
+    print("  ✓ Eventstream → Eventhouse + Lakehouse + Activator")
     _es_producer.close()
 else:
     print("  ✗ Eventstream (no connection string)")

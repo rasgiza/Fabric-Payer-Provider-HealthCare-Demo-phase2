@@ -80,7 +80,6 @@
 #   - Alert triage across fraud, care gap, and high-cost outputs
 #   - SLA monitoring for data freshness and pipeline health
 #   - Automated action routing via Reflex / Data Activator
-#   - Results written to KQL tables: rti_unified_worklist, rti_sla_status, rti_action_log
 #
 # Default lakehouse: lh_gold_curated
 # ============================================================================
@@ -140,7 +139,6 @@ print(f"Workspace ID: {WORKSPACE_ID}")
 # ============================================================================
 # Reads all 3 scoring output tables and produces a single priority worklist.
 # Deduplicates patients who appear in multiple alert streams.
-# Writes results to rti_unified_worklist in the KQL Database.
 # ============================================================================
 
 print("Module 1: Unified Alert Triage")
@@ -240,7 +238,6 @@ if KUSTO_QUERY_URI:
 # Module 2: SLA & Throughput Monitoring
 # ============================================================================
 # Checks data freshness across input tables and pipeline completion status.
-# Writes results to rti_sla_status in the KQL Database.
 # ============================================================================
 
 print("\nModule 2: SLA & Throughput Monitoring")
@@ -324,7 +321,6 @@ if KUSTO_QUERY_URI:
 # Module 3: Action Routing
 # ============================================================================
 # Routes alerts to downstream systems based on alert type and priority.
-# Writes action log to rti_action_log in the KQL Database.
 #
 # Routing rules:
 #   - CRITICAL fraud → SIU investigation queue
@@ -418,87 +414,6 @@ print(f"  Actions logged: {len(action_log)}")
 
 # CELL **{"language":"python"}**
 
-# ============================================================================
-# Module 4: Write Results to KQL + Summary
-# ============================================================================
-# Writes unified worklist, SLA status, and action log to KQL tables.
-# These tables power the Operations Agent natural language interface
-# and the RTI Dashboard operational KPI tiles.
-# ============================================================================
-
-print("\nModule 4: Write Results to KQL")
-
-import io
-import pandas as pd
-
-def write_to_kql(records, table_name, mapping_name):
-    """Write a list of dicts to a KQL table via managed streaming ingestion."""
-    if not records or not KUSTO_QUERY_URI:
-        return False
-    try:
-        from azure.kusto.ingest import ManagedStreamingIngestClient, IngestionProperties
-        from azure.kusto.data import KustoConnectionStringBuilder, DataFormat
-        
-        token = notebookutils.credentials.getToken("kusto")
-        ingest_uri = KUSTO_QUERY_URI.replace("https://", "https://ingest-")
-        
-        engine_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(KUSTO_QUERY_URI, token)
-        dm_kcsb = KustoConnectionStringBuilder.with_aad_user_token_authentication(ingest_uri, token)
-        client = ManagedStreamingIngestClient(engine_kcsb, dm_kcsb)
-        
-        props = IngestionProperties(
-            database=KQL_DB_NAME,
-            table=table_name,
-            data_format=DataFormat.JSON,
-            ingestion_mapping_reference=mapping_name,
-        )
-        
-        df = pd.DataFrame(records)
-        json_data = df.to_json(orient="records", lines=True, date_format="iso")
-        stream = io.StringIO(json_data)
-        client.ingest_from_stream(stream, ingestion_properties=props)
-        print(f"  KQL: {len(records)} rows -> {table_name}")
-        return True
-    except Exception as e:
-        print(f"  KQL WARN: {table_name} write failed: {e}")
-        return False
-
-# Write worklist results
-if worklist_results:
-    worklist_records = []
-    for row in worklist_results:
-        alerts = row.get("alerts", [])
-        for alert in alerts:
-            if not isinstance(alert, dict):
-                continue
-            worklist_records.append({
-                "worklist_id": str(_uuid.uuid4()),
-                "generated_at": datetime.utcnow().isoformat(),
-                "patient_id": row["patient_id"],
-                "alert_type": alert.get("type", ""),
-                "alert_id": alert.get("id", ""),
-                "priority": row.get("max_priority", 4),
-                "risk_tier": alert.get("tier", ""),
-                "detail": alert.get("detail", ""),
-                "alert_count": row.get("alert_count", 0),
-                "alert_types": "|".join(row.get("alert_types", [])) if isinstance(row.get("alert_types"), list) else str(row.get("alert_types", "")),
-                "latitude": row.get("any_latitude", 0),
-                "longitude": row.get("any_longitude", 0),
-            })
-    write_to_kql(worklist_records, "rti_unified_worklist", "rti_unified_worklist_mapping")
-
-# Write SLA results
-if sla_results:
-    write_to_kql(sla_results, "rti_sla_status", "rti_sla_status_mapping")
-
-# Write action log
-if action_log:
-    write_to_kql(action_log, "rti_action_log", "rti_action_log_mapping")
-
-# METADATA **{"language":"python"}**
-
-# CELL **{"language":"python"}**
-
 # ---------- Summary ----------
 print("\n" + "=" * 60)
 print("NB_RTI_Operations_Agent: COMPLETE")
@@ -521,14 +436,9 @@ if ENABLE_REFLEX:
 else:
     print(f"  Data Activator (Reflex): Disabled (configure in Fabric portal)")
 print()
-print("KQL tables updated:")
-print("  - rti_unified_worklist  (priority-ranked cross-domain alert queue)")
-print("  - rti_sla_status        (data freshness and pipeline health)")
-print("  - rti_action_log        (audit trail of routed actions)")
-print()
 print("Integration points:")
-print("  - Operations Agent (HealthcareOpsAgent) queries these tables via natural language")
-print("  - RTI Dashboard shows operational KPIs from these tables")
+print("  - Operations Agent (HealthcareOpsAgent) queries scoring tables via natural language")
+print("  - RTI Dashboard shows operational KPIs from scoring tables")
 print("  - Data Activator (Healthcare_RTI_Activator) triggers on Eventstream events")
 print("=" * 60)
 

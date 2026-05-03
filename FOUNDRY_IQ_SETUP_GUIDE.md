@@ -1,6 +1,8 @@
 # Foundry IQ — Healthcare Orchestrator Agent Setup Guide
 
-> **Complete step-by-step guide** to replicate the Healthcare Intelligence Orchestrator Agent that combines a **Knowledge Base** (unstructured healthcare documents) with a **Fabric Data Agent** (structured Lakehouse data) in Azure AI Foundry.
+> **Complete step-by-step guide** to deploy the Healthcare Intelligence Orchestrator Agent that combines a **Knowledge Base** (unstructured healthcare documents) with a **Fabric Data Agent** (structured Lakehouse data) in Azure AI Foundry.
+>
+> This guide covers every automated and **manual** step required for a working end-to-end deployment, including managed identity configuration, model deployment, and Fabric Data Agent wiring — all of which are common failure points.
 
 ---
 
@@ -16,39 +18,71 @@
 8. [Step 6 — Create the Knowledge Source (OneLake)](#step-6--create-the-knowledge-source-onelake)
 9. [Step 7 — Create the Knowledge Base](#step-7--create-the-knowledge-base)
 10. [Step 8 — Verify the Indexer](#step-8--verify-the-indexer)
-11. [Step 9 — Connect the Fabric Data Agent](#step-9--connect-the-fabric-data-agent)
-12. [Step 10 — Create the Orchestrator Agent](#step-10--create-the-orchestrator-agent)
-13. [Step 11 — Test the Agent](#step-11--test-the-agent)
-14. [Troubleshooting](#troubleshooting)
-15. [Resource Reference](#resource-reference)
+11. [Step 9 — Configure the Fabric Data Agent (MANUAL)](#step-9--configure-the-fabric-data-agent-manual)
+12. [Step 10 — Connect the Fabric Data Agent to Foundry (MANUAL)](#step-10--connect-the-fabric-data-agent-to-foundry-manual)
+13. [Step 11 — Grant Managed Identities Access (Critical)](#step-11--grant-managed-identities-access-critical)
+14. [Step 12 — Create the Orchestrator Agent](#step-12--create-the-orchestrator-agent)
+15. [Step 13 — Test & Validate](#step-13--test--validate)
+16. [Manual Steps Checklist](#manual-steps-checklist)
+17. [Troubleshooting](#troubleshooting)
+18. [Resource Reference](#resource-reference)
 
 ---
 
 ## 1. Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│              HealthcareOrchestratorAgent                 │
-│                     (gpt-4o)                            │
-├─────────────┬──────────────────┬────────────────────────┤
-│  Knowledge  │  Fabric Data     │  Web Search            │
-│  Base       │  Agent           │  (Bing Grounding)      │
-│  (Grounding)│  (Preview)       │                        │
-├─────────────┼──────────────────┼────────────────────────┤
-│ AI Search   │ Fabric Lakehouse │  Bing                  │
-│ Index       │ (16 tables)      │                        │
-│ 11,316 docs │ Star Schema      │                        │
-└─────────────┴──────────────────┴────────────────────────┘
-     │                  │
-     ▼                  ▼
- healthcare_knowledge/  Gold Lakehouse Tables
- (21 markdown files)    (dim_*, fact_*, agg_*)
+User Question
+     │
+     ▼
+┌──────────────────────────────────────────────────────────────┐
+│           HealthcareOrchestratorAgent2 (gpt-4o)              │
+│  ┌───────────────────────────────────────────────────────┐   │
+│  │  Orchestrator Instructions (v24)                      │   │
+│  │  • Mandatory Decomposition Protocol (5 steps)         │   │
+│  │  • Query Catalog (35+ exact phrasings)                │   │
+│  │  • Citation Protocol & Deep Response Protocol         │   │
+│  │  • 17 Critical Rules incl. Pass-Through Rule          │   │
+│  └───────────────────────────────────────────────────────┘   │
+├──────────────┬──────────────────────┬────────────────────────┤
+│ azure_ai_    │ fabric_dataagent_    │ web_search_            │
+│ search       │ preview              │ preview                │
+│ (Grounding)  │ (Tool)               │ (Tool)                 │
+├──────────────┼──────────────────────┼────────────────────────┤
+│ AI Search    │ Fabric Data Agent    │ Bing                   │
+│ Index        │ HealthcareHLSAgent   │                        │
+│ 11,316 docs  │ lh_gold_curated      │                        │
+│              │ (12-table star       │                        │
+│              │  schema)             │                        │
+└──────────────┴──────────────────────┴────────────────────────┘
+     │                   │
+     ▼                   ▼
+ healthcare_knowledge/   Gold Lakehouse Tables
+ (21 markdown files      (dim_patient, dim_provider,
+  in OneLake)             fact_encounter, fact_claim,
+                          fact_prescription, agg_medication_
+                          adherence, etc.)
 ```
 
-**How it works:**
-- **Policy/guideline/protocol questions** --> Knowledge Base grounding (AI Search index)
-- **Data/metrics/counts/trends questions** --> Fabric Data Agent (SQL over Lakehouse)
-- **Combined questions** --> Both sources synthesized together
+### How It Works
+
+| Question Type | Tool Used | Example |
+|---|---|---|
+| Policy/guideline/protocol | `azure_ai_search` (Knowledge Base grounding) | "What does our appeal process recommend?" |
+| Data/metrics/counts/trends | `fabric_dataagent_preview` (Fabric Data Agent) | "Show me denial rates by payer" |
+| Combined questions | Both tools, then synthesized | "Show recommendations for Nancy White based on her adherence data and clinical guidelines" |
+| External/current regulations | `web_search_preview` | "What are the latest CMS HRRP thresholds?" |
+
+### Dual-Path Architecture
+
+Users can query the same data from **two entry points** with consistent results:
+
+| Entry Point | Path | Use Case |
+|---|---|---|
+| **Fabric UI** | User → Data Agent → lh_gold_curated | Quick data exploration, testing queries |
+| **Foundry Agent** | User → Orchestrator → Data Agent → lh_gold_curated + KB | Full clinical intelligence with guidelines |
+
+> **Important**: Both paths must return identical data for the same question. This is enforced by aggregation rules on the Data Agent and a pass-through rule on the orchestrator (see Steps 9 and 12).
 
 ---
 
@@ -367,293 +401,486 @@ Invoke-RestMethod -Uri "https://$searchName.search.windows.net/indexes/$indexNam
 
 ---
 
-## Step 9 — Connect the Fabric Data Agent
+## Step 9 — Configure the Fabric Data Agent (MANUAL)
 
-### 9.1 Prerequisites
+> **⚠️ This is a MANUAL step** — must be done in the Fabric portal UI.
 
-You need a **Fabric Data Agent** already created in your Fabric workspace. The Data Agent should:
-- Be connected to your **Gold Lakehouse** (`lh_gold_curated`)
-- Have AI instructions configured (knowledge of your star schema tables)
-- Be tested and working within Fabric
+The Healthcare Launcher deploys the Data Agent item, but you must verify it has:
+1. Data sources attached
+2. AI instructions configured
+3. Aggregation rules for consistent results
 
-> **Tip**: The Healthcare Launcher deploys the `HealthcareHLSAgent` Data Agent automatically. See [DATA_AGENT_GUIDE.md](DATA_AGENT_GUIDE.md) for configuration details.
+### 9.1 Verify Data Sources
 
-### 9.2 Create a Connection in Foundry
+1. Go to [Fabric Portal](https://app.fabric.microsoft.com)
+2. Open your workspace (e.g., "healthcare demo test2")
+3. Click the **HealthcareHLSAgent** item (type: Data Agent)
+4. In the left panel under **Data**, verify you see:
+   - **HealthcareDemoHLS** (semantic model) — AND/OR
+   - **lh_gold_curated** (lakehouse) with Schemas expanded
 
-1. In **Foundry portal** --> **Management center** --> **Connected resources**
-2. Click **+ New connection**
-3. Select **Microsoft Fabric** --> **Data Agent**
-4. Configure:
-   - **Fabric Workspace ID**: Your workspace ID
-   - **Data Agent Artifact ID**: The Data Agent's item ID from Fabric
-5. Name the connection (e.g., `HealthcareHLSAgent`)
-6. Click **Connect**
+> **Common Failure**: If the Data Agent definition is empty (`null`), the agent returns no data. Click **Add Data** → select your lakehouse → **Publish**.
 
-> **Finding the Data Agent Artifact ID**: In Fabric portal --> Workspace --> find your Data Agent --> the URL contains the artifact ID.
+### 9.2 Set AI Instructions
+
+1. In the Data Agent editor, click **"Agent instructions"** (top toolbar)
+2. Paste the full AI instructions from [`DATA_AGENT_INSTRUCTIONS.md`](DATA_AGENT_INSTRUCTIONS.md) Section 1a
+3. Also set the **Data Source Instructions** on `lh_gold_curated` from Section 1b
+
+### 9.3 Add Aggregation Rules (Critical for Consistency)
+
+Add this to the **AI Instructions** (append after the existing content):
+
+```
+AGGREGATION RULES:
+1. Always aggregate results to the most meaningful summary level unless the user
+   explicitly asks for "all rows", "details", "raw data", or "fill history".
+2. For medication adherence by drug class: return ONE row per drug class with the
+   AVERAGE PDC across all prescriptions in that class. Do NOT return individual
+   prescription rows.
+3. For providers assigned to a patient: return DISTINCT provider_name and specialty
+   only. Do NOT include encounter_type or role unless explicitly asked.
+4. For encounters: return summary counts/averages by encounter_type unless individual
+   encounters are requested.
+5. For claims/denials: return aggregated rates by payer or denial_reason unless
+   individual claims are requested.
+6. Do NOT return multiple rows for the same entity (e.g., multiple prescriptions
+   within the same drug class, or the same provider listed multiple times with
+   different encounter types).
+7. Order results alphabetically by the primary grouping column (drug_class, specialty,
+   payer_name, etc.).
+```
+
+> **Why?** Without these rules, the Data Agent returns row-level data when called from Foundry (e.g., every prescription row instead of one row per drug class), while the Fabric UI test returns aggregated data. This causes users to see different results from the two entry points.
+
+### 9.4 Test in Fabric UI
+
+Before connecting to Foundry, test directly in the Data Agent:
+1. In the Data Agent editor, use the **"Test the agent's responses"** panel
+2. Try: `Show me medication adherence for Nancy White age 63 by drug class`
+3. Verify you get ONE row per drug class with a single PDC score
+4. Try: `Show me which providers are assigned to patient Nancy White`
+5. Verify you get DISTINCT providers with specialty only
+
+### 9.5 Publish
+
+Click **Publish** in the top toolbar to make the Data Agent available for external connections.
+
+### 9.6 Note the Data Agent URL
+
+The Data Agent URL is visible in the browser address bar:
+```
+https://app.fabric.microsoft.com/groups/<WORKSPACE_ID>/aiskills/<ARTIFACT_ID>?experience=fabric-developer
+```
+
+Record both values:
+
+| Value | Location in URL | Example |
+|---|---|---|
+| **Workspace ID** | After `/groups/` | `d6ed5901-0f1d-4a5c-a263-e5f857169a79` |
+| **Artifact ID** | After `/aiskills/` | `4801f1cc-e42f-466e-a506-95b65bd87f9b` |
 
 ---
 
-## Step 10 — Create the Orchestrator Agent
+## Step 10 — Connect the Fabric Data Agent to Foundry (MANUAL)
 
-### 10.1 Create via Portal
+> **⚠️ This is a MANUAL step** — must be done in the Azure AI Foundry portal UI.
+>
+> **Common Failure**: If this connection is created incorrectly (empty target, no workspace routing), the orchestrator's `fabric_dataagent_preview` tool will return **"No tool output found for remote function call"** even though the Data Agent works fine in Fabric UI.
 
-1. In **Foundry portal** --> **Agents** (left sidebar)
-2. Click **+ New agent**
-3. Configure:
-   - **Name**: `HealthcareOrchestratorAgent`
-   - **Model**: `gpt-4o`
+### 10.1 Create the Connection
 
-### 10.2 Set Agent Instructions
+1. Go to [Azure AI Foundry](https://ai.azure.com) → your project (e.g., `HealthcareDemo-HLS`)
+2. Click **Management center** (bottom left) → **Connected resources**
+3. Click **+ New connection**
+4. Select **Microsoft Fabric** → **Data Agent**
+5. You will be prompted to provide:
+   - **Workspace ID**: The value from Step 9.6 (e.g., `d6ed5901-0f1d-4a5c-a263-e5f857169a79`)
+   - **Artifact ID (Data Agent ID)**: The value from Step 9.6 (e.g., `4801f1cc-e42f-466e-a506-95b65bd87f9b`)
+6. **Connection name**: e.g., `HealthcareHLSAgent`
+7. Click **Connect**
 
-> **Important**: Use the comprehensive instructions from [`foundry_agent/orchestrator_instructions.md`](foundry_agent/orchestrator_instructions.md). These include a mandatory decomposition protocol that prevents hybrid query failures.
+### 10.2 Verify the Connection
 
-**Quick version** (for initial setup -- replace with full instructions ASAP):
-
-```
-You are a Healthcare Intelligence Orchestrator. You have two capabilities:
-
-1. Knowledge Base (healthcareknowledgebase) - Use for questions about clinical guidelines,
-   compliance policies, denial management procedures, formulary rules, provider network
-   requirements, and quality measures. This knowledge base is available through grounding.
-
-2. Fabric Data Agent (HealthcareHLSAgent) - Use for questions about patient data,
-   claims, encounters, prescriptions, diagnoses, readmission rates, denial rates, provider
-   performance, payer analytics, and any structured data queries.
-
-Routing rules:
-- Policy/guideline/protocol questions -> use your grounded knowledge
-- Data/metrics/counts/trends questions -> Fabric Data Agent
-- Questions spanning both -> use BOTH grounded knowledge and Fabric Data Agent, then synthesize
-- Always cite sources: document names for knowledge, table names for data
-```
-
-**Production version** (full instructions, ~10K chars): Copy from `foundry_agent/orchestrator_instructions.md`. This version includes:
-- Mandatory Decomposition Protocol (5-step process)
-- Decomposition examples for compound questions
-- Data Agent Query Catalog (35+ exact fewshot phrasings)
-- KB Document Map (20 topics)
-- Industry Benchmarks (CMS, HEDIS, etc.)
-- Citation Protocol (mandatory source references)
-- Deep Response Protocol (multi-call enrichment)
-- 15 Critical Rules for reliable hybrid queries
-
-See [FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md](FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md) for why these detailed instructions exist and how to push them via API.
-
-### 10.3 Add Tools
-
-1. **Web Search** (optional): Click **Add** --> **Web Search** --> Enable
-2. **Fabric Data Agent**: Click **Add** --> **Fabric Data Agent** --> Select the connection created in Step 9
-
-### 10.4 Add Knowledge (Grounding)
-
-1. Scroll down to **Knowledge** section
-2. Click **Add**
-3. Select `healthcareknowledgebase` (created in Step 7)
-
-> **Important**: The Knowledge Base provides grounding for unstructured document queries. This is separate from the tools.
-
-### 10.5 Save the Agent
-
-Click **Save** to save the agent version.
-
----
-
-### 10.6 Known Issue: `server_authentication` Bug
-
-**Problem**: If you add the Knowledge Base as an MCP tool (instead of in the Knowledge section), the portal injects a `server_authentication` field that the API doesn't support, causing:
-```
-unknown_parameter - tools[1].server_authentication
-```
-
-**Solution**: Use the Knowledge Base through the **Knowledge section** (grounding), NOT as an MCP tool.
-
-**If you need to fix via API** (removing bad tool definitions):
+After creating the connection, verify it was saved correctly:
 
 ```powershell
-# Get a token
+# Verify via API
 $token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
 $headers = @{"Authorization"="Bearer $token"; "Content-Type"="application/json"}
 $base = "https://<AI_SERVICES_NAME>.services.ai.azure.com/api/projects/<PROJECT_NAME>"
 
-# Create a new version without the MCP tool
+$conn = Invoke-RestMethod -Uri "$base/connections/HealthcareHLSAgent?api-version=2025-05-01" `
+    -Headers $headers -Method GET
+$conn | ConvertTo-Json -Depth 5
+```
+
+**Expected output** (healthy connection):
+```json
+{
+    "name": "HealthcareHLSAgent",
+    "type": "CustomKeys",
+    "target": "-",
+    "metadata": { "type": "fabric_dataagent_preview" }
+}
+```
+
+> **Note**: The `target: "-"` is normal for `fabric_dataagent_preview` connections. The workspace and artifact routing are stored internally by Foundry when you select the Data Agent during connection creation. If you see this structure but the tool still returns "No tool output found", the connection was created without selecting a workspace/artifact — **delete and recreate it** following Step 10.1 exactly.
+
+### 10.3 If the Connection Already Exists but Doesn't Work
+
+Foundry connections cannot be updated via API (PUT returns 405). You must:
+
+1. Go to **Management center** → **Connected resources**
+2. Find the broken connection (e.g., `HealthcareHLSAgent`)
+3. **Delete** it
+4. **Recreate** it following Step 10.1
+5. After recreating, you must also **re-add** the Fabric Data Agent tool to your orchestrator agent (Step 12.3) since deleting the connection breaks the tool reference
+
+---
+
+## Step 11 — Grant Managed Identities Access (Critical)
+
+> **⚠️ Multiple identities need access.** Missing any one causes authorization failures.
+
+### 11.1 Identify the Three Managed Identities
+
+| Identity | What It Is | Where to Find |
+|---|---|---|
+| **Foundry Hub MSI** | System-assigned managed identity of the AI Services account | Azure Portal → AI Services → Identity → Object ID |
+| **Search MSI** | System-assigned managed identity of the AI Search service | Azure Portal → AI Search → Identity → Object ID |
+| **Your User** | Your Entra ID user account | `az ad signed-in-user show --query id -o tsv` |
+
+```powershell
+# Find Foundry Hub MSI
+$hub = az cognitiveservices account show --name <AI_SERVICES_NAME> --resource-group <RG> | ConvertFrom-Json
+Write-Host "Foundry Hub MSI: $($hub.identity.principalId)"
+
+# Find Search MSI
+$search = az search service show --name <SEARCH_NAME> --resource-group <RG> | ConvertFrom-Json
+Write-Host "Search MSI: $($search.identity.principalId)"
+```
+
+> **Note**: The orchestrator agent also creates its own managed identity (visible in the agent API response as `identity.instance_identity.principal_id`), but this identity may take **hours** to propagate in Entra ID. The Foundry Hub MSI is what actually authenticates to Fabric.
+
+### 11.2 Grant Access to Fabric Workspace
+
+The **Foundry Hub MSI** and **Search MSI** both need **Contributor** access to the Fabric workspace:
+
+**Option A — Fabric Portal UI (recommended)**:
+
+1. Go to [Fabric Portal](https://app.fabric.microsoft.com)
+2. Open your workspace → click **Manage access** (top right)
+3. Click **+ Add people or groups**
+4. Search for:
+   - The **AI Services account name** (e.g., `HLS-HealthcareDemo`) — add as **Contributor**
+   - The **Search service name** (e.g., `healthcarefoundryais`) — add as **Contributor**
+5. Click **Add**
+
+**Option B — REST API**:
+
+```powershell
+$fabricToken = az account get-access-token --resource "https://api.fabric.microsoft.com" --query accessToken -o tsv
+$fabricHeaders = @{"Authorization"="Bearer $fabricToken"; "Content-Type"="application/json"}
+$workspaceId = "<FABRIC_WORKSPACE_ID>"
+
+# Grant Foundry Hub MSI
 $body = @{
+    principal = @{ id = "<FOUNDRY_HUB_MSI>"; type = "ServicePrincipal" }
+    role = "Contributor"
+} | ConvertTo-Json -Depth 3
+
+Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/roleAssignments" `
+    -Headers $fabricHeaders -Method POST -Body $body
+
+# Grant Search MSI
+$body2 = @{
+    principal = @{ id = "<SEARCH_MSI>"; type = "ServicePrincipal" }
+    role = "Contributor"
+} | ConvertTo-Json -Depth 3
+
+Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/roleAssignments" `
+    -Headers $fabricHeaders -Method POST -Body $body2
+```
+
+### 11.3 Verify Workspace Roles
+
+```powershell
+$roles = Invoke-RestMethod -Uri "https://api.fabric.microsoft.com/v1/workspaces/$workspaceId/roleAssignments" `
+    -Headers $fabricHeaders -Method GET
+$roles.value | ForEach-Object {
+    Write-Host "$($_.principal.id) - $($_.role) - $($_.principal.type)"
+}
+```
+
+**Expected**: You should see at least 3 entries:
+
+| Principal | Role | Type |
+|---|---|---|
+| Your User ID | Admin | User |
+| Foundry Hub MSI | Contributor | ServicePrincipal |
+| Search MSI | Contributor | ServicePrincipal |
+
+### 11.4 Grant Search MSI Access to AI Services (for Embeddings)
+
+```powershell
+$aiServicesScope = "/subscriptions/<SUB_ID>/resourceGroups/<RG>/providers/Microsoft.CognitiveServices/accounts/<AI_SERVICES_NAME>"
+$searchMsiObjectId = "<SEARCH_MSI>"
+
+az role assignment create --assignee $searchMsiObjectId --role "Cognitive Services OpenAI User" --scope $aiServicesScope
+az role assignment create --assignee $searchMsiObjectId --role "Cognitive Services OpenAI Contributor" --scope $aiServicesScope
+```
+
+### 11.5 RBAC Propagation Wait
+
+> **⚠️ Role assignments can take 5-15 minutes to propagate.** Do not proceed to testing until you have waited. If you get `PrincipalNotFound` errors when assigning roles via API, the managed identity hasn't propagated in Entra ID yet — try again in the Fabric UI by searching for the resource name instead of Object ID.
+
+---
+
+## Step 12 — Create the Orchestrator Agent
+
+### 12.1 Create via Foundry Portal
+
+1. In [Azure AI Foundry](https://ai.azure.com) → your project
+2. Click **Agents** (left sidebar)
+3. Click **+ New agent**
+4. Set:
+   - **Name**: `HealthcareOrchestratorAgent2`
+   - **Model**: `gpt-4o`
+
+### 12.2 Set Agent Instructions
+
+Paste the full instructions from [`foundry_agent/orchestrator_instructions.md`](foundry_agent/orchestrator_instructions.md).
+
+> **Important**: The production instructions contain 17 Critical Rules, a Query Catalog with 35+ exact phrasings, and the Mandatory Decomposition Protocol. Using abbreviated instructions will cause the agent to send compound questions to the Data Agent, which silently fail.
+
+### 12.3 Add Tools
+
+Add these three tools:
+
+1. **Web Search**: Click the ⋮ menu → **Add tool** → **Web Search** → Enable
+2. **Fabric Data Agent**: Click **Add tool** → **Fabric Data Agent (Preview)** → Select the `HealthcareHLSAgent` connection created in Step 10
+3. **Azure AI Search** (Knowledge Base grounding): This is added as **Knowledge**, not a tool:
+   - Scroll to the **Knowledge** section
+   - Click **Add**
+   - Select your Knowledge Base index (e.g., `healthcare-onelake-ks-index`)
+   - Select the AI Search connection (e.g., `healthcarefoundryaisde67rm`)
+
+> **⚠️ CRITICAL**: Add the Knowledge Base as **grounding** (in the Knowledge section), NOT as an MCP tool. Adding it as an MCP tool causes a `server_authentication` error that the API doesn't support.
+
+### 12.4 Model Configuration
+
+> **⚠️ MANUAL STEP**: If you need to change the GPT model:
+
+1. In the agent editor, click the **Model** dropdown at the top
+2. Select the desired model (e.g., `gpt-4o`, `gpt-4o-mini`, `gpt-4.1`)
+3. The model must be **already deployed** in your Foundry project (see Step 2)
+
+**Model considerations:**
+
+| Model | Pros | Cons |
+|---|---|---|
+| `gpt-4o` | Best reasoning, follows complex instructions | Higher cost, slower |
+| `gpt-4o-mini` | Fast, cheap | May not follow all 17 rules reliably |
+| `gpt-4.1` | Latest capabilities | Check availability in your region |
+
+> **Recommendation**: Use `gpt-4o` for production. The orchestrator instructions are complex (17 rules, citation protocol, multi-call requirements) and lighter models may skip rules.
+
+### 12.5 Create via API (Alternative)
+
+```powershell
+$token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
+$headers = @{"Authorization"="Bearer $token"; "Content-Type"="application/json"}
+$base = "https://<AI_SERVICES_NAME>.services.ai.azure.com/api/projects/<PROJECT_NAME>"
+
+$instructions = Get-Content "foundry_agent/orchestrator_instructions.md" -Raw
+# Strip the YAML header (first 4 lines)
+$lines = $instructions -split "`n"
+$instructions = ($lines[4..($lines.Length-1)] -join "`n").Trim()
+
+$body = @{
+    name = "HealthcareOrchestratorAgent2"
+    display_name = "Healthcare Orchestrator (Grounded KB)"
+    description = "Healthcare orchestrator with Knowledge Base grounding, Fabric Data Agent, and web search."
     definition = @{
         kind = "prompt"
         model = "gpt-4o"
-        instructions = "<YOUR_INSTRUCTIONS>"
+        instructions = $instructions
         tools = @(
             @{ type = "web_search_preview" }
             @{
                 type = "fabric_dataagent_preview"
                 fabric_dataagent_preview = @{
                     project_connections = @(
-                        @{ project_connection_id = "<FULL_CONNECTION_ID>" }
+                        @{
+                            project_connection_id = "/subscriptions/<SUB_ID>/resourceGroups/<RG>/providers/Microsoft.CognitiveServices/accounts/<AI_SERVICES_NAME>/projects/<PROJECT_NAME>/connections/HealthcareHLSAgent"
+                        }
+                    )
+                }
+            }
+            @{
+                type = "azure_ai_search"
+                azure_ai_search = @{
+                    indexes = @(
+                        @{
+                            project_connection_id = "/subscriptions/<SUB_ID>/resourceGroups/<RG>/providers/Microsoft.CognitiveServices/accounts/<AI_SERVICES_NAME>/projects/<PROJECT_NAME>/connections/<SEARCH_CONNECTION_NAME>"
+                            index_name = "healthcare-onelake-ks-index"
+                        }
                     )
                 }
             }
         )
     }
-} | ConvertTo-Json -Depth 10
+} | ConvertTo-Json -Depth 8
 
-Invoke-WebRequest -Uri "$base/agents/HealthcareOrchestratorAgent/versions?api-version=v1" `
-    -Headers $headers -Method POST `
-    -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -UseBasicParsing
+$result = Invoke-RestMethod -Uri "$base/agents?api-version=v1" -Headers $headers -Method POST -Body $body
+Write-Host "Agent created: $($result.name)"
 ```
+
+### 12.6 Save the Agent
+
+Click **Save** in the Foundry portal to save the agent configuration.
 
 ---
 
-## Step 11 — Test the Agent
+## Step 13 — Test & Validate
 
-### 11.1 Test Knowledge Base (Unstructured Data)
+### 13.1 Test Data Agent Tool (Fabric Data)
 
-Ask: **"What are the CHF management guidelines?"**
+In the Foundry agent **Playground**, ask:
 
-Expected: Detailed response citing clinical guidelines from your healthcare_knowledge documents, including diagnosis, pharmacologic therapy, etc.
+```
+Show me medication adherence for Nancy White age 63 by drug class
+```
 
-### 11.2 Test Fabric Data Agent (Structured Data)
+**Expected**: A table with one row per drug class, each with a single PDC score. Should match results from the Fabric UI test exactly.
 
-Ask: **"What is the total number of claims by payer?"**
+**If you get "No tool output found"**: The Fabric Data Agent connection is broken — go back to Step 10.3.
 
-Expected: Data pulled from your Lakehouse tables (fact_claims, dim_payer), with numbers and table citations.
+### 13.2 Test Knowledge Base (Guidelines)
 
-### 11.3 Test Combined Query
+```
+What does our readmission prevention protocol recommend for high-risk patients?
+```
 
-Ask: **"What are the readmission rates for CHF patients and what do the clinical guidelines recommend to reduce readmissions?"**
+**Expected**: A response citing specific documents (e.g., `Readmission_Prevention_Protocol.md`), section numbers, and external references (e.g., LACE Index, CMS HRRP).
 
-Expected: The agent should use BOTH sources -- pull readmission data from Fabric AND guideline recommendations from the Knowledge Base -- and synthesize the answer.
+**If you get a 403 error**: The Knowledge Base was added as an MCP tool instead of grounding — go back to Step 12.3.
+
+### 13.3 Test Combined Query (Both Tools)
+
+```
+What are the recommendations for Nancy White age 63 based on her medication adherence and clinical guidelines?
+```
+
+**Expected**: The agent should:
+1. Call `fabric_dataagent_preview` for PDC scores by drug class
+2. Call `fabric_dataagent_preview` for assigned providers
+3. Use `azure_ai_search` (KB grounding) for clinical guidelines
+4. Synthesize a response with tables, citations, and provider routing
+
+### 13.4 Validate Data Consistency
+
+Ask the **same question** in both:
+- Fabric Data Agent (in Fabric UI)
+- Foundry Orchestrator (in Foundry Playground)
+
+**The data values (PDC scores, provider names, etc.) must match.** Formatting may differ (table vs. bullet list), but the numbers must be identical.
+
+---
+
+## Manual Steps Checklist
+
+These steps **cannot be automated** and must be done manually in the portal UIs:
+
+| # | Step | Where | What |
+|---|---|---|---|
+| 1 | Deploy gpt-4o and embedding models | Foundry portal → Models + Endpoints | Deploy models needed by the agent and indexer |
+| 2 | Enable Search managed identity | Azure Portal → AI Search → Identity | Turn on System Assigned identity |
+| 3 | Configure Data Agent data sources | Fabric portal → Data Agent → Add Data | Attach lh_gold_curated lakehouse |
+| 4 | Set Data Agent AI instructions | Fabric portal → Data Agent → Agent Instructions | Paste from DATA_AGENT_INSTRUCTIONS.md |
+| 5 | Add Data Agent aggregation rules | Fabric portal → Data Agent → Agent Instructions | Append aggregation rules (Step 9.3) |
+| 6 | Publish Data Agent | Fabric portal → Data Agent → Publish | Make available for external connections |
+| 7 | Create Fabric Data Agent connection | Foundry portal → Connected Resources → + New | Select workspace + Data Agent artifact |
+| 8 | Grant Foundry Hub MSI to Fabric workspace | Fabric portal → Workspace → Manage Access | Add AI Services account as Contributor |
+| 9 | Add Knowledge Base as grounding (NOT MCP) | Foundry portal → Agent → Knowledge section | Add azure_ai_search index |
+| 10 | Set/change GPT model | Foundry portal → Agent → Model dropdown | Select gpt-4o (must be deployed first) |
 
 ---
 
 ## Troubleshooting
 
-### Issue: Indexer shows 0 documents / PermissionDenied
+### Error: "No tool output found for remote function call"
 
-**Cause**: Search MSI can't call the embedding model.
-
-**Fix**:
-```powershell
-az role assignment create --assignee <SEARCH_MSI_ID> --role "Cognitive Services OpenAI User" \
-    --scope "/subscriptions/<SUB>/resourceGroups/<RG>/providers/Microsoft.CognitiveServices/accounts/<AI_SERVICES>"
-az role assignment create --assignee <SEARCH_MSI_ID> --role "Cognitive Services OpenAI Contributor" \
-    --scope "/subscriptions/<SUB>/resourceGroups/<RG>/providers/Microsoft.CognitiveServices/accounts/<AI_SERVICES>"
-```
-Wait 5-10 min, then Reset + Run the indexer.
-
----
-
-### Issue: `unknown_parameter - tools[1].server_authentication`
-
-**Cause**: Portal injects `server_authentication` into MCP tool config, which the API doesn't support.
-
-**Fix**: Remove the Knowledge Base MCP tool and add the knowledge base via the **Knowledge section** (grounding) instead. Or create a new agent version via API without the offending field (see Step 10.6).
-
----
-
-### Issue: 405 (Method Not Allowed) on MCP endpoint (RECURRING)
-
-**Cause**: The Foundry portal re-injects the MCP tool every time you save the agent. The MCP server requires SSE transport headers that the Foundry agent runtime doesn't send correctly.
-
-**Fix**: After every portal save, create a new agent version via API that removes the MCP tool definition. Then refresh the portal page and switch to the new version.
-
----
-
-### Issue: 401 Unauthorized on MCP endpoint
-
-**Cause**: MCP tool can't authenticate to the Search service without `server_authentication`, but including it causes a different error.
-
-**Fix**: Don't use Knowledge Base as an MCP tool. Use the **Knowledge section** for grounding instead.
-
----
-
-### Issue: Fabric Data Agent not responding
-
-**Cause**: Connection not properly configured, or Data Agent not active.
+**Cause**: The Fabric Data Agent connection in Foundry is empty (no workspace/artifact routing) OR the Data Agent has no data sources configured.
 
 **Fix**:
-1. Verify the connection in Foundry Management Center --> Connected resources
-2. Verify the Data Agent is working in Fabric portal first
-3. Ensure the Foundry project MSI has access to the Fabric workspace
+1. Check if the Data Agent has data sources: Open in Fabric UI → verify lh_gold_curated is listed under Data
+2. If data sources exist, the connection is the problem — delete and recreate it in Foundry (Step 10.3)
+3. After recreating the connection, re-add the Fabric Data Agent tool to the agent (Step 12.3)
 
----
+### Error: 403 on Knowledge Base
 
-### Issue: Role assignments not taking effect
+**Cause**: Knowledge Base was added as an MCP tool instead of as grounding.
 
-**Cause**: RBAC propagation delay.
+**Fix**: Remove the MCP tool and add the Knowledge Base through the **Knowledge** section (Step 12.3).
 
-**Fix**: Wait 10-15 minutes. You can verify assignments:
+### Error: "PrincipalNotFound" when granting workspace access
+
+**Cause**: The managed identity hasn't propagated in Entra ID yet (can take minutes to hours for new resources).
+
+**Fix**:
+- Wait 10-15 minutes and retry
+- Or add via Fabric UI by searching for the **resource name** instead of Object ID
+- The Foundry Hub MSI is the one that matters most — it authenticates all tool calls to Fabric
+
+### Error: Search Indexer fails with "PermissionDenied"
+
+**Cause**: Missing RBAC roles.
+
+**Fix**: Ensure the Search MSI has:
+- `Cognitive Services OpenAI User` + `Cognitive Services OpenAI Contributor` on the AI Services account (Step 11.4)
+- `Contributor` on the Fabric workspace (Step 11.2)
+
+### Inconsistent data between Fabric UI and Foundry
+
+**Cause**: Missing aggregation rules on the Data Agent, or the orchestrator is modifying queries.
+
+**Fix**:
+1. Add aggregation rules to the Data Agent instructions (Step 9.3)
+2. Add Rule 17 (Pass-Through Rule) to the orchestrator instructions — ensures queries are sent verbatim from the Query Catalog
+
+### Agent instructions were truncated/lost
+
+**Cause**: Foundry portal sometimes truncates long instructions on save.
+
+**Fix**: Push instructions via API (Step 12.5) and verify:
 ```powershell
-az role assignment list --assignee <OBJECT_ID> --scope <RESOURCE_SCOPE> --output table
+$agent = Invoke-RestMethod -Uri "$base/agents/HealthcareOrchestratorAgent2?api-version=v1" -Headers $headers
+Write-Host "Instruction length: $($agent.definition.instructions.Length) chars"
+# Should be ~19,000+ chars for the full v24 instructions
 ```
 
 ---
 
 ## Resource Reference
 
-### Useful API Patterns
+| Resource | Purpose | Connection Type |
+|---|---|---|
+| AI Services Account (Hub) | Hosts the Foundry project, provides MSI for Fabric auth | System-assigned MSI |
+| AI Search Service | Indexes healthcare knowledge docs for KB grounding | Entra ID (RBAC) |
+| Fabric Workspace | Contains Gold Lakehouse + Data Agent | MSI needs Contributor role |
+| Fabric Data Agent | NL-to-SQL over lh_gold_curated | fabric_dataagent_preview connection |
+| AI Search Index | Vectorized healthcare knowledge docs | azure_ai_search connection |
+| gpt-4o | Agent reasoning model | Deployed in Foundry |
+| text-embedding-ada-002 | Document vectorization for search | Deployed in Foundry |
 
-```powershell
-# Get Foundry token
-$token = az account get-access-token --resource "https://ai.azure.com" --query accessToken -o tsv
-$base = "https://<AI_SERVICES_NAME>.services.ai.azure.com/api/projects/<PROJECT_NAME>"
-
-# List agents
-Invoke-RestMethod -Uri "$base/agents?api-version=v1" -Headers @{"Authorization"="Bearer $token"}
-
-# Get agent details
-Invoke-RestMethod -Uri "$base/agents/HealthcareOrchestratorAgent?api-version=v1" -Headers @{"Authorization"="Bearer $token"}
-
-# List agent versions
-Invoke-RestMethod -Uri "$base/agents/HealthcareOrchestratorAgent/versions?api-version=v1" -Headers @{"Authorization"="Bearer $token"} -Method GET
-
-# Delete a specific version
-Invoke-RestMethod -Uri "$base/agents/HealthcareOrchestratorAgent/versions/<VERSION_NUMBER>?api-version=v1" -Headers @{"Authorization"="Bearer $token"} -Method DELETE
-```
-
----
-
-## Quick Replication Checklist
-
-- [ ] Create AI Foundry Hub + Project
-- [ ] Deploy `gpt-4o` and `text-embedding-ada-002` models
-- [ ] Create AI Search service (Basic+), enable System MSI, set auth to "Both"
-- [ ] Assign RBAC: Search MSI --> Search Service (3 roles)
-- [ ] Assign RBAC: Search MSI --> AI Services (2 roles: OpenAI User + Contributor)
-- [ ] Assign RBAC: Search MSI --> Fabric Workspace (Contributor)
-- [ ] Assign RBAC: Your User --> Search Service (3 roles)
-- [ ] Connect Search service to Foundry (Entra ID auth)
-- [ ] Ensure healthcare knowledge files are in Lakehouse (uploaded by launcher Cell 6)
-- [ ] Create Knowledge Source (OneLake --> Lakehouse)
-- [ ] Wait for Knowledge Source status = **Active**
-- [ ] Create Knowledge Base with instructions
-- [ ] Verify indexer: docs succeeded > 0, docs failed = 0
-- [ ] Connect Fabric Data Agent to Foundry
-- [ ] Create Orchestrator Agent with instructions + tools + knowledge grounding
-- [ ] Push full instructions from `foundry_agent/orchestrator_instructions.md`
-- [ ] Test all three query types (knowledge, data, combined)
-- [ ] Test a hybrid question (e.g., "denial rates by payer + appeal process recommendations")
-
----
-
-## Key Lessons Learned
-
-These lessons were discovered through debugging hybrid query failures. Full details in [FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md](FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md).
-
-| Lesson | Detail |
-|--------|--------|
-| **Fabric Data Agent is phrase-sensitive** | Fewshot matching requires near-exact question wording. Provide a "query catalog" to the orchestrator. |
-| **Compound questions break the data agent** | The data agent cannot parse questions with KB concepts mixed in. The orchestrator MUST decompose first. |
-| **Instructions can silently shrink** | Editing in the Foundry UI can accidentally truncate instructions. Always verify via API after changes. |
-| **Ontology is visual only** | We tested ontology as a Data Agent source -- it returned wrong results. Keep lakehouse-based agent. |
-| **Keep a version-controlled copy** | Save instructions in `foundry_agent/orchestrator_instructions.md` and push via API. Never rely solely on the UI. |
-| **Test in Fabric Data Agent first** | Before debugging the orchestrator, test the exact query in the Fabric Data Agent UI to isolate the issue. |
-
----
-
-## Related Files
+### Key Files in This Repo
 
 | File | Purpose |
-|------|---------|
-| [`foundry_agent/orchestrator_instructions.md`](foundry_agent/orchestrator_instructions.md) | Version-controlled orchestrator instructions |
-| [`FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md`](FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md) | Full diagnostic guide for hybrid query failures |
-| [`DATA_AGENT_GUIDE.md`](DATA_AGENT_GUIDE.md) | Fabric Data Agent configuration and customization |
-| [`SAMPLE_QUESTIONS.md`](SAMPLE_QUESTIONS.md) | 60+ copy-paste questions including Foundry agent questions |
+|---|---|
+| [`foundry_agent/orchestrator_instructions.md`](foundry_agent/orchestrator_instructions.md) | Full orchestrator system prompt (paste into Foundry agent) |
+| [`DATA_AGENT_INSTRUCTIONS.md`](DATA_AGENT_INSTRUCTIONS.md) | Data Agent AI + data source instructions (paste into Fabric) |
+| [`DATA_AGENT_GUIDE.md`](DATA_AGENT_GUIDE.md) | Comprehensive Data Agent reference |
+| [`SAMPLE_QUESTIONS.md`](SAMPLE_QUESTIONS.md) | 60+ ready-to-use test prompts |
+| [`FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md`](FOUNDRY_ORCHESTRATOR_TROUBLESHOOTING.md) | Deep troubleshooting guide for hybrid query failures |

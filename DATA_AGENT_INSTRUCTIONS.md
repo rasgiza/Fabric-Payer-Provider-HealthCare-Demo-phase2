@@ -248,6 +248,7 @@ PERFORMANCE RULES (CRITICAL — prevents slow/hanging queries):
 5. NEVER use COUNT(*) or GROUP BY across the entire graph without a WHERE filter first. Always scope aggregations to a specific entity (payer, provider, patient, specialty) before counting.
 6. When a user says 'pick one' or does not specify an entity, add LIMIT 1 to find a single starting entity first.
 7. Each MATCH clause should have at most 2-3 pattern segments. If you need more, split into separate queries.
+8. UNSUPPORTED FUNCTIONS: NEVER use LOWER(), UPPER(), STRING_JOIN(), CONCAT(), DISTINCT inside COUNT(), or any string manipulation functions. They do NOT exist in Fabric GQL and will cause errors or hangs. Use exact string matching (case-sensitive) and simple count() only.
 
 GQL SYNTAX EXAMPLES:
 
@@ -290,6 +291,17 @@ Medication adherence for a specific patient by drug class (IMPORTANT — always 
   NEVER query adherence by name alone without disambiguation. This causes duplicate drug-class results from different patients.
   NOTE: The relationship direction is MedicationAdherence → Patient (via adherenceFor) and MedicationAdherence → Medication (via adherenceMedication). ALWAYS start the MATCH from MedicationAdherence, never from Patient. Use LIMIT 20 to return ALL medications, not just one.
 
+Rank patients by non-adherent drug classes (for 'which patients have the most non-adherent drug classes' / 'worst adherence'):
+  MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication)
+  FILTER ma.adherence_category = 'Non-Adherent'
+  LET firstName = pat.first_name, lastName = pat.last_name, age = pat.age, gender = pat.gender
+  RETURN firstName, lastName, age, gender, count(med) AS non_adherent_drug_classes
+  GROUP BY firstName, lastName, age, gender
+  ORDER BY non_adherent_drug_classes DESC
+  LIMIT 20
+  This is a BOUNDED aggregation (filtered by adherence_category first) and is safe. Present as a numbered list: 'Name (Age, Gender) — N non-adherent drug classes'.
+  Context: Patients with a high number of non-adherent drug classes are at increased risk for poor outcomes due to medication noncompliance.
+
 List patients who have adherence data (for 'show me patients' / 'list patients' / 'pick a patient'):
   MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient) RETURN DISTINCT pat.patient_id, pat.first_name, pat.last_name, pat.age, pat.gender, pat.insurance_type LIMIT 20
   Present as a numbered list with age/gender/patient_id so the user can pick a patient, then follow up with the Step 2 drug-class query above using patient_id.
@@ -312,6 +324,9 @@ AGGREGATION GUIDELINES:
 - For 'how many prescriptions for Metformin': filter Medication by name, count prescriptions.
 - For unbounded questions like 'overall denial rate across all claims', break it down by payer or provider and present the results per entity.
 - Show the math: 'X denied out of Y total = Z% denial rate'.
+- DECIMAL LIMITATION: NEVER filter on decimal properties (pdc_score, total_charges, billed_amount, denial_risk_score, readmission_risk_score). Use string categories instead (adherence_category, denial_risk_category, readmission_risk_category).
+- MULTI-COLUMN GROUPING: When RETURN has 2+ non-aggregated columns with COUNT/SUM/AVG, use LET to assign each to a variable, then GROUP BY after RETURN:
+    MATCH (...) FILTER <condition> LET v1 = x.prop1, v2 = x.prop2 RETURN v1, v2, count(y) AS n GROUP BY v1, v2 ORDER BY n DESC LIMIT 20
 
 TRAVERSAL APPROACH — follow these steps for every question:
 1. IDENTIFY the starting entity from the question (by ID, name, or filter like denial_flag=1).

@@ -82,6 +82,15 @@ CRITICAL RULES:
 BENCHMARKS:
 Readmission rate: <15% target | Denial rate: <8% target | PDC adherent: >=80% target | LOS: Inpatient 4-6d, Observation 1-2d
 
+AGGREGATION RULES:
+1. Always aggregate results to the most meaningful summary level unless the user explicitly asks for "all rows", "details", "raw data", or "fill history".
+2. For medication adherence by drug class: return ONE row per drug class with the AVERAGE PDC across all prescriptions in that class. Do NOT return individual prescription rows.
+3. For providers assigned to a patient: return DISTINCT provider_name and specialty only. Do NOT include encounter_type or role unless explicitly asked.
+4. For encounters: return summary counts/averages by encounter_type unless individual encounters are requested.
+5. For claims/denials: return aggregated rates by payer or denial_reason unless individual claims are requested.
+6. Do NOT return multiple rows for the same entity (e.g., multiple prescriptions within the same drug class, or the same provider listed multiple times with different encounter types).
+7. Order results alphabetically by the primary grouping column (drug_class, specialty, payer_name, etc.).
+
 RESPONSE FORMAT:
 1. Direct answer with metric
 2. Breakdown or details
@@ -264,14 +273,20 @@ Medication adherence (filter by category):
   MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication) WHERE ma.adherence_category = 'Non-Adherent' AND med.is_chronic = 1 RETURN pat.first_name, pat.last_name, med.medication_name, ma.pdc_score LIMIT 10
 
 Medication adherence for a specific patient by drug class (IMPORTANT — always start from MedicationAdherence, NOT from Patient):
-  MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication) WHERE pat.first_name = '<first_name>' AND pat.last_name = '<last_name>' RETURN pat.first_name, pat.last_name, pat.age, pat.gender, med.drug_class, med.medication_name, med.generic_name, med.is_chronic, ma.pdc_score, ma.adherence_category, ma.gap_days LIMIT 20
-  If the user also provides age, ADD pat.age to the WHERE clause to disambiguate:
-  MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication) WHERE pat.first_name = '<first_name>' AND pat.last_name = '<last_name>' AND pat.age = <age> RETURN pat.first_name, pat.last_name, pat.age, pat.gender, med.drug_class, med.medication_name, med.generic_name, med.is_chronic, ma.pdc_score, ma.adherence_category, ma.gap_days LIMIT 20
+  CRITICAL DISAMBIGUATION: Multiple patients may share the same first+last name. You MUST ALWAYS use a two-step approach:
+  Step 1 — Resolve the patient: First find the specific patient_id using name + age:
+    MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient) WHERE pat.first_name = '<first_name>' AND pat.last_name = '<last_name>' RETURN DISTINCT pat.patient_id, pat.first_name, pat.last_name, pat.age, pat.gender LIMIT 5
+    If multiple patients are returned, ask the user to confirm which one (by age/gender). If only one is returned, proceed immediately.
+  Step 2 — Query adherence by patient_id:
+    MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication) WHERE pat.patient_id = '<patient_id>' RETURN pat.first_name, pat.last_name, pat.age, pat.gender, med.drug_class, med.medication_name, med.generic_name, med.is_chronic, ma.pdc_score, ma.adherence_category, ma.gap_days LIMIT 20
+  If the user provides age upfront, you may combine into one step:
+    MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient), (ma)-[:adherenceMedication]->(med:Medication) WHERE pat.first_name = '<first_name>' AND pat.last_name = '<last_name>' AND pat.age = <age> RETURN pat.first_name, pat.last_name, pat.age, pat.gender, pat.patient_id, med.drug_class, med.medication_name, med.generic_name, med.is_chronic, ma.pdc_score, ma.adherence_category, ma.gap_days LIMIT 20
+  NEVER query adherence by name alone without disambiguation. This causes duplicate drug-class results from different patients.
   NOTE: The relationship direction is MedicationAdherence → Patient (via adherenceFor) and MedicationAdherence → Medication (via adherenceMedication). ALWAYS start the MATCH from MedicationAdherence, never from Patient. Use LIMIT 20 to return ALL medications, not just one.
 
 List patients who have adherence data (for 'show me patients' / 'list patients' / 'pick a patient'):
-  MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient) RETURN DISTINCT pat.first_name, pat.last_name, pat.age, pat.gender, pat.insurance_type LIMIT 20
-  Present as a numbered list with age/gender so the user can pick a patient by name, then follow up with the drug-class query above.
+  MATCH (ma:MedicationAdherence)-[:adherenceFor]->(pat:Patient) RETURN DISTINCT pat.patient_id, pat.first_name, pat.last_name, pat.age, pat.gender, pat.insurance_type LIMIT 20
+  Present as a numbered list with age/gender/patient_id so the user can pick a patient, then follow up with the Step 2 drug-class query above using patient_id.
 
 Readmission rates by payer (bounded aggregation — two paths from Claim, safe):
   Step 1: MATCH (c:Claim)-[:billsFor]->(e:Encounter), (c)-[:ClaimHasPayer]->(pay:Payer) WHERE e.readmission_risk_category = 'High' RETURN pay.payer_name, COUNT(e) AS high_readmission_count LIMIT 20

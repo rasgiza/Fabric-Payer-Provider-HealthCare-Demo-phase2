@@ -20,7 +20,7 @@ The **Healthcare RTI Dashboard** is a Fabric KQL Real-Time Dashboard connected t
 | `rx_events` | NB_RTI_Event_Simulator | event_id, event_timestamp, event_type, patient_id, provider_id, medication_code, medication_name, drug_class, quantity, days_supply, latitude, longitude |
 | `fraud_scores` | NB_RTI_Fraud_Detection | score_id, score_timestamp, claim_id, patient_id, provider_id, facility_id, claim_amount, fraud_score, fraud_flags, risk_tier, latitude, longitude |
 | `care_gap_alerts` | NB_RTI_Care_Gap_Alerts | alert_id, alert_timestamp, patient_id, facility_id, facility_name, measure_id, measure_name, gap_days_overdue, alert_priority, alert_text, latitude, longitude |
-| `highcost_alerts` | NB_RTI_HighCost_Trajectory | alert_id, alert_timestamp, patient_id, facility_id, facility_name, rolling_spend_30d, rolling_spend_90d, ed_visits_30d, readmission_flag, risk_tier, cost_trend, latitude, longitude |
+| `highcost_alerts` | NB_RTI_HighCost_Trajectory | alert_id, alert_timestamp, patient_id, patient_first_name, patient_last_name, facility_id, facility_name, rolling_spend_30d, rolling_spend_90d, claims_count_30d, ed_visits_30d, readmission_count_30d, readmission_flag, risk_tier, cost_trend, latitude, longitude |
 
 ---
 
@@ -309,7 +309,10 @@ care_gap_alerts
 
 ## Page 4 — High-Cost Trajectory
 
-> **Note:** After re-running the HighCost notebook (commit `3906fcb`), the `highcost_alerts` table includes `facility_id` and `facility_name` directly. The queries below use the direct columns — no joins needed.
+> **Note:** The `highcost_alerts` table includes `facility_id` and `facility_name` directly.
+> The HighCost notebook resolves each patient's facility from their **most recent ADT event**
+> (any admission type — not just EMERGENCY), so every patient with any hospital interaction
+> gets a valid facility. No dashboard-side joins are needed.
 
 ### Tile 17: Total High-Cost Alerts (Stat)
 
@@ -403,47 +406,6 @@ All map tiles use the same setup pattern in the Visual formatting panel:
 | **Fraud Hotspot** | Number of fraud alerts | Potential billing mills or fraud rings |
 | **Care Gap Alert** | Number of gap alerts | Care deserts — where patients miss screenings |
 | **High-Cost Patient** | Number of high-cost patients | Where to deploy care coordinators |
-
----
-
-## Temporary Queries (Before HighCost Notebook Re-run)
-
-If the `highcost_alerts` table does NOT yet have `facility_name` (before the notebook is re-run), use these fallback queries with `leftouter` joins for Page 4:
-
-<details>
-<summary>Click to expand fallback queries</summary>
-
-### Tile 19 Fallback: Top 10 Highest Spend
-
-```kql
-highcost_alerts
-| where alert_timestamp between (_startTime .. _endTime)
-| where isempty(_riskTier) or risk_tier in~ (_riskTier)
-| join kind=leftouter (
-    adt_events | summarize arg_max(event_timestamp, facility_name) by patient_id
-) on patient_id
-| extend Facility=iff(isempty(facility_name), "Unknown", facility_name)
-| where isempty(_facility) or Facility in~ (_facility)
-| top 10 by rolling_spend_30d desc
-| project patient_id, Facility, risk_tier, rolling_spend_30d, rolling_spend_90d, cost_trend, alert_timestamp
-```
-
-### High-Cost Map Fallback
-
-```kql
-let hc = highcost_alerts
-| where alert_timestamp between (_startTime .. _endTime)
-| where isempty(_riskTier) or risk_tier in~ (_riskTier);
-adt_events
-| where isempty(_facility) or facility_name in~ (_facility)
-| summarize arg_max(event_timestamp, facility_name, latitude, longitude) by patient_id
-| join kind=inner hc on patient_id
-| summarize Patients=count(), AvgSpend=round(avg(rolling_spend_30d), 2), RiskTier=take_any(risk_tier)
-    by latitude, longitude, Facility=facility_name
-| where isnotnull(latitude) and isnotnull(longitude) and isnotempty(Facility)
-```
-
-</details>
 
 ---
 

@@ -346,7 +346,6 @@ df_ed_counts = df_ed.withColumn(
     "patient_id",
     F.col("event_ts").alias("ed_event_ts"),
     "ed_visits_30d",
-    F.col("facility_id").alias("ed_facility_id")
 ).dropDuplicates(["patient_id"])  # Keep latest ED count per patient
 
 print(f"  ED events processed: {df_ed.count()}")
@@ -420,13 +419,29 @@ df_latest_spend = (
     )
 )
 
+# Get most recent facility for each patient from ANY ADT event
+df_patient_facility = (
+    df_adt
+    .withColumn("rn", F.row_number().over(
+        Window.partitionBy("patient_id").orderBy(F.col("event_timestamp").desc())
+    ))
+    .filter(F.col("rn") == 1)
+    .select(
+        F.col("patient_id").alias("fac_patient_id"),
+        F.col("facility_id").alias("patient_facility_id"),
+        F.col("latitude").alias("adt_latitude"),
+        F.col("longitude").alias("adt_longitude"),
+    )
+)
+
 # Join all signals
 df_combined = (
     df_latest_spend
-    .join(df_ed_counts.select("patient_id", "ed_visits_30d", "ed_facility_id"), "patient_id", "left")
+    .join(df_ed_counts.select("patient_id", "ed_visits_30d"), "patient_id", "left")
     .join(df_readmit_counts, "patient_id", "left")
     .join(df_patients, "patient_id", "left")
-    .join(df_facilities, F.col("ed_facility_id") == df_facilities["facility_id"], "left")
+    .join(df_patient_facility, F.col("patient_id") == F.col("fac_patient_id"), "left")
+    .join(df_facilities, F.col("patient_facility_id") == df_facilities["facility_id"], "left")
 )
 
 # Fill nulls
@@ -485,7 +500,7 @@ df_output = df_combined.select(
     "patient_id",
     F.col("first_name").alias("patient_first_name"),
     F.col("last_name").alias("patient_last_name"),
-    F.col("ed_facility_id").alias("facility_id"),
+    F.col("patient_facility_id").alias("facility_id"),
     F.coalesce(df_facilities["facility_name"], F.lit("Unknown")).alias("facility_name"),
     "rolling_spend_30d",
     "rolling_spend_90d",
@@ -495,8 +510,8 @@ df_output = df_combined.select(
     "readmission_flag",
     "risk_tier",
     "cost_trend",
-    F.coalesce(F.col("latitude"), df_facilities["fac_latitude"]).alias("latitude"),
-    F.coalesce(F.col("longitude"), df_facilities["fac_longitude"]).alias("longitude"),
+    F.coalesce(F.col("latitude"), F.col("adt_latitude"), df_facilities["fac_latitude"]).alias("latitude"),
+    F.coalesce(F.col("longitude"), F.col("adt_longitude"), df_facilities["fac_longitude"]).alias("longitude"),
 )
 
 df_output.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_highcost_alerts")

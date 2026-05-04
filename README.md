@@ -80,18 +80,15 @@ This demo eliminates the entire setup burden. **One notebook, one click, fifteen
 
 ### What This Demo Proves
 
-By unifying batch analytics and real-time intelligence in a single Fabric workspace, this demo shows **10+ Fabric capabilities** working end-to-end on healthcare payer/provider data:
+By combining all six dimensions — **claims + readmissions + adherence + SDOH + provider network + quality measures** — in a single Fabric workspace, this demo shows how Microsoft Fabric's unified platform (OneLake, Spark, Direct Lake, Copilot AI) can deliver:
 
-- **Medallion ETL** — Bronze → Silver → Gold star schema with HEDIS measures and SDOH enrichment
-- **Real-time fraud detection** — 4-signal scoring on streaming claims (sub-minute)
-- **Point-of-care gap closure** — HEDIS alerts fire the moment a patient arrives
-- **High-cost trajectory tracking** — 30/90-day rolling spend with ED superutilizer flags
-- **Operations Agent** — AI triage across all alerts with human-in-the-loop via Teams
-- **Dual AI Agents** — SQL aggregations + ontology graph traversal (both auto-deployed)
-- **Knowledge Graph** — 15 entities, 23 relationships, interactive 3D visualization
-- **Power BI + KQL Dashboards** — batch (6 pages, Direct Lake) + streaming (30s auto-refresh)
+- **Real-time denial risk dashboards** with root cause analysis and appeal tracking
+- **Predictive readmission scoring** with SDOH-informed discharge planning
+- **HEDIS-aligned medication adherence** monitoring with care gap closure
+- **Natural language analytics** via Fabric Data Agent and Azure AI Foundry
+- **Ontology-driven knowledge graphs** connecting patients → encounters → claims → providers → payers
 
-Deployed in 15 minutes from a single notebook — no Python, no `.env`, no manual setup.
+All from a single workspace deployed in minutes.
 
 ---
 
@@ -148,8 +145,6 @@ Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intell
 ### Solution Architecture
 
 ![Provider Healthcare Solution with Microsoft Fabric & AI](diagrams/healthcare-architecture.png)
-
-> *Open the [interactive Draw.io diagram](diagrams/healthcare-architecture.drawio) in VS Code or [app.diagrams.net](https://app.diagrams.net) for full detail.*
 
 ### 🔬 Interactive 3D Ontology Knowledge Graph
 
@@ -444,6 +439,8 @@ Healthcare_RTI_Eventstream (Custom Endpoint — EventHub protocol)
 | Configure stream routing | ✅ Done by Cell 12 (definition API) | ✅ |
 | **Get connection string** | ❌ Not exposed in API schema | ✅ Portal only |
 | Verify topology status | ✅ GET /topology endpoint | ✅ |
+
+> **Reference:** The [ontology-coldchain](https://github.com/microsoft/ontology-coldchain) architecture also requires a manual `.env` step for the connection string — this is a platform-level constraint, not a design choice.
 
 ### Use Case 4 — Operations Agent (HealthcareOpsAgent)
 

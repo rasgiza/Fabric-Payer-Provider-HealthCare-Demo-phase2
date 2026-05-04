@@ -137,10 +137,11 @@ COMORBIDITY_MAP = {
     "F32.9": ["M54.5", "K21.0"],
 }
 
-FIRST_NAMES = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
-               "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-               "Thomas", "Sarah", "Christopher", "Karen", "Charles", "Nancy", "Daniel", "Lisa",
-               "Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley"]
+MALE_FIRST_NAMES = ["James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
+                    "Thomas", "Christopher", "Charles", "Daniel", "Matthew", "Anthony", "Mark", "Donald"]
+FEMALE_FIRST_NAMES = ["Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica",
+                      "Sarah", "Karen", "Nancy", "Lisa", "Betty", "Margaret", "Sandra", "Ashley"]
+FIRST_NAMES = MALE_FIRST_NAMES + FEMALE_FIRST_NAMES
 LAST_NAMES = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
               "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
               "Thomas", "Taylor", "Moore", "Jackson", "Martin", "Lee", "Perez", "Thompson", "White"]
@@ -470,7 +471,7 @@ for i in range(NUM_NEW_PATIENTS):
     dob = datetime(random.randint(1940, 2020), random.randint(1, 12), random.randint(1, 28))
     new_patients.append({
         "patient_id": pid,
-        "first_name": random.choice(FIRST_NAMES),
+        "first_name": random.choice(MALE_FIRST_NAMES) if gender == "M" else random.choice(FEMALE_FIRST_NAMES),
         "last_name": random.choice(LAST_NAMES),
         "date_of_birth": dob.strftime("%Y-%m-%d"),
         "gender": gender,

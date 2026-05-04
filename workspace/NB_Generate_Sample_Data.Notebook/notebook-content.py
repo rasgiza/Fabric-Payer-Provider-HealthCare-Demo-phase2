@@ -211,10 +211,11 @@ PAYERS = [
     {"payer_id": "PAY012", "payer_name": "Workers Compensation MI", "payer_type": "Workers Comp", "plan_type": "State", "state": "MI", "network_size": "State", "avg_reimbursement_pct": 0.85},
 ]
 
-FIRST_NAMES = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
-               "William", "Elizabeth", "David", "Barbara", "Richard", "Susan", "Joseph", "Jessica",
-               "Thomas", "Sarah", "Christopher", "Karen", "Charles", "Nancy", "Daniel", "Lisa",
-               "Matthew", "Betty", "Anthony", "Margaret", "Mark", "Sandra", "Donald", "Ashley"]
+MALE_FIRST_NAMES = ["James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
+                    "Thomas", "Christopher", "Charles", "Daniel", "Matthew", "Anthony", "Mark", "Donald"]
+FEMALE_FIRST_NAMES = ["Mary", "Patricia", "Jennifer", "Linda", "Elizabeth", "Barbara", "Susan", "Jessica",
+                      "Sarah", "Karen", "Nancy", "Lisa", "Betty", "Margaret", "Sandra", "Ashley"]
+FIRST_NAMES = MALE_FIRST_NAMES + FEMALE_FIRST_NAMES
 
 LAST_NAMES = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
               "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson",
@@ -255,7 +256,7 @@ def generate_patients(n):
     for i in range(n):
         pid = f"PAT{i+1:06d}"
         gender = random.choice(["M", "F"])
-        fn = random.choice(FIRST_NAMES)
+        fn = random.choice(MALE_FIRST_NAMES) if gender == "M" else random.choice(FEMALE_FIRST_NAMES)
         ln = random.choice(LAST_NAMES)
         dob = fake.date_of_birth(minimum_age=18, maximum_age=90)
         city = random.choice(CITIES_MI)
@@ -297,7 +298,7 @@ def generate_providers(n):
     for i in range(n):
         pid = f"PRV{i+1:05d}"
         gender = random.choice(["M", "F"])
-        fn = random.choice(FIRST_NAMES)
+        fn = random.choice(MALE_FIRST_NAMES) if gender == "M" else random.choice(FEMALE_FIRST_NAMES)
         ln = random.choice(LAST_NAMES)
         npi = f"{random.randint(1000000000, 9999999999)}"
         specialty = random.choice(SPECIALTIES)

@@ -4,7 +4,7 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
 
 > [!IMPORTANT]
 > - All data in this demo is **100% synthetic**. No real patient information (PHI) is used.
-> - Data was generated using [Generate-DemoData.ps1](Generate-DemoData.ps1) with realistic distributions but entirely fictional names and records.
+> - Data was generated using a synthetic data generator with realistic distributions but entirely fictional names and records.
 > - This is an **educational demo** showcasing Fabric capabilities. Production healthcare solutions require additional security, compliance (HIPAA/HITECH), and governance controls.
 
 ---

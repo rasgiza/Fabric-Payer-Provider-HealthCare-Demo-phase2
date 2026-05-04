@@ -163,6 +163,12 @@ Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intell
 >
 > To run locally: download [`docs/ontology_graph_3d.html`](docs/ontology_graph_3d.html) and open in any browser.
 
+### 🎬 Interactive 3D Patient Story Demo
+
+**[▶ Launch Nancy White Story](https://rasgiza.github.io/Fabric-Payer-Provider-HealthCare-Demo/demo_3d_story/nancy_white_story.html)** — Walk through a real patient journey showing how the ontology agent answers clinical questions about medication adherence, SDOH risk, and care recommendations.
+
+> To run locally: download [`demo_3d_story/nancy_white_story.html`](demo_3d_story/nancy_white_story.html) and open in any browser.
+
 ### Detailed Data Flow
 
 ```

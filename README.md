@@ -151,8 +151,6 @@ Dual-path design: **Batch ETL** (authoritative, historical) + **Real-Time Intell
 
 ![Provider Healthcare Solution with Microsoft Fabric & AI](diagrams/healthcare-architecture.png)
 
-> *Open the [interactive Draw.io diagram](diagrams/healthcare-architecture.drawio) in VS Code or [app.diagrams.net](https://app.diagrams.net) for full detail.*
-
 ### 🔬 Interactive 3D Ontology Knowledge Graph
 
 **[▶ Launch Interactive 3D Graph](https://rasgiza.github.io/Fabric-Payer-Provider-HealthCare-Demo/docs/ontology_graph_3d.html)** — Explore the full ontology in a cinematic Three.js visualization with bloom lighting, animated data-flow particles, and hover tooltips showing every property and relationship.

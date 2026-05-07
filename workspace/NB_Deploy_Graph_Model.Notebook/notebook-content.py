@@ -42,8 +42,12 @@ print("  NB_Deploy_Graph_Model -- Ontology Graph Deployer")
 print("=" * 60)
 
 # -- Config -----------------------------------------------------------
-ONTOLOGY_NAME = "Healthcare_Demo_Ontology_HLS"
-GRAPH_MODEL_NAME = "Healthcare_Demo_Graph"
+# Names can be overridden via env vars so the same notebook can deploy
+# the HLS (semantic-model-driven) or CSV-driven ontology in parallel.
+ONTOLOGY_NAME = os.environ.get("FABRIC_ONTOLOGY_NAME", "Healthcare_Demo_Ontology_HLS")
+GRAPH_MODEL_NAME = os.environ.get("FABRIC_GRAPH_MODEL_NAME", "Healthcare_Demo_Graph")
+print(f"  ONTOLOGY_NAME    = {ONTOLOGY_NAME}")
+print(f"  GRAPH_MODEL_NAME = {GRAPH_MODEL_NAME}")
 GITHUB_OWNER = "rasgiza"
 GITHUB_REPO = "Fabric-Payer-Provider-HealthCare-Demo"
 GITHUB_BRANCH = "main"

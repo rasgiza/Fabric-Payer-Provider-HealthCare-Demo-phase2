@@ -1,0 +1,84 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "1d431e3e-46d3-4cf1-9315-05bbacc6b83e",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "prescription_id",
+        "targetPropertyId": "4160965830872498518"
+      },
+      {
+        "sourceColumnName": "fill_date_key",
+        "targetPropertyId": "985019943822248273"
+      },
+      {
+        "sourceColumnName": "patient_key",
+        "targetPropertyId": "9649002298941613340"
+      },
+      {
+        "sourceColumnName": "provider_key",
+        "targetPropertyId": "7782306452729756700"
+      },
+      {
+        "sourceColumnName": "encounter_key",
+        "targetPropertyId": "1067655203089867067"
+      },
+      {
+        "sourceColumnName": "medication_key",
+        "targetPropertyId": "5126046891249450004"
+      },
+      {
+        "sourceColumnName": "facility_key",
+        "targetPropertyId": "5725477359739958569"
+      },
+      {
+        "sourceColumnName": "fill_number",
+        "targetPropertyId": "9363471505025345625"
+      },
+      {
+        "sourceColumnName": "days_supply",
+        "targetPropertyId": "3806133102745677350"
+      },
+      {
+        "sourceColumnName": "quantity_dispensed",
+        "targetPropertyId": "5255538799917377676"
+      },
+      {
+        "sourceColumnName": "is_generic",
+        "targetPropertyId": "5231381484234996602"
+      },
+      {
+        "sourceColumnName": "pharmacy_type",
+        "targetPropertyId": "5543751212305623718"
+      },
+      {
+        "sourceColumnName": "total_cost",
+        "targetPropertyId": "7332255721073807639"
+      },
+      {
+        "sourceColumnName": "payer_paid",
+        "targetPropertyId": "4788509263426573220"
+      },
+      {
+        "sourceColumnName": "patient_copay",
+        "targetPropertyId": "8756113631269431191"
+      },
+      {
+        "sourceColumnName": "_load_timestamp",
+        "targetPropertyId": "7253650105685389498"
+      },
+      {
+        "sourceColumnName": "prescription_key",
+        "targetPropertyId": "1189049926170607147"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "00000000-0000-0000-0000-000000000000",
+      "sourceTableName": "fact_prescription",
+      "sourceSchema": null
+    }
+  }
+}

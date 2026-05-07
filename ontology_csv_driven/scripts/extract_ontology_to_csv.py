@@ -183,22 +183,66 @@ def extract(ontology_dir: Path, out_dir: Path) -> None:
     property_rows = []
     entity_binding_rows = []
 
+    # First pass: build a per-entity map of original-name -> cleaned-name.
+    # The HLS export occasionally has both `<col>` and `fact_<col>`
+    # (e.g. `diagnosis_key` + `fact_diagnosis_key` on PatientDiagnosis).
+    # When a prefix-strip would collide, rewrite the prefix-stripped form
+    # to the convention `<entity_snake>_key` so the result still has no
+    # physical prefix AND remains unique on the entity.
+    def _entity_to_snake(name: str) -> str:
+        out = []
+        for i, ch in enumerate(name):
+            if ch.isupper() and i > 0:
+                out.append("_")
+            out.append(ch.lower())
+        return "".join(out)
+
+    cleaned_property_name: dict[tuple[str, str], str] = {}
+    for e in entities:
+        original_names = {p["name"] for p in e["properties"].values()}
+        per_entity_clean: dict[str, str] = {}
+        used: set[str] = set()
+        # Process raw-named properties first so they keep their natural form;
+        # prefixed ones get a synthetic name only if they would collide.
+        ordered = sorted(
+            original_names,
+            key=lambda n: any(n.startswith(p) for p in _TABLE_PREFIXES))
+        ent_snake = _entity_to_snake(e["ontology_name"])
+        for orig in ordered:
+            cand = _clean_property_name(orig)
+            if cand != orig and cand in used:
+                # Collision: rewrite to `<entity_snake>_key` (HLS convention
+                # for an entity surrogate), falling back to the raw name if
+                # even that collides.
+                synthetic = f"{ent_snake}_key"
+                if synthetic in used or synthetic in original_names:
+                    cand = orig
+                else:
+                    cand = synthetic
+            used.add(cand)
+            per_entity_clean[orig] = cand
+        for orig, cand in per_entity_clean.items():
+            cleaned_property_name[(e["ontology_name"], orig)] = cand
+
+    def _cn(ent_name: str, raw_name: str) -> str:
+        return cleaned_property_name.get((ent_name, raw_name), raw_name)
+
     for e in entities:
         prop_by_id = e["properties"]
+        ename = e["ontology_name"]
         key_prop = prop_by_id.get(e["key_property_id"], {})
         disp_prop = prop_by_id.get(e["display_property_id"], {})
         entity_rows.append({
-            "entity_name": e["ontology_name"],
-            "key_property": _clean_property_name(key_prop.get("name", "")),
-            "display_property": _clean_property_name(
-                disp_prop.get("name", "")),
+            "entity_name": ename,
+            "key_property": _cn(ename, key_prop.get("name", "")),
+            "display_property": _cn(ename, disp_prop.get("name", "")),
             "business_description": "",  # filled in Phase 2 step 6
             "domain_group": "",
         })
         for prop in prop_by_id.values():
             property_rows.append({
-                "entity_name": e["ontology_name"],
-                "property_name": _clean_property_name(prop["name"]),
+                "entity_name": ename,
+                "property_name": _cn(ename, prop["name"]),
                 "value_type": prop["valueType"],
                 "business_description": "",
                 "unit": "",
@@ -210,10 +254,9 @@ def extract(ontology_dir: Path, out_dir: Path) -> None:
             for pb in cfg.get("propertyBindings", []):
                 target_prop = prop_by_id.get(pb["targetPropertyId"], {})
                 entity_binding_rows.append({
-                    "entity_name": e["ontology_name"],
+                    "entity_name": ename,
                     "source_table": table,
-                    "property_name": _clean_property_name(
-                        target_prop.get("name", "")),
+                    "property_name": _cn(ename, target_prop.get("name", "")),
                     "source_column": pb["sourceColumnName"],
                 })
 
@@ -258,10 +301,10 @@ def extract(ontology_dir: Path, out_dir: Path) -> None:
                 "source_table": tbl,
                 "source_join_column": sk.get("sourceColumnName", ""),
                 "target_join_column": tk.get("sourceColumnName", ""),
-                "_source_key_property": _clean_property_name(
-                    sk_prop.get("name", "")),
-                "_target_key_property": _clean_property_name(
-                    tk_prop.get("name", "")),
+                "_source_key_property": _cn(
+                    src["ontology_name"], sk_prop.get("name", "")),
+                "_target_key_property": _cn(
+                    tgt["ontology_name"], tk_prop.get("name", "")),
             })
 
     # ---- Write CSVs -------------------------------------------------------- #

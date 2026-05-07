@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "8860400373663151352",
+  "name": "dispenses",
+  "namespaceType": "Imported",
+  "source": {
+    "entityTypeId": "53626121371883"
+  },
+  "target": {
+    "entityTypeId": "61117405960503"
+  }
+}

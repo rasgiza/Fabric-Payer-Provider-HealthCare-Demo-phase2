@@ -1,0 +1,44 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "71d80af6-0a5c-42a6-b0ca-6715a2b76b86",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "diagnosis_key",
+        "targetPropertyId": "4084906409537931632"
+      },
+      {
+        "sourceColumnName": "icd_code",
+        "targetPropertyId": "511881925235381041"
+      },
+      {
+        "sourceColumnName": "icd_description",
+        "targetPropertyId": "2616735912474774981"
+      },
+      {
+        "sourceColumnName": "icd_category",
+        "targetPropertyId": "1406794843223726764"
+      },
+      {
+        "sourceColumnName": "is_chronic",
+        "targetPropertyId": "4251012711141178948"
+      },
+      {
+        "sourceColumnName": "is_active",
+        "targetPropertyId": "2349799381778403291"
+      },
+      {
+        "sourceColumnName": "_load_timestamp",
+        "targetPropertyId": "4418851457242480062"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "00000000-0000-0000-0000-000000000000",
+      "sourceTableName": "dim_diagnosis",
+      "sourceSchema": null
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "2255925963511741750",
+  "name": "adherenceMedication",
+  "namespaceType": "Imported",
+  "source": {
+    "entityTypeId": "82067038089981"
+  },
+  "target": {
+    "entityTypeId": "61117405960503"
+  }
+}

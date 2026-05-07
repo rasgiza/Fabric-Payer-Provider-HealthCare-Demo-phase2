@@ -1,0 +1,120 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/entityType/1.0.0/schema.json",
+  "id": "54758438037230",
+  "namespace": "usertypes",
+  "baseEntityTypeId": null,
+  "name": "CommunityHealth",
+  "entityIdParts": [
+    "5293854050443595058"
+  ],
+  "displayNamePropertyId": "5293854050443595058",
+  "namespaceType": "Custom",
+  "visibility": "Visible",
+  "properties": [
+    {
+      "id": "1026000704564023767",
+      "name": "sdoh_key",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "5293854050443595058",
+      "name": "zip_code",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "7688006116154741984",
+      "name": "state",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "9005300474133960806",
+      "name": "poverty_rate",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "1369896941958115265",
+      "name": "food_desert_flag",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "8387850259218128294",
+      "name": "transportation_score",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "1937343217548419595",
+      "name": "housing_instability_rate",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "2391871151460721540",
+      "name": "uninsured_rate",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "2644847923190821156",
+      "name": "broadband_access_pct",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "6545450705695561242",
+      "name": "median_household_income",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "2537397278063122772",
+      "name": "population",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "875770320316538807",
+      "name": "social_vulnerability_index",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "Double"
+    },
+    {
+      "id": "6757495541436474086",
+      "name": "risk_tier",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "640820163224747701",
+      "name": "is_active",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "8069759610588187318",
+      "name": "load_timestamp",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "DateTime"
+    }
+  ]
+}

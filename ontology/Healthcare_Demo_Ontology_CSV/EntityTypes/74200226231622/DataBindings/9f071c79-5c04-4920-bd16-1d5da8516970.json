@@ -1,0 +1,72 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "9f071c79-5c04-4920-bd16-1d5da8516970",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "provider_id",
+        "targetPropertyId": "7063042786493138170"
+      },
+      {
+        "sourceColumnName": "first_name",
+        "targetPropertyId": "1448142775297815459"
+      },
+      {
+        "sourceColumnName": "last_name",
+        "targetPropertyId": "2102243970100708719"
+      },
+      {
+        "sourceColumnName": "display_name",
+        "targetPropertyId": "6201371085510233747"
+      },
+      {
+        "sourceColumnName": "npi_number",
+        "targetPropertyId": "1087693291413610076"
+      },
+      {
+        "sourceColumnName": "specialty",
+        "targetPropertyId": "1142808123660528667"
+      },
+      {
+        "sourceColumnName": "department",
+        "targetPropertyId": "9668032434359367130"
+      },
+      {
+        "sourceColumnName": "facility_id",
+        "targetPropertyId": "1937537302968911833"
+      },
+      {
+        "sourceColumnName": "is_active",
+        "targetPropertyId": "7186672249748239995"
+      },
+      {
+        "sourceColumnName": "provider_key",
+        "targetPropertyId": "2828324910278984952"
+      },
+      {
+        "sourceColumnName": "is_current",
+        "targetPropertyId": "7081253962955468001"
+      },
+      {
+        "sourceColumnName": "effective_start_date",
+        "targetPropertyId": "2519294846596842603"
+      },
+      {
+        "sourceColumnName": "effective_end_date",
+        "targetPropertyId": "1025915108707936205"
+      },
+      {
+        "sourceColumnName": "_load_timestamp",
+        "targetPropertyId": "2043580996091117343"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "00000000-0000-0000-0000-000000000000",
+      "sourceTableName": "dim_provider",
+      "sourceSchema": null
+    }
+  }
+}

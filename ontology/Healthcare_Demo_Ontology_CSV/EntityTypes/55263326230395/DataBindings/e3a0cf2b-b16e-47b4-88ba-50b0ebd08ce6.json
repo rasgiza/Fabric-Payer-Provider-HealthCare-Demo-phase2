@@ -1,0 +1,80 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "e3a0cf2b-b16e-47b4-88ba-50b0ebd08ce6",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "encounter_id",
+        "targetPropertyId": "2403272767901931505"
+      },
+      {
+        "sourceColumnName": "encounter_date_key",
+        "targetPropertyId": "6548107809305067540"
+      },
+      {
+        "sourceColumnName": "discharge_date_key",
+        "targetPropertyId": "4316760421414844212"
+      },
+      {
+        "sourceColumnName": "patient_key",
+        "targetPropertyId": "2084039146274617492"
+      },
+      {
+        "sourceColumnName": "provider_key",
+        "targetPropertyId": "1030997974760077959"
+      },
+      {
+        "sourceColumnName": "facility_key",
+        "targetPropertyId": "4019115612793672018"
+      },
+      {
+        "sourceColumnName": "encounter_type",
+        "targetPropertyId": "4663754916343461930"
+      },
+      {
+        "sourceColumnName": "admission_type",
+        "targetPropertyId": "998348848141531852"
+      },
+      {
+        "sourceColumnName": "discharge_disposition",
+        "targetPropertyId": "6533880535253615890"
+      },
+      {
+        "sourceColumnName": "length_of_stay",
+        "targetPropertyId": "9458098194905093839"
+      },
+      {
+        "sourceColumnName": "total_charges",
+        "targetPropertyId": "4483224804080873047"
+      },
+      {
+        "sourceColumnName": "total_cost",
+        "targetPropertyId": "1645045069500357690"
+      },
+      {
+        "sourceColumnName": "readmission_flag",
+        "targetPropertyId": "9694901882978803404"
+      },
+      {
+        "sourceColumnName": "readmission_risk_score",
+        "targetPropertyId": "2706730855779324051"
+      },
+      {
+        "sourceColumnName": "readmission_risk_category",
+        "targetPropertyId": "7632052652411535052"
+      },
+      {
+        "sourceColumnName": "encounter_key",
+        "targetPropertyId": "8004543326438987425"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "00000000-0000-0000-0000-000000000000",
+      "sourceTableName": "fact_encounter",
+      "sourceSchema": null
+    }
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/entityType/1.0.0/schema.json",
+  "id": "61117405960503",
+  "namespace": "usertypes",
+  "baseEntityTypeId": null,
+  "name": "Medication",
+  "entityIdParts": [
+    "1082496750316097198"
+  ],
+  "displayNamePropertyId": "7416001134573415879",
+  "namespaceType": "Custom",
+  "visibility": "Visible",
+  "properties": [
+    {
+      "id": "1082496750316097198",
+      "name": "medication_key",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "3124836506197540297",
+      "name": "rxnorm_code",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "7416001134573415879",
+      "name": "medication_name",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "7050348330793438039",
+      "name": "generic_name",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "5494536834554108657",
+      "name": "drug_class",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "1399419467808419690",
+      "name": "therapeutic_area",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "8448247326836354247",
+      "name": "route",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "638868472364364117",
+      "name": "form",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "8404754555170087664",
+      "name": "strength",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "String"
+    },
+    {
+      "id": "7677656189377453341",
+      "name": "is_chronic",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "4524031250138956175",
+      "name": "is_active",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "BigInt"
+    },
+    {
+      "id": "2186632138353690600",
+      "name": "load_timestamp",
+      "redefines": null,
+      "baseTypeNamespaceType": null,
+      "valueType": "DateTime"
+    }
+  ]
+}

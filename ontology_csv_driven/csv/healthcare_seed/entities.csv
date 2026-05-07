@@ -1,0 +1,12 @@
+entity_name,key_property,display_property,business_description,domain_group
+Encounter,encounter_key,encounter_id,,
+Diagnosis,diagnosis_key,icd_description,,
+Payer,payer_key,payer_name,,
+Claim,claim_key,claim_id,,
+Medication,medication_key,medication_name,,
+Prescription,prescription_key,prescription_id,,
+Provider,provider_key,provider_id,,
+Patient,patient_key,patient_id,,
+MedicationAdherence,adherence_key,adherence_category,,
+CommunityHealth,zip_code,zip_code,,
+PatientDiagnosis,diagnosis_key,,,

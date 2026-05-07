@@ -277,6 +277,11 @@ print("Loading dimension tables from lh_gold_curated...")
 
 df_patients = spark.sql("SELECT patient_id, first_name, last_name, gender, date_of_birth, zip_code FROM lh_gold_curated.dim_patient WHERE is_current = true").toPandas()
 df_providers = spark.sql("SELECT provider_id, display_name AS provider_name, specialty, facility_id FROM lh_gold_curated.dim_provider WHERE is_current = true").toPandas()
+# Synthesize network_status if not present in dim_provider (deterministic by provider_id)
+import hashlib as _hashlib_net
+def _net_status(pid):
+    return "in_network" if int(_hashlib_net.md5(str(pid).encode()).hexdigest(), 16) % 100 < 85 else "out_of_network"
+df_providers["network_status"] = df_providers["provider_id"].apply(_net_status)
 df_facilities = spark.sql("SELECT facility_id, facility_name, facility_type, latitude, longitude FROM lh_gold_curated.dim_facility").toPandas()
 df_diagnoses = spark.sql("SELECT DISTINCT icd_code AS diagnosis_code, icd_description AS diagnosis_description FROM lh_gold_curated.dim_diagnosis").toPandas()
 df_medications = spark.sql("SELECT DISTINCT rxnorm_code AS medication_code, medication_name, drug_class FROM lh_gold_curated.dim_medication").toPandas()
@@ -319,6 +324,16 @@ FRAUD_PATTERNS = {
     "amount_outlier": 0.04,
     "upcoding": 0.03,
 }
+
+DENIAL_REASON_CODES = [
+    ("CO-16", 0.25),   # Lacks information needed for adjudication
+    ("CO-97", 0.20),   # Service included in another procedure
+    ("CO-50", 0.15),   # Not deemed medical necessity
+    ("CO-29", 0.15),   # Time limit for filing expired
+    ("CO-18", 0.10),   # Duplicate claim
+    ("PR-1", 0.15),    # Deductible amount
+]
+CONTROLLED_SUBSTANCE_CLASSES = {"Opioid Analgesic", "Benzodiazepine", "Stimulant", "Sedative-Hypnotic"}
 
 # METADATA **{"language":"python"}**
 
@@ -382,6 +397,25 @@ def generate_claims_events(n: int) -> pd.DataFrame:
             lon += random.uniform(3, 8) * random.choice([-1, 1])
             fraud_flags.append("geo_anomaly")
 
+        # Denial logic: out-of-network and fraud-flagged claims have higher denial rate
+        _denial_prob = 0.08  # baseline 8% denial rate
+        if provider.get("network_status") == "out_of_network":
+            _denial_prob += 0.25
+        if fraud_flags:
+            _denial_prob += 0.20
+        _is_denied = random.random() < _denial_prob
+        _denial_reason = ""
+        if _is_denied:
+            _r = random.random()
+            _cum = 0.0
+            for _code, _w in DENIAL_REASON_CODES:
+                _cum += _w
+                if _r <= _cum:
+                    _denial_reason = _code
+                    break
+            if not _denial_reason:
+                _denial_reason = DENIAL_REASON_CODES[0][0]
+
         events.append({
             "event_id": str(uuid.uuid4()),
             "event_timestamp": event_ts.isoformat(),
@@ -389,12 +423,16 @@ def generate_claims_events(n: int) -> pd.DataFrame:
             "claim_id": f"CLM-{uuid.uuid4().hex[:10].upper()}",
             "patient_id": patient["patient_id"],
             "provider_id": provider["provider_id"],
+            "provider_specialty": specialty,
+            "provider_network_status": provider.get("network_status", "in_network"),
             "facility_id": provider.get("facility_id", ""),
             "payer_id": payer["payer_id"],
             "diagnosis_code": diag["diagnosis_code"] if isinstance(diag, dict) else diag.get("diagnosis_code", "Z00.00"),
             "procedure_code": proc_code,
             "claim_type": claim_type,
             "claim_amount": round(base_amount, 2),
+            "is_denied": _is_denied,
+            "denial_reason_code": _denial_reason,
             "latitude": round(lat, 6),
             "longitude": round(lon, 6),
             "injected_fraud_flags": "|".join(fraud_flags) if fraud_flags else "",
@@ -462,9 +500,11 @@ def generate_rx_events(n: int) -> pd.DataFrame:
             "event_type": "RX_FILL",
             "patient_id": patient["patient_id"],
             "provider_id": provider["provider_id"],
+            "provider_specialty": provider.get("specialty", "Primary Care"),
             "medication_code": med["medication_code"] if isinstance(med, dict) else med.get("medication_code", "RX0001"),
             "medication_name": med["medication_name"] if isinstance(med, dict) else med.get("medication_name", "Generic"),
             "drug_class": med.get("drug_class", "Other") if isinstance(med, dict) else "Other",
+            "is_controlled_substance": (med.get("drug_class", "Other") if isinstance(med, dict) else "Other") in CONTROLLED_SUBSTANCE_CLASSES,
             "quantity": random.choice([30, 60, 90]),
             "days_supply": random.choice([30, 60, 90]),
             "latitude": round(lat, 6),

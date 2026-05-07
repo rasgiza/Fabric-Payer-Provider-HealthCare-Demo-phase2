@@ -242,7 +242,7 @@ if _cnt == 0:
     )
 
 print(f"  claims_events in KQL: {_cnt} rows")
-_cols, _rows = _kql_query_to_records("claims_events | project event_id, event_timestamp, event_type, claim_id, patient_id, provider_id, facility_id, payer_id, diagnosis_code, procedure_code, claim_type, claim_amount, latitude, longitude, injected_fraud_flags")
+_cols, _rows = _kql_query_to_records("claims_events | project event_id, event_timestamp, event_type, claim_id, patient_id, provider_id, provider_specialty, provider_network_status, facility_id, payer_id, diagnosis_code, procedure_code, claim_type, claim_amount, is_denied, denial_reason_code, latitude, longitude, injected_fraud_flags")
 _records = [dict(zip(_cols, row)) for row in _rows]
 df_claims = spark.createDataFrame(_records)
 df_claims = (df_claims
@@ -403,6 +403,8 @@ df_output = df_scored.select(
     "claim_id",
     "patient_id",
     "provider_id",
+    F.coalesce(F.col("provider_specialty"), F.lit("")).alias("provider_specialty"),
+    F.coalesce(F.col("provider_network_status"), F.lit("in_network")).alias("provider_network_status"),
     "facility_id",
     "claim_amount",
     "diagnosis_code",
@@ -478,7 +480,8 @@ if KUSTO_QUERY_URI and KUSTO_INGEST_URI:
         # Select columns matching KQL fraud_scores schema
         df_kql = df_output.select(
             "score_id", "score_timestamp", "claim_id", "patient_id",
-            "provider_id", "facility_id", "claim_amount", "fraud_score",
+            "provider_id", "provider_specialty", "provider_network_status",
+            "facility_id", "claim_amount", "fraud_score",
             "fraud_flags", "risk_tier", "latitude", "longitude"
         ).toPandas()
 
@@ -489,9 +492,9 @@ if KUSTO_QUERY_URI and KUSTO_INGEST_URI:
         # Ensure table, streaming policy, and mapping exist before ingesting
         _mgmt_client = KustoClient(engine_kcsb)
         _mgmt_cmds = [
-            """.create-merge table fraud_scores (score_id:string,score_timestamp:datetime,claim_id:string,patient_id:string,provider_id:string,facility_id:string,claim_amount:real,fraud_score:real,fraud_flags:string,risk_tier:string,latitude:real,longitude:real)""",
+            """.create-merge table fraud_scores (score_id:string,score_timestamp:datetime,claim_id:string,patient_id:string,provider_id:string,provider_specialty:string,provider_network_status:string,facility_id:string,claim_amount:real,fraud_score:real,fraud_flags:string,risk_tier:string,latitude:real,longitude:real)""",
             """.alter table fraud_scores policy streamingingestion enable""",
-            """.create-or-alter table fraud_scores ingestion json mapping 'fraud_scores_mapping' '[{"column":"score_id","path":"$.score_id","datatype":"string"},{"column":"score_timestamp","path":"$.score_timestamp","datatype":"datetime"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"fraud_score","path":"$.fraud_score","datatype":"real"},{"column":"fraud_flags","path":"$.fraud_flags","datatype":"string"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+            """.create-or-alter table fraud_scores ingestion json mapping 'fraud_scores_mapping' '[{"column":"score_id","path":"$.score_id","datatype":"string"},{"column":"score_timestamp","path":"$.score_timestamp","datatype":"datetime"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"provider_specialty","path":"$.provider_specialty","datatype":"string"},{"column":"provider_network_status","path":"$.provider_network_status","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"fraud_score","path":"$.fraud_score","datatype":"real"},{"column":"fraud_flags","path":"$.fraud_flags","datatype":"string"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
         ]
         for _cmd in _mgmt_cmds:
             try:

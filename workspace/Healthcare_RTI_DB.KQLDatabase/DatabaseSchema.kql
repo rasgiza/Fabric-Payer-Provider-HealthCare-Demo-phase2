@@ -13,12 +13,16 @@
     claim_id: string,
     patient_id: string,
     provider_id: string,
+    provider_specialty: string,
+    provider_network_status: string,
     facility_id: string,
     payer_id: string,
     diagnosis_code: string,
     procedure_code: string,
     claim_type: string,
     claim_amount: real,
+    is_denied: bool,
+    denial_reason_code: string,
     latitude: real,
     longitude: real,
     injected_fraud_flags: string
@@ -45,9 +49,11 @@
     event_type: string,
     patient_id: string,
     provider_id: string,
+    provider_specialty: string,
     medication_code: string,
     medication_name: string,
     drug_class: string,
+    is_controlled_substance: bool,
     quantity: int,
     days_supply: int,
     latitude: real,
@@ -64,9 +70,26 @@
     claim_id: string,
     patient_id: string,
     provider_id: string,
+    provider_specialty: string,
+    provider_network_status: string,
     fraud_score: real,
     fraud_flags: string,
     risk_tier: string,
+    latitude: real,
+    longitude: real
+)
+
+.create-merge table provider_alerts (
+    alert_id: string,
+    alert_timestamp: datetime,
+    provider_id: string,
+    provider_specialty: string,
+    alert_type: string,
+    metric_value: real,
+    threshold: real,
+    time_window: string,
+    priority: string,
+    alert_text: string,
     latitude: real,
     longitude: real
 )
@@ -109,17 +132,22 @@
 
 .alter table rx_events policy streamingingestion enable
 
+.alter table provider_alerts policy streamingingestion enable
+
 // ============================================================================
 // 4. INGESTION MAPPING — JSON mapping for Eventstream Custom Endpoint
 // ============================================================================
 
 .create-or-alter table claims_events ingestion json mapping 'claims_events_mapping'
-    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"}]'
+    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"provider_specialty","path":"$.provider_specialty","datatype":"string"},{"column":"provider_network_status","path":"$.provider_network_status","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"is_denied","path":"$.is_denied","datatype":"bool"},{"column":"denial_reason_code","path":"$.denial_reason_code","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"}]'
 
 .create-or-alter table adt_events ingestion json mapping 'adt_events_mapping'
     '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"admission_type","path":"$.admission_type","datatype":"string"},{"column":"primary_diagnosis","path":"$.primary_diagnosis","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"has_open_care_gaps","path":"$.has_open_care_gaps","datatype":"bool"},{"column":"open_gap_measures","path":"$.open_gap_measures","datatype":"string"}]'
 
 .create-or-alter table rx_events ingestion json mapping 'rx_events_mapping'
-    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"medication_code","path":"$.medication_code","datatype":"string"},{"column":"medication_name","path":"$.medication_name","datatype":"string"},{"column":"drug_class","path":"$.drug_class","datatype":"string"},{"column":"quantity","path":"$.quantity","datatype":"int"},{"column":"days_supply","path":"$.days_supply","datatype":"int"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'
+    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"provider_specialty","path":"$.provider_specialty","datatype":"string"},{"column":"medication_code","path":"$.medication_code","datatype":"string"},{"column":"medication_name","path":"$.medication_name","datatype":"string"},{"column":"drug_class","path":"$.drug_class","datatype":"string"},{"column":"is_controlled_substance","path":"$.is_controlled_substance","datatype":"bool"},{"column":"quantity","path":"$.quantity","datatype":"int"},{"column":"days_supply","path":"$.days_supply","datatype":"int"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'
+
+.create-or-alter table provider_alerts ingestion json mapping 'provider_alerts_mapping'
+    '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"provider_specialty","path":"$.provider_specialty","datatype":"string"},{"column":"alert_type","path":"$.alert_type","datatype":"string"},{"column":"metric_value","path":"$.metric_value","datatype":"real"},{"column":"threshold","path":"$.threshold","datatype":"real"},{"column":"time_window","path":"$.time_window","datatype":"string"},{"column":"priority","path":"$.priority","datatype":"string"},{"column":"alert_text","path":"$.alert_text","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'
 
 

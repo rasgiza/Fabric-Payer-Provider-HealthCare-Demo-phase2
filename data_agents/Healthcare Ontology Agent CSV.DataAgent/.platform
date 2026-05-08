@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataAgent",
+    "displayName": "Healthcare Ontology Agent CSV"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "59d887f1-a35c-4e01-b0a5-98a2e3d09c4d"
+  }
+}

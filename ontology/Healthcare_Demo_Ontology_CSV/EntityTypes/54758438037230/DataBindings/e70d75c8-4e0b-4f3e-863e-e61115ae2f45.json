@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/dataBinding/1.0.0/schema.json",
+  "id": "e70d75c8-4e0b-4f3e-863e-e61115ae2f45",
+  "dataBindingConfiguration": {
+    "dataBindingType": "NonTimeSeries",
+    "propertyBindings": [
+      {
+        "sourceColumnName": "sdoh_key",
+        "targetPropertyId": "1026000704564023767"
+      },
+      {
+        "sourceColumnName": "zip_code",
+        "targetPropertyId": "5293854050443595058"
+      },
+      {
+        "sourceColumnName": "state",
+        "targetPropertyId": "7688006116154741984"
+      },
+      {
+        "sourceColumnName": "poverty_rate",
+        "targetPropertyId": "9005300474133960806"
+      },
+      {
+        "sourceColumnName": "food_desert_flag",
+        "targetPropertyId": "1369896941958115265"
+      },
+      {
+        "sourceColumnName": "transportation_score",
+        "targetPropertyId": "8387850259218128294"
+      },
+      {
+        "sourceColumnName": "housing_instability_rate",
+        "targetPropertyId": "1937343217548419595"
+      },
+      {
+        "sourceColumnName": "uninsured_rate",
+        "targetPropertyId": "2391871151460721540"
+      },
+      {
+        "sourceColumnName": "broadband_access_pct",
+        "targetPropertyId": "2644847923190821156"
+      },
+      {
+        "sourceColumnName": "median_household_income",
+        "targetPropertyId": "6545450705695561242"
+      },
+      {
+        "sourceColumnName": "population",
+        "targetPropertyId": "2537397278063122772"
+      },
+      {
+        "sourceColumnName": "social_vulnerability_index",
+        "targetPropertyId": "875770320316538807"
+      },
+      {
+        "sourceColumnName": "risk_tier",
+        "targetPropertyId": "6757495541436474086"
+      },
+      {
+        "sourceColumnName": "is_active",
+        "targetPropertyId": "640820163224747701"
+      },
+      {
+        "sourceColumnName": "_load_timestamp",
+        "targetPropertyId": "8069759610588187318"
+      }
+    ],
+    "sourceTableProperties": {
+      "sourceType": "LakehouseTable",
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "itemId": "00000000-0000-0000-0000-000000000000",
+      "sourceTableName": "dim_sdoh",
+      "sourceSchema": null
+    }
+  }
+}

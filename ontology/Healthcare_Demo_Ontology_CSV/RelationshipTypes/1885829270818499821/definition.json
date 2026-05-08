@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "1885829270818499821",
+  "name": "ClaimHasPayer",
+  "namespaceType": "Imported",
+  "source": {
+    "entityTypeId": "83993665977547"
+  },
+  "target": {
+    "entityTypeId": "25567466345623"
+  }
+}

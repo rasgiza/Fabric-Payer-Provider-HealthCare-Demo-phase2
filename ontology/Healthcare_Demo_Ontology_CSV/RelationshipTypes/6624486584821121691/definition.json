@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/relationshipType/1.0.0/schema.json",
+  "namespace": "usertypes",
+  "id": "6624486584821121691",
+  "name": "livesIn",
+  "namespaceType": "Imported",
+  "source": {
+    "entityTypeId": "18563672824402"
+  },
+  "target": {
+    "entityTypeId": "54758438037230"
+  }
+}

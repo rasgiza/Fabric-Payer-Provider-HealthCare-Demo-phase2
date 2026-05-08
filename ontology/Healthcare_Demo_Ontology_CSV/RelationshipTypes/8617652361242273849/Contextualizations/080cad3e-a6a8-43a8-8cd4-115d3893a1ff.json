@@ -1,0 +1,23 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/ontology/contextualization/1.0.0/schema.json",
+  "id": "080cad3e-a6a8-43a8-8cd4-115d3893a1ff",
+  "dataBindingTable": {
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "itemId": "00000000-0000-0000-0000-000000000000",
+    "sourceTableName": "agg_medication_adherence",
+    "sourceSchema": null,
+    "sourceType": "LakehouseTable"
+  },
+  "sourceKeyRefBindings": [
+    {
+      "sourceColumnName": "adherence_key",
+      "targetPropertyId": "160334140684906322"
+    }
+  ],
+  "targetKeyRefBindings": [
+    {
+      "sourceColumnName": "patient_key",
+      "targetPropertyId": "4370496831255814283"
+    }
+  ]
+}

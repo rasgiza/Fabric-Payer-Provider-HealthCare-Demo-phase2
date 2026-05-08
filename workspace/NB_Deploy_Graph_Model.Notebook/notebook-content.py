@@ -48,9 +48,11 @@ ONTOLOGY_NAME = os.environ.get("FABRIC_ONTOLOGY_NAME", "Healthcare_Demo_Ontology
 GRAPH_MODEL_NAME = os.environ.get("FABRIC_GRAPH_MODEL_NAME", "Healthcare_Demo_Graph")
 print(f"  ONTOLOGY_NAME    = {ONTOLOGY_NAME}")
 print(f"  GRAPH_MODEL_NAME = {GRAPH_MODEL_NAME}")
-GITHUB_OWNER = "rasgiza"
-GITHUB_REPO = "Fabric-Payer-Provider-HealthCare-Demo"
-GITHUB_BRANCH = "main"
+# Repo coordinates may be overridden via env vars (launcher sets these).
+GITHUB_OWNER = os.environ.get("FABRIC_GITHUB_OWNER", "rasgiza")
+GITHUB_REPO = os.environ.get("FABRIC_GITHUB_REPO", "Fabric-Payer-Provider-HealthCare-Demo-phase2")
+GITHUB_BRANCH = os.environ.get("FABRIC_GITHUB_BRANCH", "main")
+print(f"  GITHUB_REPO      = {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}")
 
 # -- Auth & Discovery -------------------------------------------------
 from notebookutils import mssparkutils

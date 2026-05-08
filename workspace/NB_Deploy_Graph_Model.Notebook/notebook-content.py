@@ -78,44 +78,32 @@ print(f"  Lakehouse: lh_gold_curated ({lh_gold_id})")
 
 GM_API = f"{API}/workspaces/{workspace_id}/graphModels"
 
-# -- Find ontology directory ------------------------------------------
-ont_dir = None
-for base in [".lakehouse/default/Files/src", "/lakehouse/default/Files/src"]:
-    if not os.path.isdir(base):
-        continue
-    direct = os.path.join(base, "ontology", ONTOLOGY_NAME)
-    if os.path.isdir(direct):
-        ont_dir = direct
-        break
-    for sub in os.listdir(base):
-        nested = os.path.join(base, sub, "ontology", ONTOLOGY_NAME)
-        if os.path.isdir(nested):
-            ont_dir = nested
-            break
-    if ont_dir:
-        break
-
-if not ont_dir:
-    import tempfile
-    print(f"  Ontology not found locally -- downloading from GitHub...")
-    raw_base = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/ontology/{ONTOLOGY_NAME}"
-    r_manifest = requests.get(f"{raw_base}/manifest.json")
-    r_manifest.raise_for_status()
-    manifest = r_manifest.json()
-    ont_dir = tempfile.mkdtemp(prefix="ontology_")
-    with open(os.path.join(ont_dir, "manifest.json"), "w", encoding="utf-8") as mf:
-        json.dump(manifest, mf, indent=2)
-    for part_info in manifest.get("exportedParts", []):
-        part_path = part_info["path"]
-        r_part = requests.get(f"{raw_base}/{part_path}")
-        r_part.raise_for_status()
-        dest = os.path.join(ont_dir, part_path.replace("/", os.sep))
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        with open(dest, "wb") as pf:
-            pf.write(r_part.content)
-    print(f"  Downloaded ontology to: {ont_dir}")
-else:
-    print(f"  Ontology dir: {ont_dir}")
+# -- Download ontology directly from GitHub (deterministic, no fallbacks) ----
+import tempfile
+print(f"  Downloading ontology '{ONTOLOGY_NAME}' from GitHub...")
+raw_base = f"https://raw.githubusercontent.com/{GITHUB_OWNER}/{GITHUB_REPO}/{GITHUB_BRANCH}/ontology/{ONTOLOGY_NAME}"
+r_manifest = requests.get(f"{raw_base}/manifest.json")
+if r_manifest.status_code != 200:
+    raise RuntimeError(
+        f"Could not fetch manifest.json for ontology '{ONTOLOGY_NAME}' "
+        f"from {raw_base} (HTTP {r_manifest.status_code}). "
+        f"Verify the ontology exists at github.com/{GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}"
+    )
+manifest = r_manifest.json()
+ont_dir = tempfile.mkdtemp(prefix=f"ontology_{ONTOLOGY_NAME}_")
+with open(os.path.join(ont_dir, "manifest.json"), "w", encoding="utf-8") as mf:
+    json.dump(manifest, mf, indent=2)
+_dl = 0
+for part_info in manifest.get("exportedParts", []):
+    part_path = part_info["path"]
+    r_part = requests.get(f"{raw_base}/{part_path}")
+    r_part.raise_for_status()
+    dest = os.path.join(ont_dir, part_path.replace("/", os.sep))
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, "wb") as pf:
+        pf.write(r_part.content)
+    _dl += 1
+print(f"  Downloaded {_dl} parts to {ont_dir}")
 
 print()
 print("  [OK] Configuration ready")

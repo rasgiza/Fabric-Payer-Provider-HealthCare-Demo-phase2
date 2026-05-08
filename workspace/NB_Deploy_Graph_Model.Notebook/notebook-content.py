@@ -42,16 +42,23 @@ print("  NB_Deploy_Graph_Model -- Ontology Graph Deployer")
 print("=" * 60)
 
 # -- Config -----------------------------------------------------------
-# Names can be overridden via env vars so the same notebook can deploy
-# the HLS (semantic-model-driven) or CSV-driven ontology in parallel.
-ONTOLOGY_NAME = os.environ.get("FABRIC_ONTOLOGY_NAME", "Healthcare_Demo_Ontology_HLS")
-GRAPH_MODEL_NAME = os.environ.get("FABRIC_GRAPH_MODEL_NAME", "Healthcare_Demo_Graph")
+# When this notebook is invoked via notebookutils.notebook.run(..., {...}),
+# Fabric injects the parameters dict into globals BEFORE this cell runs.
+# So we only assign defaults if the caller did NOT provide values.
+# (env vars are not propagated to spawned notebook sessions, so we cannot
+# rely on os.environ here.)
+if "ONTOLOGY_NAME" not in globals():
+    ONTOLOGY_NAME = "Healthcare_Demo_Ontology_HLS"
+if "GRAPH_MODEL_NAME" not in globals():
+    GRAPH_MODEL_NAME = "Healthcare_Demo_Graph"
+if "GITHUB_OWNER" not in globals():
+    GITHUB_OWNER = "rasgiza"
+if "GITHUB_REPO" not in globals():
+    GITHUB_REPO = "Fabric-Payer-Provider-HealthCare-Demo-phase2"
+if "GITHUB_BRANCH" not in globals():
+    GITHUB_BRANCH = "main"
 print(f"  ONTOLOGY_NAME    = {ONTOLOGY_NAME}")
 print(f"  GRAPH_MODEL_NAME = {GRAPH_MODEL_NAME}")
-# Repo coordinates may be overridden via env vars (launcher sets these).
-GITHUB_OWNER = os.environ.get("FABRIC_GITHUB_OWNER", "rasgiza")
-GITHUB_REPO = os.environ.get("FABRIC_GITHUB_REPO", "Fabric-Payer-Provider-HealthCare-Demo-phase2")
-GITHUB_BRANCH = os.environ.get("FABRIC_GITHUB_BRANCH", "main")
 print(f"  GITHUB_REPO      = {GITHUB_OWNER}/{GITHUB_REPO}@{GITHUB_BRANCH}")
 
 # -- Auth & Discovery -------------------------------------------------

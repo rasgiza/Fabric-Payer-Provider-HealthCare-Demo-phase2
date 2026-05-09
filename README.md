@@ -120,7 +120,9 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent — lakehouse + semantic model (SQL aggregations) |
 | **Graph Agent** | `Healthcare Ontology Agent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
+| **Graph Agent (CSV)** | `Healthcare Ontology Agent CSV` | Parallel Copilot AI agent — bound to the CSV ontology (11 entities, 17 relationships; no Vitals) |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **auto-deployed** by Cell 10a (API) |
+| **Ontology (CSV)** | `Healthcare_Demo_Ontology_CSV` | CSV-driven entity model (11 entities, 17 relationships) — **auto-deployed** by Cell 9b (API) |
 | **Power BI Report** | `Healthcare Analytics Dashboard` | 6 pages, 60+ visuals — auto-deployed by fabric-cicd |
 | **Eventhouse** ⚡ | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine (`DEPLOY_STREAMING` only) |
 | **KQL Database** ⚡ | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) (`DEPLOY_STREAMING` only) |
@@ -276,8 +278,10 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 | **7** | Trigger `PL_Healthcare_Master` with `load_mode=full` — Bronze → Silver → Gold ETL (~8-15 min) |
 | **8** | Create & refresh `HealthcareDemoHLS` semantic model (Direct Lake, TMDL) |
 | **9** | Deploy ontology (`Healthcare_Demo_Ontology_HLS`) + run `NB_Deploy_Graph_Model` |
+| **9b** | Deploy CSV ontology (`Healthcare_Demo_Ontology_CSV`, 11 entities / 17 relationships) + run `NB_Deploy_Graph_Model` for CSV graph |
 | **10** | Patch `HealthcareHLSAgent` datasources with real lakehouse/SM IDs |
 | **11** | Create/patch `Healthcare Ontology Agent` with real ontology/graph model IDs |
+| **11b** | Create/patch `Healthcare Ontology Agent CSV` with real CSV ontology/graph model IDs |
 | **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent + create Eventstream (prints portal setup steps) |
 | **13** ⚡ | Deploy Real-Time Dashboard (4-page KQL dashboard) |
 | **14** | Organize workspace folders + print deployment summary |
@@ -544,6 +548,8 @@ The **HealthcareHLSOntology Agent** (graph agent) must be created manually in th
 
 3. The agent will connect to the graph model (12 entities, 18 relationships)
 
+   > **CSV variant:** if you are configuring `Healthcare Ontology Agent CSV` instead, select **`Healthcare_Demo_Ontology_CSV`** (11 entities, 17 relationships — no Vitals). Use the AI instructions from `data_agents/Healthcare Ontology Agent CSV.DataAgent/Files/Config/published/stage_config.json` (`aiInstructions` field). See [DATA_AGENT_INSTRUCTIONS.md → Section 3](DATA_AGENT_INSTRUCTIONS.md#3-healthcare-ontology-agent-csv-graph-agent--csv-variant) for the diff vs the HLS version.
+
 **Step 3: Configure AI Instructions**
 
 1. Click **Agent instructions** (top toolbar)
@@ -772,9 +778,11 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 │   ├── PL_Healthcare_Master.DataPipeline/
 │   ├── HealthcareDemoHLS.SemanticModel/
 │   ├── HealthcareHLSAgent.DataAgent/
-│   └── Healthcare Ontology Agent.DataAgent/
-├── ontology/                          # Ontology manifest (12 entities, 18 relationships) — deployed by Cell 10a
-│   └── Healthcare_Demo_Ontology_HLS/
+│   ├── Healthcare Ontology Agent.DataAgent/
+│   └── Healthcare Ontology Agent CSV.DataAgent/
+├── ontology/                          # Ontology manifests — deployed by Cell 9 (HLS) and Cell 9b (CSV)
+│   ├── Healthcare_Demo_Ontology_HLS/  # 12 entities, 18 relationships (includes Vitals)
+│   └── Healthcare_Demo_Ontology_CSV/  # 11 entities, 17 relationships (no Vitals)
 ├── healthcare_knowledge/              # AI agent knowledge base
 │   ├── clinical_guidelines/
 │   ├── compliance/

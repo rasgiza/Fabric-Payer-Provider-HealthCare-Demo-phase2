@@ -405,3 +405,39 @@ MedicationAdherence —[adherenceFor]→     Patient
 MedicationAdherence —[adherenceMedication]→ Medication
 Vitals             —[vitalsTakenFor]→    Patient
 ```
+
+
+---
+
+# 3. Healthcare Ontology Agent CSV (Graph Agent — CSV variant)
+
+> Stored in `data_agents/Healthcare Ontology Agent CSV.DataAgent/Files/Config/published/stage_config.json` → `aiInstructions` field
+
+A parallel graph agent bound to the **CSV-driven** ontology. It uses the same query patterns, performance rules, response formatting and clinical rules as Section 2, with the following ontology-driven differences:
+
+| Item | HLS (Section 2) | CSV (this section) |
+|------|-----------------|--------------------|
+| Ontology name | `Healthcare_Demo_Ontology_HLS` | `Healthcare_Demo_Ontology_CSV` |
+| Graph schema header | `(12 entities, 18 relationships)` | `(11 entities, 17 relationships)` |
+| `Vitals` entity | included | **removed** |
+| `Vitals —[vitalsTakenFor]→ Patient` relationship | included | **removed** |
+| `Vitals` KEY PROPERTIES line | included | **removed** |
+| `Vitals abnormal: ...` clinical rule | included | **removed** |
+| Topic list (opening sentence) | `..., adherence, vitals, and SDOH.` | `..., adherence, and SDOH.` |
+| `PatientDiagnosis` key property | `fact_diagnosis_key` | `patient_diagnosis_key` |
+
+Everything else (the 17 remaining relationships, all GQL examples, performance rules, MedicationAdherence patterns, SDOH risk_tier rules, response formatting, traversal approach, RULES) is **identical** between the two agents.
+
+## 3a — AI Instructions (stage_config.json)
+
+The full instruction text lives in the repo at:
+
+```
+data_agents/Healthcare Ontology Agent CSV.DataAgent/Files/Config/published/stage_config.json  →  "aiInstructions"
+```
+
+Copy the value of the `aiInstructions` JSON field and paste it into the **AI Instructions** field of `Healthcare Ontology Agent CSV` in the Fabric UI. Cell 11b of `Healthcare_Launcher.ipynb` also prints this text directly for convenience.
+
+## Graph Ontology (11 Entities, 17 Relationships)
+
+Same as Section 2, **minus the `Vitals` entity** and **minus the `Vitals —[vitalsTakenFor]→ Patient` relationship**.

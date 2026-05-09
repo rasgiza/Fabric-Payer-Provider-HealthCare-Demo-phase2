@@ -151,6 +151,29 @@ Open **Healthcare Ontology Agent** in your Fabric workspace. This agent navigate
 > 3. `Which patients have the most non-adherent drug classes?` (or any aggregation)
 > 4. Drill in on a specific patient from step 3.
 
+### Executive Pain-Point Questions — Graph / Network View
+
+These are the same boardroom pain points as the HealthcareHLSAgent executive section above, but framed as **network-traversal** questions the Graph Agent answers best — "show me the relationships, not the totals". Pair these with the SQL executive questions (E1–E29) for a complete demo arc: SQL gives the headline number, the Graph Agent shows the cause-and-effect across providers, payers, patients, and SDOH.
+
+| # | Persona | Question |
+|---|---------|----------|
+| GE1 | CFO | Trace a denied high-dollar claim end-to-end — which provider submitted it, to which payer, for which patient, what was the diagnosis, and what was the recommended action? |
+| GE2 | CFO | Show me the provider-payer denial network — which provider/payer combinations produce the most denials and what reasons recur? |
+| GE3 | VP Revenue Cycle | For a specific payer, walk the network: which providers bill them most, which encounter types drive the volume, and where are denials concentrated? |
+| GE4 | CMO | Pick a high-readmission-risk patient — show their full clinical network: encounters, providers who treated them, diagnoses, prescriptions, payer, and SDOH profile. |
+| GE5 | CMO | For our chronic-condition patients with poor adherence, who are their prescribing providers and which payers cover them? Show the intervention network. |
+| GE6 | CMIO | Walk a patient's medication adherence story — every drug class they're on, prescribing provider for each, payer, gap days, and where adherence is failing. |
+| GE7 | VP Pop Health | Show me the "triple-threat" patient cohort (non-adherent + high readmission risk + high SDOH risk) with their full provider-payer network so care management knows who to call. |
+| GE8 | VP Pop Health | For a chronic drug class (e.g., ACE Inhibitors, Statins), trace the network: which providers prescribe, which payers cover, average copay, and which patients are non-adherent. |
+| GE9 | COO | For socially vulnerable patients (risk_tier = 'High'), show the providers and payers in their network — are they getting continuity of care or fragmented access? |
+| GE10 | COO | Pick a food-desert zip code, show its members, their providers, their chronic medications, and which payers cover those scripts — surface the SDOH-care-network gap. |
+| GE11 | Chief Strategy | Show me the provider-payer-patient triangle for our most expensive specialty medications — who prescribes, who pays, who consumes. |
+| GE12 | Chief Strategy | For a top-volume provider, show their full payer mix — which payers send them the most claims, which deny most, and which pay best. |
+| GE13 | CMIO | Trace a single readmitted patient — original encounter, discharge, follow-up encounter, providers involved at each step, prescriptions issued, and adherence data. Where did the system fail? |
+| GE14 | VP Care Mgmt | Show the network of providers serving high-SDOH-risk patients — which providers are carrying the most social burden, and which payers are funding their care? |
+
+> **How to use these in a demo:**  the executive asks an SQL aggregation question (e.g., E14 "show me the triple-threat overlap") → headline number lands → switch to the Graph Agent and ask GE7 "now walk the provider-payer network for those patients" → the agent surfaces names of real providers and payers to call. That handoff between aggregation and traversal is the core value story.
+
 ### Provider Operations & Network
 | # | Question |
 |---|----------|

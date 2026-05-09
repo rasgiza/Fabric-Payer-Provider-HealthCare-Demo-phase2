@@ -1,5 +1,68 @@
 # Sample Questions — Healthcare Data Agents
 
+## Executive Pain-Point Questions (Boardroom & C-Suite)
+
+These are the questions an executive sponsor will actually ask in a demo or steering committee — framed in the language of revenue, risk, regulatory exposure, and member outcomes. Each block maps to one of the six pain points called out in the [README](README.md#why-this-demo--the-payer--provider-pain-points). **Use HealthcareHLSAgent for these** (they're aggregations / rates / rankings). For network-traversal follow-ups, switch to the Healthcare Ontology Agent.
+
+> **Demo flow tip:** ask the executive question → agent gives the headline number → drill in with the per-domain questions further down this file → end with a "what would we do about it?" question to surface intervention populations.
+
+### CFO / VP Revenue Cycle — "Where is money leaking?"
+| # | Question |
+|---|----------|
+| E1 | What is our total revenue at risk right now from claims that are denied or flagged high denial-risk but not yet denied? Break it down by payer. |
+| E2 | What is our denial rate this period vs. industry benchmark (~5–10%), and which 3 payers and 3 denial reasons account for the biggest dollar losses? |
+| E3 | Show me the reimbursement gap by payer — billed vs. allowed vs. paid — and rank payers by the percentage we're leaving on the table. |
+| E4 | If we cleaned up the top 3 denial reasons, how many dollars would we recover this quarter? |
+| E5 | Which providers have the highest denial rates and what is their dollar impact? Are these clinical documentation issues, coding issues, or payer-specific issues? |
+
+### CMO / CMIO — "Where are we hurting patients?"
+| # | Question |
+|---|----------|
+| E6 | What is our 30-day readmission rate overall and for the CMS HRRP-penalized conditions (CHF, COPD, AMI, pneumonia)? How does it trend month over month? |
+| E7 | Which patients are at highest readmission risk right now AND non-adherent to their chronic medications? These are our highest-acuity intervention targets — list the top 25 with their providers and payers. |
+| E8 | What is our estimated HRRP penalty exposure based on current readmission rates? |
+| E9 | Which chronic conditions drive the most readmissions, and what is the average cost per readmitted encounter? |
+| E10 | Show me high-cost encounters that ended in denied claims — these are double-loss events (clinical risk + revenue loss). |
+
+### VP Population Health / Quality — "How do we move our Star Ratings?"
+| # | Question |
+|---|----------|
+| E11 | What is our medication adherence rate (PDC ≥ 0.80) for the CMS Star triple-weighted measures — diabetes, RAS antagonists, and statins — and how far are we from the 4-star cut point? |
+| E12 | How many of our chronic-disease members are non-adherent right now? Break down by drug class so we know where to focus the pharmacy team. |
+| E13 | Which payers have the worst adherence for their members enrolled with us? This tells us where care management dollars buy the most lift. |
+| E14 | Show me the overlap of non-adherent + high readmission risk + high SDOH risk — our "triple-threat" population. How many members and what is their estimated annual cost? |
+| E15 | Which providers have the best and worst adherence in their patient panels? Are best-practice prescribers worth scaling? |
+
+### COO / VP Care Management — "Where do social factors blind us?"
+| # | Question |
+|---|----------|
+| E16 | How many of our members live in high social vulnerability zip codes (SVI risk_tier = High) and what percentage of them are also high readmission risk? |
+| E17 | For members in food-desert zip codes, what is the readmission rate and adherence rate vs. the rest of the population? Show the gap. |
+| E18 | Which providers serve the highest concentration of socially vulnerable patients? These are the providers we need to support with care-coordination resources. |
+| E19 | Are payers covering chronic medications adequately for our high-SDOH members, or are copays driving non-adherence? Show patient out-of-pocket by payer for chronic drug classes. |
+| E20 | If we launched an SDOH outreach program targeting the top SVI zip codes, how many members would be in scope? |
+
+### Chief Strategy Officer / Network VP — "How healthy is our payer-provider network?"
+| # | Question |
+|---|----------|
+| E21 | Which payers have the lowest collection rate (paid-to-billed ratio) and which contracts should we renegotiate first? |
+| E22 | Show me the provider-payer prescription network — which providers prescribe most heavily to each payer, and where are payer formularies driving cost shift to patients? |
+| E23 | Which 5 payers represent the largest share of our denied-claim dollars? |
+| E24 | Compare per-encounter cost across our top providers by specialty — who are the high-value vs. high-cost outliers? |
+| E25 | Which payers cover our highest-cost specialty medications and what is the patient out-of-pocket burden? |
+
+### CIO / Chief Data Officer — "Can we actually run the business off this?"
+| # | Question |
+|---|----------|
+| E26 | Are the claims, encounter, and prescription pipelines current? When was the last record ingested into Bronze, Silver, and Gold? |
+| E27 | How many records did we process in the last 24 hours and how does that compare to baseline? |
+| E28 | Are there any data-quality red flags right now — missing keys, late-arriving facts, broken referential integrity? |
+| E29 | Show me the same answer two ways — once as SQL aggregation (HealthcareHLSAgent) and once as graph traversal (Ontology Agent) — to prove the numbers reconcile. |
+
+> **Real-world framing:** these are the same questions executives ask in steering committee. The agents won't always answer them perfectly on the first try (especially Graph queries needing warm-up — see tip below) but they will answer the underlying drill-down questions reliably, which is how you build the executive narrative live in the room.
+
+---
+
 ## Fabric Data Agent (HealthcareHLSAgent)
 
 Open **HealthcareHLSAgent** in your Fabric workspace. The Data Agent queries the Gold lakehouse star schema directly. Copy-paste any of these to get started:

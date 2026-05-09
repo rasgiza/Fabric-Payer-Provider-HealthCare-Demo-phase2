@@ -317,6 +317,17 @@ The solution includes two complementary AI agents:
 
 See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ copy-paste questions organized by domain and agent.
 
+#### Recommended Demo Warm-Up Sequence (Graph Ontology Agent)
+
+The Graph Data Agent runs on top of an OpenAI assistant thread + tool-call harness. The first 1–2 calls after the agent is published spin up that thread and load the GQL examples from `aiInstructions` into the LLM's working context. Cold-starting straight into a complex aggregation question can surface as `submit_tool_outputs failed` (BadRequest) or "An error occurred". To get reliable demos, **always warm up with two simple list queries first**:
+
+1. `List 5 providers` — confirms the graph is reachable and primes provider entity.
+2. `Show me 5 patients` — primes patient entity and adherence relationship.
+3. `Which patients have the most non-adherent drug classes?` — the headline aggregation question (uses `MATCH ... FILTER ... LET ... GROUP BY ... ORDER BY ... LIMIT`).
+4. Pick a patient from step 3 and drill in: `Show me adherence details for <First> <Last>, age <N>`.
+
+This gives you both reliability (the assistant thread is warm) and a stronger narrative arc (broad → specific → recommendation).
+
 ### Data Agent Reference
 
 For the complete agent configuration -- AI instructions, concept-to-table routing, SQL rules, few-shot examples, knowledge base, and customization guide -- see **[DATA_AGENT_GUIDE.md](DATA_AGENT_GUIDE.md)**.

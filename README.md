@@ -315,7 +315,7 @@ The solution includes two complementary AI agents:
 - **HealthcareHLSAgent** — SQL-based agent for aggregations, rates, and trends ("What is the denial rate?", "Top 10 providers by cost")
 - **Healthcare Ontology Agent** — Graph traversal agent for entity lookups and relationships ("Tell me about patient PAT0000001", "Who treated this patient?", "Trace claim CLM0009999 from patient to payer")
 
-See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ copy-paste questions organized by domain and agent.
+See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 90+ copy-paste questions organized by domain and agent — including a top **[Executive Pain-Point Questions](SAMPLE_QUESTIONS.md#executive-pain-point-questions-boardroom--c-suite)** section (CFO, CMO, CMIO, COO, VP Pop Health, CIO) framed in real-world boardroom language.
 
 #### Recommended Demo Warm-Up Sequence (Graph Ontology Agent)
 

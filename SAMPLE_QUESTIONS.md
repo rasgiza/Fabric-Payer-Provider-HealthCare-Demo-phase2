@@ -81,6 +81,13 @@ Open **Healthcare Ontology Agent** in your Fabric workspace. This agent navigate
 
 > **Performance tip:** For "full profile" questions (e.g., Q1 below), the agent runs **separate queries** per relationship type (encounters, claims, prescriptions) rather than one giant query. This avoids Cartesian products that would create millions of intermediate rows and hang. Always specify a provider_id, name, or specialty to help the agent filter early.
 
+> **Warm-up tip (IMPORTANT for demos):** The Graph Agent runs on top of an OpenAI assistant thread. The first 1–2 calls after publishing spin up that thread and load the GQL examples into context. Cold-starting straight into a complex aggregation can fail with `submit_tool_outputs failed` or "An error occurred". **Always warm up first** with two simple list queries before the headline question:
+>
+> 1. `List 5 providers`
+> 2. `Show me 5 patients`
+> 3. `Which patients have the most non-adherent drug classes?` (or any aggregation)
+> 4. Drill in on a specific patient from step 3.
+
 ### Provider Operations & Network
 | # | Question |
 |---|----------|

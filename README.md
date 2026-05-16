@@ -12,7 +12,8 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
 ## Table of Contents
 
 1. [Why This Demo? — The Payer & Provider Pain Points](#why-this-demo--the-payer--provider-pain-points)
-2. [Quick Start](#quick-start)
+2. [Phase 2 — Persona Coverage (CMO / CFO / COO / CTO)](#phase-2--persona-coverage-cmo--cfo--coo--cto)
+3. [Quick Start](#quick-start)
 3. [What Gets Deployed](#what-gets-deployed)
    - [Data Volumes (Default)](#data-volumes-default)
 4. [Architecture](#architecture)
@@ -97,6 +98,71 @@ All from a single workspace deployed in minutes.
 
 ---
 
+## Phase 2 — Persona Coverage (CMO / CFO / COO / CTO)
+
+Phase 2 hardens the Real-Time Intelligence stack to close the operational
+"right-now" pain points for four executive personas without duplicating Power BI
+(strategic / historical) work.
+
+**Lane separation rule (anti-duplication with Power BI):**
+> If the answer doesn't change in ≥1 hour → **Power BI** (strategic).
+> If it changes in seconds-to-minutes → **RTI Dashboard** (operational).
+
+### What Phase 2 adds
+
+| Layer | New artifact | Purpose |
+|---|---|---|
+| **Eventhouse** | 8 new typed tables, 4 utility tables, 50+ new columns on `rti_all_events`, retention/caching/mirroring policies, `dashboard_thresholds` config | Production hardening + persona event coverage |
+| **Simulator** | 8 new event generators (15 event types total per batch) | Drives all CMO/CFO/COO/CTO tiles |
+| **Notebooks** | `NB_RTI_Provider_Alerts`, `NB_RTI_Payer_Alerts`, `NB_RTI_COO_Alerts`, `NB_RTI_CTO_Alerts`, `NB_RTI_Alert_Closure` | Generate persona alerts → Delta + KQL; track MTTR |
+| **Dashboard guide** | [`rti_dashboard/TILE_QUERY_PACK.md`](rti_dashboard/TILE_QUERY_PACK.md) | ~30 copy-paste KQL tiles across 6 persona pages |
+
+### Persona questions answered in real-time
+
+#### CMO — Chief Medical Officer
+Real-time clinical operations and quality:
+1. Which patients on the floor right now are deteriorating (NEWS2 ≥ 5, SIRS ≥ 2)?
+2. Are we seeing an HAI cluster forming on any ward in the last 72 hours?
+3. Which providers' quality metrics drifted in the last shift?
+4. Who was just readmitted within 30 days and what's the severity?
+5. Which patients are at high readmission risk *and* non-adherent to medications right now?
+6. What's our open-alert backlog by severity for clinical operations?
+
+#### CFO — Chief Financial Officer
+Real-time revenue protection and contract performance:
+1. What's our net revenue variance vs expected payment by contract type in the last 24h?
+2. Which underpayments crossed the −5% threshold in the last 6 hours?
+3. Which providers have the highest fraud scores right now and what's the dollar exposure?
+4. Which members are on accelerating cost trajectories?
+5. What's the open-alert backlog for revenue-cycle alerts?
+6. What's our care-gap closure volume today by gap type?
+
+#### COO — Chief Operating Officer
+Real-time capacity and staffing:
+1. What's the current ED boarding count vs threshold by facility?
+2. Which units are at ≥95% bed occupancy right now?
+3. Where is OR turnover time exceeding 60 minutes?
+4. Which wards have a staffing gap (nurse-to-acuity below target) right now?
+5. Who has been admitted longer than 7 days?
+6. What's the open-alert backlog for operations?
+
+#### CTO — Chief Technology Officer / Platform & Security
+Real-time platform health and trust:
+1. Which DQ rules are breaching threshold right now and on which source tables?
+2. What's the current ingestion lag (p50 / p90 / p99) by event type?
+3. Are there PHI access anomalies (geo / action / score) in the last hour?
+4. Which production models are drifting (PSI ≥ 0.1)?
+5. What's the open-alert backlog for platform health?
+
+> **Cross-persona view:** A 6th dashboard page combines all open alerts + MTTR
+> heatmap (persona × alert_type) + SLA burn-down trend, with closures fed back
+> by Power Automate via the receiver pattern in `NB_RTI_Alert_Closure`.
+
+See [`rti_dashboard/TILE_QUERY_PACK.md`](rti_dashboard/TILE_QUERY_PACK.md) for
+the copy-paste KQL behind every tile and the re-export workflow.
+
+---
+
 ## Quick Start
 
 1. **Create an empty Fabric workspace** (F64+ capacity recommended)
@@ -120,9 +186,7 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **Semantic Model** | `HealthcareDemoHLS` | Star schema for Power BI (facts + dimensions) |
 | **Data Agent** | `HealthcareHLSAgent` | Copilot AI agent — lakehouse + semantic model (SQL aggregations) |
 | **Graph Agent** | `Healthcare Ontology Agent` | Copilot AI agent — ontology graph traversal (entity lookups, care pathways) |
-| **Graph Agent (CSV)** | `Healthcare Ontology Agent CSV` | Parallel Copilot AI agent — bound to the CSV ontology (11 entities, 17 relationships; no Vitals) |
 | **Ontology** | `Healthcare_Demo_Ontology_HLS` | GraphQL entity model — **auto-deployed** by Cell 10a (API) |
-| **Ontology (CSV)** | `Healthcare_Demo_Ontology_CSV` | CSV-driven entity model (11 entities, 17 relationships) — **auto-deployed** by Cell 9b (API) |
 | **Power BI Report** | `Healthcare Analytics Dashboard` | 6 pages, 60+ visuals — auto-deployed by fabric-cicd |
 | **Eventhouse** ⚡ | `Healthcare_RTI_Eventhouse` | Git-tracked RTI compute engine (`DEPLOY_STREAMING` only) |
 | **KQL Database** ⚡ | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) (`DEPLOY_STREAMING` only) |
@@ -278,10 +342,8 @@ The launcher notebook (`Healthcare_Launcher.ipynb`) automates the entire deploym
 | **7** | Trigger `PL_Healthcare_Master` with `load_mode=full` — Bronze → Silver → Gold ETL (~8-15 min) |
 | **8** | Create & refresh `HealthcareDemoHLS` semantic model (Direct Lake, TMDL) |
 | **9** | Deploy ontology (`Healthcare_Demo_Ontology_HLS`) + run `NB_Deploy_Graph_Model` |
-| **9b** | Deploy CSV ontology (`Healthcare_Demo_Ontology_CSV`, 11 entities / 17 relationships) + run `NB_Deploy_Graph_Model` for CSV graph |
 | **10** | Patch `HealthcareHLSAgent` datasources with real lakehouse/SM IDs |
 | **11** | Create/patch `Healthcare Ontology Agent` with real ontology/graph model IDs |
-| **11b** | Create/patch `Healthcare Ontology Agent CSV` with real CSV ontology/graph model IDs |
 | **12** ⚡ | Run RTI notebooks (Setup, Simulator, Fraud, CareGap, HighCost) + deploy OpsAgent + create Eventstream (prints portal setup steps) |
 | **13** ⚡ | Deploy Real-Time Dashboard (4-page KQL dashboard) |
 | **14** | Organize workspace folders + print deployment summary |
@@ -315,18 +377,7 @@ The solution includes two complementary AI agents:
 - **HealthcareHLSAgent** — SQL-based agent for aggregations, rates, and trends ("What is the denial rate?", "Top 10 providers by cost")
 - **Healthcare Ontology Agent** — Graph traversal agent for entity lookups and relationships ("Tell me about patient PAT0000001", "Who treated this patient?", "Trace claim CLM0009999 from patient to payer")
 
-See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 90+ copy-paste questions organized by domain and agent — including a top **[Executive Pain-Point Questions](SAMPLE_QUESTIONS.md#executive-pain-point-questions-boardroom--c-suite)** section (CFO, CMO, CMIO, COO, VP Pop Health, CIO) framed in real-world boardroom language.
-
-#### Recommended Demo Warm-Up Sequence (Graph Ontology Agent)
-
-The Graph Data Agent runs on top of an OpenAI assistant thread + tool-call harness. The first 1–2 calls after the agent is published spin up that thread and load the GQL examples from `aiInstructions` into the LLM's working context. Cold-starting straight into a complex aggregation question can surface as `submit_tool_outputs failed` (BadRequest) or "An error occurred". To get reliable demos, **always warm up with two simple list queries first**:
-
-1. `List 5 providers` — confirms the graph is reachable and primes provider entity.
-2. `Show me 5 patients` — primes patient entity and adherence relationship.
-3. `Which patients have the most non-adherent drug classes?` — the headline aggregation question (uses `MATCH ... FILTER ... LET ... GROUP BY ... ORDER BY ... LIMIT`).
-4. Pick a patient from step 3 and drill in: `Show me adherence details for <First> <Last>, age <N>`.
-
-This gives you both reliability (the assistant thread is warm) and a stronger narrative arc (broad → specific → recommendation).
+See **[SAMPLE_QUESTIONS.md](SAMPLE_QUESTIONS.md)** for 80+ copy-paste questions organized by domain and agent.
 
 ### Data Agent Reference
 
@@ -360,6 +411,17 @@ For troubleshooting hybrid query failures (compound questions, instruction trunc
 ## Real-Time Intelligence (RTI) — 3 Payer/Provider Use Cases
 
 When `DEPLOY_STREAMING=True`, the launcher deploys a full RTI stack: **Eventhouse + KQL Database + 3 scoring notebooks + OpsAgent + RTI Dashboard** that address high-value payer/provider pain points where batch analytics fall short.
+
+> **Demo hardening (Phase 2.1)**: see [`DEMO_SCENARIOS.md`](DEMO_SCENARIOS.md)
+> for the four seeded stories (Maria Lopez readmit, Dr. Raj Singh fraud spike,
+> John Patient cross-stream, Beaumont Royal Oak capacity). Run
+> `NB_RTI_Seed_Scenarios` after the simulator is streaming, then visit the new
+> **Triage & Performance** page in `Healthcare_RTI_Dashboard` for the
+> cross-stream / provider-scorecard / MTTD-MTTR tiles. The dashboard's MTTR
+> stat is fed by `alert_closure_events`, which is populated by the
+> **Acknowledge** action in the `Healthcare_RTI_NotifyCareTeam` Power Automate
+> adaptive card — this closes the loop from alert → notify → ack → measurable
+> response.
 
 ### Use Case 1: Claims Fraud Detection
 
@@ -559,8 +621,6 @@ The **HealthcareHLSOntology Agent** (graph agent) must be created manually in th
 
 3. The agent will connect to the graph model (12 entities, 18 relationships)
 
-   > **CSV variant:** if you are configuring `Healthcare Ontology Agent CSV` instead, select **`Healthcare_Demo_Ontology_CSV`** (11 entities, 17 relationships — no Vitals). Use the AI instructions from `data_agents/Healthcare Ontology Agent CSV.DataAgent/Files/Config/published/stage_config.json` (`aiInstructions` field). See [DATA_AGENT_INSTRUCTIONS.md → Section 3](DATA_AGENT_INSTRUCTIONS.md#3-healthcare-ontology-agent-csv-graph-agent--csv-variant) for the diff vs the HLS version.
-
 **Step 3: Configure AI Instructions**
 
 1. Click **Agent instructions** (top toolbar)
@@ -652,6 +712,32 @@ Data Activator (Reflex) is the **production-grade alerting layer** for this solu
 
 > **Power Automate integration**: For complex routing (create ServiceNow tickets, update EHR systems, page on-call staff), select **Power Automate** as the action and build a flow that reads the alert payload. The Reflex trigger passes all card fields as dynamic content to the flow.
 
+**Rule 4 — 30-Day Readmission (Care Transitions Alert)**
+
+| Setting | Value |
+|---------|-------|
+| **Table** | `readmission_events` |
+| **Monitor** | `readmission_risk_score` |
+| **Condition** | `readmission_risk_score >= 70 OR (days_since_discharge <= 7 AND readmission_risk_score >= 50)` |
+| **Action 1** | **Teams** → post to `#care-transitions` channel |
+| **Action 2** | **Power Automate** → create Care Transitions task in EHR (optional) |
+| **Card fields** | patient_id, facility_id, days_since_discharge, drg_code, current_diagnosis, prior_diagnosis, readmission_risk_score |
+| **Email Subject** | `🔁 Readmission Alert — Patient {{patient_id}}: {{days_since_discharge}}d since discharge` |
+| **Email Body** | `Risk {{readmission_risk_score}}/100, DRG {{drg_code}}, Prior dx: {{prior_diagnosis}}, Current dx: {{current_diagnosis}}` |
+
+#### Pre-Demo Health Check
+
+Before any executive demo, run the verification script to confirm streaming, scoring, and patient ID overlap are all healthy:
+
+```powershell
+cd Payer-Provider-Phase-2-Ongoing-main\scripts
+$env:KUSTO_QUERY_URI = "https://<your-eventhouse>.z9.kusto.fabric.microsoft.com"
+$env:KQL_DATABASE = "Healthcare_RTI_DB"
+python verify_demo_ready.py
+```
+
+The script runs 8 checks (input freshness, scoring freshness, threshold coverage, readmission landing, ADT enum, patient ID overlap). Exits non-zero on any FAIL. **Do not present if any check fails.** See [scripts/verify_demo_ready.py](scripts/verify_demo_ready.py).
+
 #### Real-World Pain Points Solved
 
 | Pain Point | How Activator Solves It |
@@ -659,8 +745,9 @@ Data Activator (Reflex) is the **production-grade alerting layer** for this solu
 | **Fraud goes undetected for days** | Fraud scores ≥ 50 trigger immediate SIU email — MTTD drops from days to minutes |
 | **Care gaps missed during admissions** | Patients with overdue HEDIS measures are flagged on admission — care coordinators act while the patient is still in-house |
 | **High-cost members escalate silently** | Spending trajectories > $50K/30d trigger proactive case management before costs spiral |
+| **30-day readmissions detected after-the-fact** | `readmission_events` fires within minutes of a re-admit ADT — care transitions team gets a Teams alert with prior DRG and discharge date |
 | **Alert fatigue from noisy dashboards** | Activator fires only when thresholds breach — no polling, no dashboards to watch |
-| **Ops teams lack unified triage** | Combined with the Operations Agent, alerts from all 3 streams flow into a single prioritized view |
+| **Ops teams lack unified triage** | Combined with the Operations Agent, alerts from all 4 streams (fraud, care gaps, high-cost, readmissions) flow into a single prioritized view |
 | **Compliance audit trail gaps** | Every Activator trigger is logged with timestamp, threshold, and action taken — ready for audit |
 
 ### Run Incremental Loads
@@ -789,11 +876,9 @@ Edit the top cell of `Healthcare_Launcher.ipynb`:
 │   ├── PL_Healthcare_Master.DataPipeline/
 │   ├── HealthcareDemoHLS.SemanticModel/
 │   ├── HealthcareHLSAgent.DataAgent/
-│   ├── Healthcare Ontology Agent.DataAgent/
-│   └── Healthcare Ontology Agent CSV.DataAgent/
-├── ontology/                          # Ontology manifests — deployed by Cell 9 (HLS) and Cell 9b (CSV)
-│   ├── Healthcare_Demo_Ontology_HLS/  # 12 entities, 18 relationships (includes Vitals)
-│   └── Healthcare_Demo_Ontology_CSV/  # 11 entities, 17 relationships (no Vitals)
+│   └── Healthcare Ontology Agent.DataAgent/
+├── ontology/                          # Ontology manifest (12 entities, 18 relationships) — deployed by Cell 10a
+│   └── Healthcare_Demo_Ontology_HLS/
 ├── healthcare_knowledge/              # AI agent knowledge base
 │   ├── clinical_guidelines/
 │   ├── compliance/

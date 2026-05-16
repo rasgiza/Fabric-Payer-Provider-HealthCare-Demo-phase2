@@ -388,11 +388,22 @@ df_provider_source = df_providers.select(
     col("specialty"),
     coalesce(col("department"), lit("General")).alias("department"),
     coalesce(col("facility_id"), lit(None).cast("string")).alias("facility_id"),
-    when(col("is_active").cast("boolean") == True, 1).otherwise(0).alias("is_active")
+    when(col("is_active").cast("boolean") == True, 1).otherwise(0).alias("is_active"),
+    coalesce(col("contract_type"), lit("FFS")).alias("contract_type"),
+    coalesce(col("fte_status"), lit("Full-time")).alias("fte_status"),
+    coalesce(col("years_experience").cast("int"), lit(0)).alias("years_experience"),
+    coalesce(col("board_certified").cast("boolean"), lit(False)).alias("board_certified"),
+    coalesce(col("patient_panel_size").cast("int"), lit(0)).alias("patient_panel_size"),
+    coalesce(col("annual_rvu_target").cast("int"), lit(0)).alias("annual_rvu_target"),
+    coalesce(col("actual_rvu").cast("int"), lit(0)).alias("actual_rvu"),
+    coalesce(col("patient_satisfaction_score").cast("double"), lit(0.0)).alias("patient_satisfaction_score"),
+    coalesce(col("telehealth_enabled").cast("boolean"), lit(False)).alias("telehealth_enabled"),
+    coalesce(col("documentation_score").cast("int"), lit(0)).alias("documentation_score"),
+    coalesce(col("ehr_adoption_score").cast("int"), lit(0)).alias("ehr_adoption_score")
 ).dropDuplicates(["provider_id"])
 
 PROVIDER_TABLE = f"{GOLD}.dim_provider"
-PROVIDER_TRACKED = ["specialty", "department", "facility_id"]
+PROVIDER_TRACKED = ["specialty", "department", "facility_id", "contract_type", "fte_status", "board_certified"]
 
 # Check if table exists AND has SCD2 columns
 has_scd2_prov = False
@@ -483,32 +494,38 @@ print("=" * 60)
 print("4. Loading dim_payer (Type 1)")
 print("=" * 60)
 
-# Try dedicated payer table, fallback to deriving from claims
+# Try dedicated payer table, fallback to ref_payers in Bronze, then derive from claims
 try:
     df_payers = spark.table(f"{SILVER}.payers_enriched")
     print("   Source: payers_enriched")
 except AnalysisException:
-    df_claims_src = spark.table(f"{SILVER}.claims_enriched")
-    df_payers = df_claims_src.select("payer_id", "payer_name").distinct()
-    print(f"   Source: derived from claims ({df_payers.count()} payers)")
+    try:
+        df_payers = spark.table("lh_bronze_raw.ref_payers")
+        print(f"   Source: ref_payers from Bronze ({df_payers.count()} payers)")
+    except Exception:
+        df_claims_src = spark.table(f"{SILVER}.claims_enriched")
+        df_payers = df_claims_src.select("payer_id", "payer_name").distinct()
+        print(f"   Source: derived from claims ({df_payers.count()} payers)")
 
 # Use upstream payer_type if available (from ref_payers join), otherwise derive
 payer_cols = [c.lower() for c in df_payers.columns]
+
+# Build select list — include new payer columns if available
+select_cols = [col("payer_id"), col("payer_name")]
 if "payer_type" in payer_cols:
-    df_payer_source = df_payers.select(
-        col("payer_id"),
-        col("payer_name"),
-        col("payer_type")
-    ).dropDuplicates(["payer_id"])
+    select_cols.append(col("payer_type"))
 else:
-    df_payer_source = df_payers.select(
-        col("payer_id"),
-        col("payer_name"),
+    select_cols.append(
         when(lower(col("payer_name")).contains("medicare"), "Medicare")
         .when(lower(col("payer_name")).contains("medicaid"), "Medicaid")
         .when(lower(col("payer_name")).contains("self") | lower(col("payer_name")).contains("cash"), "Self-Pay")
         .otherwise("Commercial").alias("payer_type")
-    ).dropDuplicates(["payer_id"])
+    )
+for extra_col in ["plan_type", "state", "network_size", "avg_reimbursement_pct"]:
+    if extra_col in payer_cols:
+        select_cols.append(col(extra_col))
+
+df_payer_source = df_payers.select(*select_cols).dropDuplicates(["payer_id"])
 
 PAYER_TABLE = f"{GOLD}.dim_payer"
 
@@ -1034,10 +1051,15 @@ df_facility_lkp = spark.table(f"{GOLD}.dim_facility") \
 
 # Check if encounter-level risk scores exist (from data generator)
 has_encounter_risk = "readmission_risk" in df_encounters.columns
+has_drg = "drg_code" in df_encounters.columns
 if has_encounter_risk:
     print("   ✓ Found encounter-level readmission_risk — using directly")
 else:
     print("   ⚠️ No encounter-level risk scores — using defaults (0.25)")
+if has_drg:
+    print("   ✓ Found DRG codes — including in fact_encounter")
+else:
+    print("   ⚠️ No DRG codes — columns will be null")
 
 # Build fact
 df_enc = df_encounters.alias("e") \
@@ -1073,7 +1095,12 @@ df_fact_encounter = df_enc.select(
     coalesce(col("e.discharge_disposition"), lit("Home")).alias("discharge_disposition"),
     coalesce(col("e.length_of_stay").cast("int"), lit(1)).alias("length_of_stay"),
     coalesce(col("e.total_charges").cast("double"), lit(0.0)).alias("total_charges"),
-    (coalesce(col("e.total_charges").cast("double"), lit(0.0)) * 0.7).alias("total_cost"),
+    coalesce(col("e.cost_to_deliver").cast("double") if has_drg else lit(None),
+             col("e.total_charges").cast("double") * 0.7, lit(0.0)).alias("total_cost"),
+    (col("e.drg_code") if has_drg else lit(None)).alias("drg_code"),
+    (col("e.drg_description") if has_drg else lit(None)).alias("drg_description"),
+    (col("e.drg_weight").cast("double") if has_drg else lit(None)).alias("drg_weight"),
+    (col("e.expected_reimbursement").cast("double") if has_drg else lit(None)).alias("expected_reimbursement"),
     when(coalesce(_risk_score, lit(0.0)) >= 0.5, lit(1)).otherwise(lit(0)).alias("readmission_flag"),
     _risk_score.alias("readmission_risk_score"),
     (when(_risk_score >= 0.7, "High")
@@ -1115,6 +1142,17 @@ print("7. Loading fact_claim")
 print("=" * 60)
 
 df_claims = spark.table(f"{SILVER}.claims_enriched")
+
+# Check for new appeal/days_to_payment columns from generator
+has_appeal_data = "appeal_outcome" in df_claims.columns
+has_days_to_payment = "days_to_payment" in df_claims.columns
+has_net_collection = "net_collection_rate" in df_claims.columns
+if has_appeal_data:
+    print("   ✓ Found appeal tracking columns")
+if has_days_to_payment:
+    print("   ✓ Found days_to_payment column")
+if has_net_collection:
+    print("   ✓ Found net_collection_rate column")
 
 # Dimension lookups — CURRENT records only
 df_patient_lkp = spark.table(f"{GOLD}.dim_patient") \
@@ -1234,6 +1272,22 @@ df_fact_claim = df_clm.select(
         .when(col("_denial_reason_idx") == 5, lit("Verify network status or obtain authorization"))
         .otherwise(coalesce(col("ml.recommended_action") if has_denial_ml else lit(None), lit("Gather missing documentation and resubmit")))
     ).otherwise(lit(None)).alias("recommended_action"),
+    # Days to payment: use source column or derive from dates
+    coalesce(
+        col("c.days_to_payment").cast("int") if has_days_to_payment else lit(None),
+        datediff(to_date(coalesce("c.payment_date", "c.claim_date")), to_date("c.claim_date"))
+    ).alias("days_to_payment"),
+    # Net collection rate: paid / allowed (industry standard)
+    coalesce(
+        col("c.net_collection_rate").cast("double") if has_net_collection else lit(None),
+        when(coalesce(col("c.allowed_amount").cast("double"), lit(0.0)) > 0,
+             coalesce(col("c.paid_amount").cast("double"), lit(0.0)) / col("c.allowed_amount").cast("double"))
+        .otherwise(lit(0.0))
+    ).alias("net_collection_rate"),
+    # Appeal tracking
+    (col("c.appeal_date") if has_appeal_data else lit(None)).alias("appeal_date"),
+    (col("c.appeal_outcome") if has_appeal_data else lit(None)).alias("appeal_outcome"),
+    (col("c.appeal_amount_recovered").cast("double") if has_appeal_data else lit(None)).alias("appeal_amount_recovered"),
     current_timestamp().alias("_load_timestamp")
 ).dropDuplicates(["claim_id"])
 
@@ -1482,6 +1536,316 @@ if df_dx is not None:
 
 # MARKDOWN **{"language":"markdown"}**
 
+# ## 7d. dim_plan (Type 1 — Stable Keys)
+# Plan dimension built from `ref_plans` reference data (one row per plan offered by a payer).
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7d. Loading dim_plan (Type 1)")
+print("=" * 60)
+
+try:
+    df_plans_src = spark.table("lh_bronze_raw.ref_plans")
+    print(f"   Source: lh_bronze_raw.ref_plans ({df_plans_src.count()} plans)")
+except AnalysisException:
+    # Derive from member_enrollment_enriched if ref_plans missing
+    df_plans_src = spark.table(f"{SILVER}.member_enrollment_enriched") \
+        .select("plan_id", "payer_id").distinct() \
+        .withColumn("plan_name", concat(lit("Plan "), col("plan_id"))) \
+        .withColumn("line_of_business", lit(None).cast("string")) \
+        .withColumn("plan_type", lit(None).cast("string")) \
+        .withColumn("metal_tier", lit(None).cast("string")) \
+        .withColumn("state", lit(None).cast("string")) \
+        .withColumn("network_size", lit(None).cast("string")) \
+        .withColumn("effective_date", lit(None).cast("string")) \
+        .withColumn("termination_date", lit(None).cast("string")) \
+        .withColumn("is_capitated", lit(False)) \
+        .withColumn("avg_pmpm_premium", lit(None).cast("double"))
+    print(f"   Source: derived from member_enrollment ({df_plans_src.count()} plans)")
+
+df_plan_source = df_plans_src.dropDuplicates(["plan_id"])
+PLAN_TABLE = f"{GOLD}.dim_plan"
+if IS_FULL:
+    w = Window.orderBy("plan_id")
+    df_plan_keyed = df_plan_source.withColumn("plan_key", row_number().over(w).cast("bigint"))
+else:
+    df_plan_keyed = assign_keys(df_plan_source, PLAN_TABLE, "plan_key", "plan_id")
+
+df_plan_final = df_plan_keyed \
+    .withColumn("is_active", lit(1)) \
+    .withColumn("_load_timestamp", current_timestamp())
+
+df_plan_final.write.format("delta").mode("overwrite") \
+    .option("overwriteSchema", "true") \
+    .saveAsTable(PLAN_TABLE)
+print(f"   ✓ dim_plan: {spark.table(PLAN_TABLE).count():,} rows")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# ## 7e. fact_premium  (one row per member-month: revenue side of MLR)
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7e. Loading fact_premium")
+print("=" * 60)
+
+try:
+    df_prem = spark.table(f"{SILVER}.premiums_enriched")
+    df_pat_lkp  = spark.table(f"{GOLD}.dim_patient").filter("is_current = 1").select("patient_key", "patient_id")
+    df_plan_lkp = spark.table(f"{GOLD}.dim_plan").select("plan_key", "plan_id")
+    df_pyr_lkp  = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+
+    df_fact_prem = df_prem.alias("p") \
+        .join(df_pat_lkp.alias("pt"),  col("p.member_id") == col("pt.patient_id"), "left") \
+        .join(df_plan_lkp.alias("pl"), col("p.plan_id")   == col("pl.plan_id"),    "left") \
+        .join(df_pyr_lkp.alias("py"),  col("p.payer_id")  == col("py.payer_id"),   "left") \
+        .select(
+            col("p.premium_id"),
+            col("p.year_month"),
+            (regexp_replace(col("p.year_month"), "-", "").cast("int") * 100 + lit(1)).alias("year_month_key"),
+            col("pt.patient_key").alias("member_key"),
+            col("pl.plan_key"),
+            col("py.payer_key"),
+            col("p.premium_amount").cast("double"),
+            col("p.subsidy_amount").cast("double"),
+            col("p.member_paid").cast("double"),
+            current_timestamp().alias("_load_timestamp"),
+        ).dropDuplicates(["premium_id"])
+
+    PREM_TABLE = f"{GOLD}.fact_premium"
+    if IS_FULL:
+        w = Window.orderBy("premium_id")
+        df_prem_keyed = df_fact_prem.withColumn("premium_key", row_number().over(w).cast("bigint"))
+    else:
+        df_prem_keyed = assign_keys(df_fact_prem, PREM_TABLE, "premium_key", "premium_id")
+
+    df_prem_keyed.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .partitionBy("year_month") \
+        .saveAsTable(PREM_TABLE)
+    print(f"   ✓ fact_premium: {spark.table(PREM_TABLE).count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ fact_premium skipped: {e}")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# ## 7f. fact_authorization (Prior Authorizations)
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7f. Loading fact_authorization")
+print("=" * 60)
+
+try:
+    df_auth = spark.table(f"{SILVER}.authorizations_enriched")
+    df_pat_lkp  = spark.table(f"{GOLD}.dim_patient").filter("is_current = 1").select("patient_key", "patient_id")
+    df_prv_lkp  = spark.table(f"{GOLD}.dim_provider").filter("is_current = 1").select("provider_key", "provider_id")
+    df_pyr_lkp  = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+
+    df_fact_auth = df_auth.alias("a") \
+        .join(df_pat_lkp.alias("pt"), col("a.patient_id")  == col("pt.patient_id"),  "left") \
+        .join(df_prv_lkp.alias("pr"), col("a.provider_id") == col("pr.provider_id"), "left") \
+        .join(df_pyr_lkp.alias("py"), col("a.payer_id")    == col("py.payer_id"),    "left") \
+        .select(
+            col("a.auth_id"),
+            (year("a.submit_date")  * 10000 + month("a.submit_date")  * 100 + dayofmonth("a.submit_date")).alias("submit_date_key"),
+            (year("a.decision_date")* 10000 + month("a.decision_date")* 100 + dayofmonth("a.decision_date")).alias("decision_date_key"),
+            col("pt.patient_key").alias("member_key"),
+            col("pr.provider_key"),
+            col("py.payer_key"),
+            col("a.claim_id"),
+            col("a.cpt_code"),
+            col("a.primary_diagnosis_code"),
+            col("a.auth_outcome"),
+            col("a.decision_tat_hours").cast("double"),
+            col("a.auth_units_requested").cast("int"),
+            col("a.auth_units_approved").cast("int"),
+            current_timestamp().alias("_load_timestamp"),
+        ).dropDuplicates(["auth_id"])
+
+    AUTH_TABLE = f"{GOLD}.fact_authorization"
+    if IS_FULL:
+        w = Window.orderBy("auth_id")
+        df_auth_keyed = df_fact_auth.withColumn("auth_key", row_number().over(w).cast("bigint"))
+    else:
+        df_auth_keyed = assign_keys(df_fact_auth, AUTH_TABLE, "auth_key", "auth_id")
+
+    df_auth_keyed.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(AUTH_TABLE)
+    print(f"   ✓ fact_authorization: {spark.table(AUTH_TABLE).count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ fact_authorization skipped: {e}")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# ## 7g. fact_capitation (Monthly capitation payments to PCPs)
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7g. Loading fact_capitation")
+print("=" * 60)
+
+try:
+    df_cap = spark.table(f"{SILVER}.capitation_enriched")
+    df_pat_lkp  = spark.table(f"{GOLD}.dim_patient").filter("is_current = 1").select("patient_key", "patient_id")
+    df_prv_lkp  = spark.table(f"{GOLD}.dim_provider").filter("is_current = 1").select("provider_key", "provider_id")
+    df_pyr_lkp  = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+    df_pln_lkp  = spark.table(f"{GOLD}.dim_plan").select("plan_key", "plan_id")
+
+    df_fact_cap = df_cap.alias("c") \
+        .join(df_pat_lkp.alias("pt"), col("c.member_id")   == col("pt.patient_id"),  "left") \
+        .join(df_prv_lkp.alias("pr"), col("c.provider_id") == col("pr.provider_id"), "left") \
+        .join(df_pyr_lkp.alias("py"), col("c.payer_id")    == col("py.payer_id"),    "left") \
+        .join(df_pln_lkp.alias("pl"), col("c.plan_id")     == col("pl.plan_id"),     "left") \
+        .select(
+            col("c.capitation_id"),
+            col("c.year_month"),
+            col("pt.patient_key").alias("member_key"),
+            col("pr.provider_key"),
+            col("py.payer_key"),
+            col("pl.plan_key"),
+            col("c.capitation_pmpm").cast("double"),
+            col("c.withhold_pct").cast("double"),
+            col("c.bonus_eligible"),
+            current_timestamp().alias("_load_timestamp"),
+        ).dropDuplicates(["capitation_id"])
+
+    CAP_TABLE = f"{GOLD}.fact_capitation"
+    if IS_FULL:
+        w = Window.orderBy("capitation_id")
+        df_cap_keyed = df_fact_cap.withColumn("capitation_key", row_number().over(w).cast("bigint"))
+    else:
+        df_cap_keyed = assign_keys(df_fact_cap, CAP_TABLE, "capitation_key", "capitation_id")
+
+    df_cap_keyed.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .partitionBy("year_month") \
+        .saveAsTable(CAP_TABLE)
+    print(f"   ✓ fact_capitation: {spark.table(CAP_TABLE).count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ fact_capitation skipped: {e}")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# ## 7h. fact_appeal (Multi-level claim appeals)
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7h. Loading fact_appeal")
+print("=" * 60)
+
+try:
+    df_apl = spark.table(f"{SILVER}.claim_appeals_enriched")
+    df_pat_lkp  = spark.table(f"{GOLD}.dim_patient").filter("is_current = 1").select("patient_key", "patient_id")
+    df_pyr_lkp  = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+    df_clm_lkp  = spark.table(f"{GOLD}.fact_claim").select(col("claim_key"), col("claim_id"))
+
+    df_fact_apl = df_apl.alias("a") \
+        .join(df_pat_lkp.alias("pt"), col("a.patient_id") == col("pt.patient_id"), "left") \
+        .join(df_pyr_lkp.alias("py"), col("a.payer_id")   == col("py.payer_id"),   "left") \
+        .join(df_clm_lkp.alias("cl"), col("a.claim_id")   == col("cl.claim_id"),   "left") \
+        .select(
+            col("a.appeal_id"),
+            col("cl.claim_key"),
+            col("a.claim_id"),
+            col("pt.patient_key").alias("member_key"),
+            col("py.payer_key"),
+            (year("a.submit_date")  * 10000 + month("a.submit_date")  * 100 + dayofmonth("a.submit_date")).alias("submit_date_key"),
+            (year("a.decision_date")* 10000 + month("a.decision_date")* 100 + dayofmonth("a.decision_date")).alias("decision_date_key"),
+            col("a.appeal_level"),
+            col("a.appeal_level_num").cast("int"),
+            col("a.appeal_outcome"),
+            col("a.appeal_amount_recovered").cast("double"),
+            col("a.appeal_reason"),
+            current_timestamp().alias("_load_timestamp"),
+        ).dropDuplicates(["appeal_id"])
+
+    APL_TABLE = f"{GOLD}.fact_appeal"
+    if IS_FULL:
+        w = Window.orderBy("appeal_id")
+        df_apl_keyed = df_fact_apl.withColumn("appeal_key", row_number().over(w).cast("bigint"))
+    else:
+        df_apl_keyed = assign_keys(df_fact_apl, APL_TABLE, "appeal_key", "appeal_id")
+
+    df_apl_keyed.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(APL_TABLE)
+    print(f"   ✓ fact_appeal: {spark.table(APL_TABLE).count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ fact_appeal skipped: {e}")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
+# ## 7i. bridge_provider_contract (Provider × Payer M:N)
+
+# METADATA **{"language":"python"}**
+
+# CELL **{"language":"python"}**
+
+print("=" * 60)
+print("7i. Loading bridge_provider_contract")
+print("=" * 60)
+
+try:
+    df_ctr = spark.table(f"{SILVER}.provider_contracts_enriched")
+    df_prv_lkp  = spark.table(f"{GOLD}.dim_provider").filter("is_current = 1").select("provider_key", "provider_id")
+    df_pyr_lkp  = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+
+    df_bridge = df_ctr.alias("c") \
+        .join(df_prv_lkp.alias("pr"), col("c.provider_id") == col("pr.provider_id"), "left") \
+        .join(df_pyr_lkp.alias("py"), col("c.payer_id")    == col("py.payer_id"),    "left") \
+        .select(
+            col("c.contract_id"),
+            col("pr.provider_key"),
+            col("py.payer_key"),
+            col("c.contract_type"),
+            col("c.effective_date"),
+            col("c.termination_date"),
+            col("c.fee_schedule_pct_medicare").cast("double"),
+            col("c.withhold_pct").cast("double"),
+            col("c.quality_bonus_pct").cast("double"),
+            col("c.is_in_network"),
+            current_timestamp().alias("_load_timestamp"),
+        ).dropDuplicates(["contract_id"])
+
+    BRIDGE_TABLE = f"{GOLD}.bridge_provider_contract"
+    df_bridge.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(BRIDGE_TABLE)
+    print(f"   ✓ bridge_provider_contract: {spark.table(BRIDGE_TABLE).count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ bridge_provider_contract skipped: {e}")
+
+# METADATA **{"language":"markdown"}**
+
+# MARKDOWN **{"language":"markdown"}**
+
 # ## 8. Aggregate Tables (Full Rebuild)
 
 # METADATA **{"language":"python"}**
@@ -1559,6 +1923,227 @@ df_agg_denial_payer.write.format("delta").mode("overwrite") \
     .option("overwriteSchema", "true") \
     .saveAsTable(f"{GOLD}.agg_denial_by_payer")
 print(f"   ✓ agg_denial_by_payer: {df_agg_denial_payer.count():,} rows")
+
+# --- agg_revenue_by_drg (cost per case vs reimbursement by DRG) ---
+if "drg_code" in df_fact_enc.columns:
+    df_drg_encounters = df_fact_enc.filter(col("drg_code").isNotNull())
+    if df_drg_encounters.count() > 0:
+        df_agg_drg = df_drg_encounters.groupBy("drg_code", "drg_description").agg(
+            count("*").alias("case_count"),
+            avg("total_charges").alias("avg_charges"),
+            avg("total_cost").alias("avg_cost_to_deliver"),
+            avg("expected_reimbursement").alias("avg_expected_reimbursement"),
+            avg("drg_weight").alias("avg_drg_weight"),
+            avg("length_of_stay").alias("avg_los"),
+            sum("total_charges").alias("total_charges"),
+            sum("total_cost").alias("total_cost_to_deliver"),
+            sum("expected_reimbursement").alias("total_expected_reimbursement"),
+        ).withColumn(
+            "margin_per_case",
+            col("avg_expected_reimbursement") - col("avg_cost_to_deliver")
+        ).withColumn(
+            "margin_pct",
+            when(col("avg_cost_to_deliver") > 0,
+                 (col("avg_expected_reimbursement") - col("avg_cost_to_deliver")) / col("avg_cost_to_deliver") * 100
+            ).otherwise(lit(0.0))
+        )
+        df_agg_drg.write.format("delta").mode("overwrite") \
+            .option("overwriteSchema", "true") \
+            .saveAsTable(f"{GOLD}.agg_revenue_by_drg")
+        print(f"   ✓ agg_revenue_by_drg: {df_agg_drg.count():,} rows")
+    else:
+        print("   ⚠️ No DRG-coded encounters — skipping agg_revenue_by_drg")
+else:
+    print("   ⚠️ No drg_code column in fact_encounter — skipping agg_revenue_by_drg")
+
+# --- agg_days_in_ar (days-to-payment by payer, trending over time) ---
+if "days_to_payment" in df_fact_clm.columns:
+    df_ar_with_payer = df_fact_clm.filter(col("days_to_payment").isNotNull()).join(
+        df_dim_payer, df_fact_clm.payer_key == df_dim_payer.payer_key, "left"
+    )
+    df_agg_ar = df_ar_with_payer.groupBy(
+        df_fact_clm.claim_date_key,
+        df_dim_payer.payer_name,
+        df_dim_payer.payer_type
+    ).agg(
+        count("*").alias("total_claims"),
+        avg("days_to_payment").alias("avg_days_to_payment"),
+        percentile_approx("days_to_payment", 0.5).alias("median_days_to_payment"),
+        percentile_approx("days_to_payment", 0.9).alias("p90_days_to_payment"),
+        sum("billed_amount").alias("total_billed"),
+        sum("paid_amount").alias("total_paid"),
+        avg("net_collection_rate").alias("avg_net_collection_rate"),
+    )
+    df_agg_ar.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_days_in_ar")
+    print(f"   ✓ agg_days_in_ar: {df_agg_ar.count():,} rows")
+else:
+    print("   ⚠️ No days_to_payment column — skipping agg_days_in_ar")
+
+# --- agg_appeal_outcomes (appeal success rate by denial reason and payer) ---
+if "appeal_outcome" in df_fact_clm.columns:
+    df_appeals = df_fact_clm.filter(col("appeal_outcome").isNotNull())
+    if df_appeals.count() > 0:
+        df_appeals_with_payer = df_appeals.join(
+            df_dim_payer, df_appeals.payer_key == df_dim_payer.payer_key, "left"
+        )
+        df_agg_appeals = df_appeals_with_payer.groupBy(
+            df_dim_payer.payer_name,
+            df_appeals.primary_denial_reason,
+            df_appeals.appeal_outcome
+        ).agg(
+            count("*").alias("appeal_count"),
+            sum("billed_amount").alias("total_billed"),
+            sum("appeal_amount_recovered").alias("total_recovered"),
+            avg("appeal_amount_recovered").alias("avg_recovered"),
+        )
+        df_agg_appeals.write.format("delta").mode("overwrite") \
+            .option("overwriteSchema", "true") \
+            .saveAsTable(f"{GOLD}.agg_appeal_outcomes")
+        print(f"   ✓ agg_appeal_outcomes: {df_agg_appeals.count():,} rows")
+    else:
+        print("   ⚠️ No appeal records found — skipping agg_appeal_outcomes")
+else:
+    print("   ⚠️ No appeal_outcome column — skipping agg_appeal_outcomes")
+
+# --- agg_mlr_by_payer_month (Medical Loss Ratio: claims paid / premiums collected) ---
+try:
+    df_premium = spark.table(f"{GOLD}.fact_premium")
+    df_claim   = spark.table(f"{GOLD}.fact_claim")
+    df_payer_d = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id", "payer_name", "payer_type")
+
+    df_prem_agg = df_premium.groupBy("payer_key", "year_month").agg(
+        sum("premium_amount").alias("premium_collected")
+    )
+    # Build year_month label from claim_date_key (yyyymmdd → yyyy-MM)
+    df_clm_with_ym = df_claim.withColumn(
+        "year_month",
+        concat_ws("-",
+                  substring(col("claim_date_key").cast("string"), 1, 4),
+                  substring(col("claim_date_key").cast("string"), 5, 2))
+    )
+    df_clm_agg = df_clm_with_ym.groupBy("payer_key", "year_month").agg(
+        sum("paid_amount").alias("medical_paid"),
+        sum("billed_amount").alias("billed"),
+        count("*").alias("claim_count"),
+    )
+    df_mlr = df_prem_agg.join(df_clm_agg, ["payer_key", "year_month"], "outer") \
+        .join(df_payer_d, "payer_key", "left") \
+        .withColumn("mlr_pct",
+            when(coalesce(col("premium_collected"), lit(0.0)) > 0,
+                 col("medical_paid") / col("premium_collected"))
+            .otherwise(lit(None).cast("double"))
+        )
+    df_mlr.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_mlr_by_payer_month")
+    print(f"   ✓ agg_mlr_by_payer_month: {df_mlr.count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ agg_mlr_by_payer_month skipped: {e}")
+
+# --- agg_hedis_compliance (per measure × payer × year, already aggregated upstream) ---
+try:
+    df_hedis = spark.table(f"{SILVER}.hedis_compliance_enriched")
+    df_payer_d = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+    df_plan_d  = spark.table(f"{GOLD}.dim_plan").select("plan_key", "plan_id")
+    df_hedis_g = df_hedis.alias("h") \
+        .join(df_payer_d.alias("py"), col("h.payer_id") == col("py.payer_id"), "left") \
+        .join(df_plan_d.alias("pl"),  col("h.plan_id")  == col("pl.plan_id"),  "left") \
+        .select(
+            col("h.compliance_id"),
+            col("h.measurement_year"),
+            col("py.payer_key"),
+            col("pl.plan_key"),
+            col("h.measure_id"),
+            col("h.measure_name"),
+            col("h.denominator_eligible").cast("int"),
+            col("h.numerator_met").cast("int"),
+            col("h.compliance_rate").cast("double"),
+        )
+    df_hedis_g.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_hedis_compliance")
+    print(f"   ✓ agg_hedis_compliance: {df_hedis_g.count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ agg_hedis_compliance skipped: {e}")
+
+# --- agg_star_rating (per payer × measurement_year, weighted star score) ---
+try:
+    df_star = spark.table(f"{SILVER}.star_ratings_enriched")
+    df_payer_d = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+    df_star_g = df_star.alias("s") \
+        .join(df_payer_d.alias("py"), col("s.payer_id") == col("py.payer_id"), "left") \
+        .select(
+            col("s.star_id"),
+            col("py.payer_key"),
+            col("s.measurement_year"),
+            col("s.star_measure_id"),
+            col("s.star_measure_name"),
+            col("s.domain"),
+            col("s.weight").cast("int"),
+            col("s.star_score").cast("double"),
+            col("s.weighted_score").cast("double"),
+            col("s.national_avg").cast("double"),
+        )
+    # Roll up to overall star score per payer × year
+    df_overall = df_star_g.groupBy("payer_key", "measurement_year").agg(
+        (sum("weighted_score") / sum("weight")).alias("overall_star_score"),
+        sum("weight").alias("total_weight"),
+        count("*").alias("measure_count"),
+    )
+    df_star_g.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_star_rating")
+    df_overall.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_star_rating_overall")
+    print(f"   ✓ agg_star_rating: {df_star_g.count():,} rows")
+    print(f"   ✓ agg_star_rating_overall: {df_overall.count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ agg_star_rating skipped: {e}")
+
+# --- agg_raf_score (per member × year, RAF + HCC counts) ---
+try:
+    df_raf = spark.table(f"{SILVER}.risk_adjustment_enriched")
+    df_pat_d   = spark.table(f"{GOLD}.dim_patient").filter("is_current = 1").select("patient_key", "patient_id")
+    df_payer_d = spark.table(f"{GOLD}.dim_payer").select("payer_key", "payer_id")
+    df_plan_d  = spark.table(f"{GOLD}.dim_plan").select("plan_key", "plan_id")
+    df_raf_g = df_raf.alias("r") \
+        .join(df_pat_d.alias("pt"), col("r.member_id") == col("pt.patient_id"), "left") \
+        .join(df_payer_d.alias("py"), col("r.payer_id") == col("py.payer_id"), "left") \
+        .join(df_plan_d.alias("pl"),  col("r.plan_id")  == col("pl.plan_id"),  "left") \
+        .select(
+            col("r.raf_id"),
+            col("pt.patient_key").alias("member_key"),
+            col("py.payer_key"),
+            col("pl.plan_key"),
+            col("r.measurement_year"),
+            col("r.hcc_count").cast("int"),
+            col("r.hcc_codes"),
+            col("r.demographic_score").cast("double"),
+            col("r.disease_score").cast("double"),
+            col("r.raf_score").cast("double"),
+        )
+    df_raf_g.write.format("delta").mode("overwrite") \
+        .option("overwriteSchema", "true") \
+        .saveAsTable(f"{GOLD}.agg_raf_score")
+    print(f"   ✓ agg_raf_score: {df_raf_g.count():,} rows")
+except Exception as e:
+    print(f"   ⚠️ agg_raf_score skipped: {e}")
+
+# --- OPTIMIZE / ZORDER on big payer-domain facts (best practice) ---
+for _tbl, _zcols in [
+    ("fact_premium",       "payer_key, year_month"),
+    ("fact_authorization", "payer_key, decision_date_key"),
+    ("fact_capitation",    "payer_key, year_month"),
+    ("fact_appeal",        "payer_key, decision_date_key"),
+]:
+    try:
+        spark.sql(f"OPTIMIZE {GOLD}.{_tbl} ZORDER BY ({_zcols})")
+        print(f"   ✓ ZORDER applied to {_tbl}")
+    except Exception as _e:
+        print(f"   ⚠️ ZORDER skipped on {_tbl}: {str(_e)[:80]}")
 
 # METADATA **{"language":"markdown"}**
 
@@ -1721,7 +2306,22 @@ tables = [
     ("agg_readmission_by_date", None),
     ("agg_denial_by_date", None),
     ("agg_denial_by_payer", None),
+    ("agg_revenue_by_drg", None),
+    ("agg_days_in_ar", None),
+    ("agg_appeal_outcomes", None),
     ("agg_medication_adherence", None),
+    # Payer-domain
+    ("dim_plan", None),
+    ("fact_premium", None),
+    ("fact_authorization", None),
+    ("fact_capitation", None),
+    ("fact_appeal", None),
+    ("bridge_provider_contract", None),
+    ("agg_mlr_by_payer_month", None),
+    ("agg_hedis_compliance", None),
+    ("agg_star_rating", None),
+    ("agg_star_rating_overall", None),
+    ("agg_raf_score", None),
 ]
 
 for table_name, filter_expr in tables:

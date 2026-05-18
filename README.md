@@ -192,7 +192,7 @@ The launcher creates a deploy lakehouse, downloads the repo, deploys all artifac
 | **KQL Database** ⚡ | `Healthcare_RTI_DB` | Git-tracked with schema (6 tables + streaming policies) (`DEPLOY_STREAMING` only) |
 | **OpsAgent** ⚡ | `HealthcareOpsAgent` | KQL-backed operations agent (`DEPLOY_STREAMING` only) |
 | **Eventstream** ⚡ | `Healthcare_RTI_Eventstream` | Optional dual-write endpoint + Activator routing (`DEPLOY_STREAMING` only) |
-| **RTI Notebooks (5)** ⚡ | Event Simulator, Setup, 3 Scoring | RTI for fraud, care gaps, high-cost trajectory (`DEPLOY_STREAMING` only) |
+| **RTI Notebooks (10)** ⚡ | Event Simulator, Setup, 3 Scoring (Fraud, Care Gap, High-Cost), 4 Persona Alerts (CMO/CFO/COO/CTO), Alert Closure | RTI scoring + Phase-2 persona alerts + MTTR tracking (`DEPLOY_STREAMING` only) |
 | **RTI Dashboard** ⚡ | `Healthcare RTI Dashboard` | 4-page KQL dashboard, 30s auto-refresh (`DEPLOY_STREAMING` only) |
 
 > ⚡ = Only deployed when `DEPLOY_STREAMING = True`

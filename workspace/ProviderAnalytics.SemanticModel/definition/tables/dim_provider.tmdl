@@ -97,6 +97,7 @@ table dim_provider
 
 	/// Surrogate key for joining to dim_provider.
 	column provider_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: b1010001-0001-0001-0001-00000000001a
@@ -273,16 +274,19 @@ table dim_provider
 	measure 'Avg Satisfaction Score' = AVERAGE(dim_provider[patient_satisfaction_score])
 		formatString: 0.0
 		lineageTag: b1010001-0001-0001-0001-000000000031
+		displayFolder: Utilization
 
 	/// Measure: avg documentation score.
 	measure 'Avg Documentation Score' = AVERAGE(dim_provider[documentation_score])
 		formatString: 0
 		lineageTag: b1010001-0001-0001-0001-000000000032
+		displayFolder: Utilization
 
 	/// Measure: avg ehr adoption score.
 	measure 'Avg EHR Adoption Score' = AVERAGE(dim_provider[ehr_adoption_score])
 		formatString: 0
 		lineageTag: b1010001-0001-0001-0001-000000000033
+		displayFolder: Utilization
 
 	/// Measure: telehealth enabled rate.
 	measure 'Telehealth Enabled Rate' = DIVIDE(COUNTROWS(FILTER(dim_provider, dim_provider[telehealth_enabled] = TRUE())), COUNTROWS(dim_provider))
@@ -298,11 +302,13 @@ table dim_provider
 	measure 'Avg Panel Size' = AVERAGE(dim_provider[patient_panel_size])
 		formatString: #,##0
 		lineageTag: b1010001-0001-0001-0001-000000000036
+		displayFolder: Utilization
 
 	/// Measure: avg rvu target.
 	measure 'Avg RVU Target' = AVERAGE(dim_provider[annual_rvu_target])
 		formatString: #,##0
 		lineageTag: b1010001-0001-0001-0001-000000000037
+		displayFolder: Utilization
 
 	/// Measure: value-based provider rate.
 	measure 'Value-Based Provider Rate' = DIVIDE(COUNTROWS(FILTER(dim_provider, dim_provider[contract_type] = "Value-Based")), COUNTROWS(dim_provider))
@@ -313,6 +319,7 @@ table dim_provider
 	measure 'Avg Actual RVU' = AVERAGE(dim_provider[actual_rvu])
 		formatString: #,##0
 		lineageTag: b1010001-0001-0001-0001-000000000039
+		displayFolder: Utilization
 
 	/// Measure: rvu attainment %.
 	measure 'RVU Attainment %' = DIVIDE(SUM(dim_provider[actual_rvu]), SUM(dim_provider[annual_rvu_target]))
@@ -335,6 +342,7 @@ table dim_provider
 	measure 'Total Providers' = CALCULATE(COUNTROWS(dim_provider), dim_provider[is_current] = 1)
 		formatString: 0
 		lineageTag: b1010001-0001-0001-0001-00000000003d
+		displayFolder: Volume
 
 	/// Measure: full-time providers.
 	measure 'Full-Time Providers' = CALCULATE(COUNTROWS(dim_provider), dim_provider[fte_status] = "Full-time", dim_provider[is_current] = 1)
@@ -345,6 +353,7 @@ table dim_provider
 	measure 'Avg Years Experience' = AVERAGE(dim_provider[years_experience])
 		formatString: 0.0
 		lineageTag: b1010001-0001-0001-0001-00000000003f
+		displayFolder: Utilization
 
 	partition dim_provider = entity
 		mode: directLake

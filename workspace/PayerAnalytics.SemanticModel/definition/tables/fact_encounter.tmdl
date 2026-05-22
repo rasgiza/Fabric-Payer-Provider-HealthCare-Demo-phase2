@@ -8,11 +8,13 @@ table fact_encounter
 	measure 'Total Encounters' = COUNTROWS(fact_encounter)
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000011
+		displayFolder: Volume
 
 	/// Measure: total charges.
 	measure 'Total Charges' = SUM(fact_encounter[total_charges])
 		formatString: "\$#,0;(\$#,0);\$0"
 		lineageTag: c1080001-0001-0001-0001-000000000012
+		displayFolder: Financials
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -20,18 +22,21 @@ table fact_encounter
 	measure 'Total Cost' = SUM(fact_encounter[total_cost])
 		formatString: "\$#,0;(\$#,0);\$0"
 		lineageTag: c1080001-0001-0001-0001-000000000013
+		displayFolder: Financials
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: total expected reimbursement.
 	measure 'Total Expected Reimbursement' = SUM(fact_encounter[expected_reimbursement])
 		lineageTag: c1080001-0001-0001-0001-000000000014
+		displayFolder: Volume
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: avg drg weight.
 	measure 'Avg DRG Weight' = AVERAGE(fact_encounter[drg_weight])
 		lineageTag: c1080001-0001-0001-0001-000000000015
+		displayFolder: Utilization
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -49,6 +54,7 @@ table fact_encounter
 	measure 'Avg Cost Per Encounter' = DIVIDE([Total Cost], [Total Encounters])
 		formatString: "\$#,0;(\$#,0);\$0"
 		lineageTag: c1080001-0001-0001-0001-000000000017
+		displayFolder: Financials
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -56,6 +62,7 @@ table fact_encounter
 	measure 'Inpatient Encounters' = CALCULATE(COUNTROWS(fact_encounter), fact_encounter[encounter_type] = "Inpatient")
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000018
+		displayFolder: Utilization
 
 	/// Measure: emergency encounters.
 	measure 'Emergency Encounters' = CALCULATE(COUNTROWS(fact_encounter), fact_encounter[encounter_type] = "Emergency")
@@ -69,10 +76,12 @@ table fact_encounter
 			RETURN DIVIDE(_num, _den)
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: c1080001-0001-0001-0001-00000000001a
+		displayFolder: Risk
 
 	/// Measure: avg length of stay.
 	measure 'Avg Length of Stay' = AVERAGE(fact_encounter[length_of_stay])
 		lineageTag: c1080001-0001-0001-0001-00000000001b
+		displayFolder: Utilization
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -109,6 +118,7 @@ table fact_encounter
 
 	/// Date the encounter occurred, as YYYYMMDD integer. Join to dim_date.
 	column encounter_date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000032
@@ -120,6 +130,7 @@ table fact_encounter
 
 	/// Surrogate join key.
 	column discharge_date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000033
@@ -131,6 +142,7 @@ table fact_encounter
 
 	/// Surrogate key for joining to dim_patient. Changes across SCD2 versions.
 	column patient_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000034
@@ -142,6 +154,7 @@ table fact_encounter
 
 	/// Surrogate key for joining to dim_provider.
 	column provider_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000035
@@ -153,6 +166,7 @@ table fact_encounter
 
 	/// Surrogate join key.
 	column facility_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000036
@@ -317,6 +331,7 @@ table fact_encounter
 
 	/// Surrogate join key.
 	column encounter_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1080001-0001-0001-0001-000000000045

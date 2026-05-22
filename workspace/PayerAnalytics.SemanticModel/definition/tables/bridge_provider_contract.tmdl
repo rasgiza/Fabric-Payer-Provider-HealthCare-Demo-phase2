@@ -25,6 +25,7 @@ table bridge_provider_contract
 
 	/// Surrogate key for joining to dim_provider.
 	column provider_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1140001-0001-0001-0001-000000000022
@@ -35,6 +36,7 @@ table bridge_provider_contract
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1140001-0001-0001-0001-000000000023

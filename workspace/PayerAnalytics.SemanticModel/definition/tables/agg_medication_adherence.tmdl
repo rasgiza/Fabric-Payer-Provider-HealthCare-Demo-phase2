@@ -16,11 +16,13 @@ table agg_medication_adherence
 	/// Average Proportion of Days Covered across patient-medication rows. Range 0-1; >= 0.80 is adherent.
 	measure 'Avg PDC Score' = AVERAGE(agg_medication_adherence[pdc_score])
 		lineageTag: c10d0001-0001-0001-0001-000000000052
+		displayFolder: Quality
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Surrogate key for joining to dim_patient. Changes across SCD2 versions.
 	column patient_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c10d0001-0001-0001-0001-000000000011
@@ -32,6 +34,7 @@ table agg_medication_adherence
 
 	/// Surrogate key for joining to dim_medication.
 	column medication_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c10d0001-0001-0001-0001-000000000012

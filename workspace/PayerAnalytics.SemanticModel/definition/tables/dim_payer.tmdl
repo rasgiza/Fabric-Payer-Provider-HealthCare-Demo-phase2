@@ -8,11 +8,13 @@ table dim_payer
 	measure 'Total Payers' = CALCULATE(COUNTROWS(dim_payer), dim_payer[is_active] = 1)
 		formatString: 0
 		lineageTag: c1010001-0001-0001-0001-000000000051
+		displayFolder: Volume
 
 	/// Average avg_reimbursement_pct across payers (% of allowed amount that the payer actually reimburses).
 	measure 'Avg Reimbursement Rate' = AVERAGE(dim_payer[avg_reimbursement_pct])
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: c1010001-0001-0001-0001-000000000052
+		displayFolder: Utilization
 
 	/// Count of active payers with network_size = 'Large'.
 	measure 'Large Network Payers' = CALCULATE(COUNTROWS(dim_payer), dim_payer[network_size] = "Large", dim_payer[is_active] = 1)
@@ -103,6 +105,7 @@ table dim_payer
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1010001-0001-0001-0001-000000000018

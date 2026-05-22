@@ -7,6 +7,7 @@ table dim_plan
 	measure 'Total Plans' = CALCULATE(COUNTROWS(dim_plan), dim_plan[is_active] = 1)
 		formatString: 0
 		lineageTag: c1020001-0001-0001-0001-000000000051
+		displayFolder: Volume
 
 	/// Measure: capitated plan count.
 	measure 'Capitated Plan Count' = CALCULATE(COUNTROWS(dim_plan), dim_plan[is_capitated] = TRUE())
@@ -24,6 +25,7 @@ table dim_plan
 
 	/// Surrogate key for joining to dim_plan.
 	column plan_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1020001-0001-0001-0001-000000000012

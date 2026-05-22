@@ -17,11 +17,13 @@ table dim_sdoh
 	/// Measure: avg svi.
 	measure 'Avg SVI' = AVERAGE(dim_sdoh[social_vulnerability_index])
 		lineageTag: b1060001-0001-0001-0001-000000000052
+		displayFolder: Utilization
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Surrogate join key.
 	column sdoh_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: b1060001-0001-0001-0001-000000000011

@@ -8,11 +8,13 @@ table agg_raf_score
 	measure 'Avg RAF Score' = AVERAGE(agg_raf_score[raf_score])
 		formatString: 0.00
 		lineageTag: c1240001-0001-0001-0001-000000000011
+		displayFolder: Risk
 
 	/// Average count of Hierarchical Condition Categories per member.
 	measure 'Avg HCC Count' = AVERAGE(agg_raf_score[hcc_count])
 		formatString: 0.0
 		lineageTag: c1240001-0001-0001-0001-000000000012
+		displayFolder: Utilization
 
 	/// Distinct count of members with at least one HCC.
 	measure 'Members with HCCs' = CALCULATE(DISTINCTCOUNT(agg_raf_score[member_key]), agg_raf_score[hcc_count] > 0)
@@ -30,6 +32,7 @@ table agg_raf_score
 
 	/// Surrogate join key.
 	column member_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1240001-0001-0001-0001-000000000022
@@ -40,6 +43,7 @@ table agg_raf_score
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1240001-0001-0001-0001-000000000023
@@ -50,6 +54,7 @@ table agg_raf_score
 
 	/// Surrogate key for joining to dim_plan.
 	column plan_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1240001-0001-0001-0001-000000000024

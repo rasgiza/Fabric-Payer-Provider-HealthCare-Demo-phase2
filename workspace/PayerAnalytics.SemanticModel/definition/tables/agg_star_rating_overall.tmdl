@@ -10,6 +10,7 @@ table agg_star_rating_overall
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1230001-0001-0001-0001-000000000021

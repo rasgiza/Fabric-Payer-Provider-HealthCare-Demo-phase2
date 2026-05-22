@@ -7,17 +7,20 @@ table fact_capitation
 	/// Measure: total capitation paid.
 	measure 'Total Capitation Paid' = SUM(fact_capitation[capitation_pmpm])
 		lineageTag: c1120001-0001-0001-0001-000000000011
+		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: avg capitation pmpm.
 	measure 'Avg Capitation PMPM' = AVERAGE(fact_capitation[capitation_pmpm])
 		lineageTag: c1120001-0001-0001-0001-000000000012
+		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: avg withhold %.
 	measure 'Avg Withhold %' = AVERAGE(fact_capitation[withhold_pct])
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: c1120001-0001-0001-0001-000000000013
+		displayFolder: Utilization
 
 	/// Business key.
 	column capitation_id
@@ -30,6 +33,7 @@ table fact_capitation
 
 	/// Surrogate join key.
 	column capitation_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1120001-0001-0001-0001-000000000022
@@ -49,6 +53,7 @@ table fact_capitation
 
 	/// Surrogate join key.
 	column member_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1120001-0001-0001-0001-000000000024
@@ -59,6 +64,7 @@ table fact_capitation
 
 	/// Surrogate key for joining to dim_provider.
 	column provider_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1120001-0001-0001-0001-000000000025
@@ -69,6 +75,7 @@ table fact_capitation
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1120001-0001-0001-0001-000000000026
@@ -79,6 +86,7 @@ table fact_capitation
 
 	/// Surrogate key for joining to dim_plan.
 	column plan_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1120001-0001-0001-0001-000000000027

@@ -7,6 +7,7 @@ table agg_star_rating
 	measure 'Avg Star Score' = AVERAGE(agg_star_rating[star_score])
 		formatString: 0.00
 		lineageTag: c1220001-0001-0001-0001-000000000011
+		displayFolder: Utilization
 
 	/// Weight-adjusted average star score = SUM(weighted_score) / SUM(weight). The official CMS Star calculation.
 	measure 'Weighted Star Score' = DIVIDE(SUM(agg_star_rating[weighted_score]), SUM(agg_star_rating[weight]))
@@ -24,6 +25,7 @@ table agg_star_rating
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1220001-0001-0001-0001-000000000022

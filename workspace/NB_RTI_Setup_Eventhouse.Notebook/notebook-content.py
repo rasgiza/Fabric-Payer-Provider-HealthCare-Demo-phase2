@@ -1158,32 +1158,111 @@ def run_kql_query(query):
     """Execute a KQL query via Kusto SDK."""
     return _kusto_client.execute(KQL_DB_NAME, query.strip())
 
+# ----------------------------------------------------------------------------
+# Classify each command. Critical commands must succeed or we raise so users
+# don't end up with an empty `policy update` and silent data loss downstream.
+# ----------------------------------------------------------------------------
+import re as _re
+
+_POLICY_UPDATE_RE = _re.compile(
+    r"\.alter\s+table\s+(\w+)\s+policy\s+update", _re.IGNORECASE
+)
+
+def _classify(cmd_clean):
+    """Return (label, is_critical, target_table_or_none)."""
+    m = _POLICY_UPDATE_RE.search(cmd_clean)
+    if m:
+        return (f"update policy: {m.group(1)}", True, m.group(1))
+    if "create-or-alter function" in cmd_clean:
+        # Extract function name for label
+        try:
+            fn = cmd_clean.split("function", 1)[1].lstrip().split("(", 1)[0].strip()
+        except Exception:
+            fn = "function"
+        return (f"function: {fn}", True, None)
+    if "create-merge table" in cmd_clean or "create-or-alter table" in cmd_clean:
+        return (cmd_clean.split("table ")[-1].split(" ")[0].split("(")[0].strip(), True, None)
+    if "alter-merge table" in cmd_clean:
+        return (cmd_clean.split("table ")[-1].split(" ")[0].split("(")[0].strip(), False, None)
+    if "policy streamingingestion" in cmd_clean:
+        return ("streaming policy: " + cmd_clean.split("table ")[-1].split(" ")[0], False, None)
+    if "policy mirroring" in cmd_clean:
+        return ("mirroring policy: " + cmd_clean.split("table ")[-1].split(" ")[0], False, None)
+    if "ingestion json mapping" in cmd_clean:
+        return ("mapping: " + cmd_clean.split("table ")[-1].split(" ")[0], False, None)
+    return (cmd_clean[:60], False, None)
+
 success_count = 0
-fail_count = 0
+warn_count = 0
+critical_failures = []   # [(label, full_error, cmd)]
+policy_targets = []       # tables that got a `policy update` applied
+
 for cmd in KQL_COMMANDS:
     cmd_clean = cmd.strip()
     if not cmd_clean:
         continue
-    if "create-merge table" in cmd_clean or "alter-merge table" in cmd_clean:
-        label = cmd_clean.split("table ")[-1].split(" ")[0].split("(")[0].strip()
-    elif "alter table" in cmd_clean and "policy" in cmd_clean:
-        label = "streaming policy: " + cmd_clean.split("table ")[-1].split(" ")[0]
-    elif "ingestion json mapping" in cmd_clean:
-        label = "mapping: " + cmd_clean.split("table ")[-1].split(" ")[0]
-    else:
-        label = cmd_clean[:60]
+    label, is_critical, policy_table = _classify(cmd_clean)
     try:
         run_kql_mgmt(cmd_clean)
         print(f"  OK: {label}")
         success_count += 1
-    except KustoServiceError as e:
-        print(f"  WARN: {label} -- {str(e)[:200]}")
-        fail_count += 1
-    except Exception as e:
-        print(f"  WARN: {label} -- {str(e)[:200]}")
-        fail_count += 1
+        if policy_table:
+            policy_targets.append(policy_table)
+    except (KustoServiceError, Exception) as e:
+        full_err = str(e)
+        if is_critical:
+            print(f"  FAIL (critical): {label}")
+            print(f"    {full_err}")
+            critical_failures.append((label, full_err, cmd_clean))
+        else:
+            # Non-critical: idempotent-friendly noise (e.g. column already exists)
+            print(f"  WARN: {label} -- {full_err[:300]}")
+            warn_count += 1
 
-print(f"\nSchema execution complete: {success_count} succeeded, {fail_count} failed")
+print(f"\nSchema execution: {success_count} succeeded, {warn_count} non-critical warnings, "
+      f"{len(critical_failures)} critical failures")
+
+# ----------------------------------------------------------------------------
+# Post-apply verification — every update policy MUST be non-empty.
+# `.show table X policy update` returns one row with a "Policy" JSON column.
+# If empty ("[]") the policy did not stick and downstream typed tables will
+# never populate. We surface the failure loudly here instead of letting the
+# RTI pipeline appear to "succeed" with 0 rows.
+# ----------------------------------------------------------------------------
+verify_failures = []
+print("\nVerifying update policies...")
+for _tbl in sorted(set(policy_targets)):
+    try:
+        _r = run_kql_mgmt(f".show table {_tbl} policy update")
+        _policy_json = ""
+        for row in _r.primary_results[0]:
+            # Column order from Kusto: PolicyName, EntityName, Policy, ChildEntities, EntityType
+            try:
+                _policy_json = str(row["Policy"])
+            except Exception:
+                _policy_json = str(row[2])
+            break
+        _policy_json = (_policy_json or "").strip()
+        if not _policy_json or _policy_json == "[]" or _policy_json.lower() == "null":
+            verify_failures.append((_tbl, "policy is empty after .alter"))
+            print(f"  FAIL: {_tbl} -- policy is empty")
+        else:
+            print(f"  OK: {_tbl} update policy is set")
+    except Exception as e:
+        verify_failures.append((_tbl, str(e)))
+        print(f"  FAIL: {_tbl} -- verify error: {str(e)[:200]}")
+
+if critical_failures or verify_failures:
+    _msg_parts = ["RTI Eventhouse setup failed:"]
+    for lbl, err, _ in critical_failures:
+        _msg_parts.append(f"  - CRITICAL [{lbl}]: {err[:400]}")
+    for tbl, err in verify_failures:
+        _msg_parts.append(f"  - POLICY NOT APPLIED [{tbl}]: {err[:400]}")
+    _msg_parts.append("")
+    _msg_parts.append("These must be fixed for the RTI pipeline to populate typed tables.")
+    raise RuntimeError("\n".join(_msg_parts))
+
+print(f"\nSchema + policies verified OK ({len(set(policy_targets))} update policies active)")
 
 # METADATA **{"language":"python"}**
 

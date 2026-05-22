@@ -188,6 +188,14 @@ else:
 print("Step 3: Executing KQL schema commands...")
 
 KQL_COMMANDS = [
+    # --- DEFENSIVE CLEANUP ---
+    # Drop typed tables that may have been created in a prior run with an
+    # incompatible schema (e.g. readmission_events.prior_discharge_date was
+    # historically `datetime` but is now `string` to match Eventstream's
+    # auto-inferred type). `.create-merge` cannot change existing column
+    # types, so we drop and recreate. Data is repopulated by Step 3b backfill
+    # from rti_all_events (which is the actual landing source of truth).
+    ".drop table readmission_events ifexists",
     # --- LANDING TABLE (all events from Eventstream land here) ---
     # The Eventstream writes ALL event types into this single table.
     # KQL update policies (defined below) automatically route rows
@@ -272,18 +280,9 @@ KQL_COMMANDS = [
         readmission_flag: bool, risk_tier: string, cost_trend: string,
         latitude: real, longitude: real
     )""",
-    # Readmission events — emitted directly by NB_RTI_Event_Simulator with
-    # pre-computed readmission_risk_score (0-100). No separate scoring
-    # notebook needed; the source IS the score (mirrors how production
-    # EHR ADT feeds would arrive with risk already computed upstream).
-    """.create-merge table readmission_events (
-        event_id: string, event_timestamp: datetime, event_type: string,
-        patient_id: string, provider_id: string, facility_id: string,
-        current_encounter_id: string, prior_discharge_date: datetime,
-        days_since_discharge: int, current_diagnosis: string,
-        prior_diagnosis: string, readmission_risk_score: real,
-        drg_code: string, latitude: real, longitude: real
-    )""",
+    # Readmission events are defined in the Phase 2 batch below (single source
+    # of truth). prior_discharge_date is stored as `string` to match the
+    # Eventstream-inferred type in rti_all_events.
     # --- STREAMING INGESTION POLICIES (landing + 7 typed tables) ---
     ".alter table rti_all_events policy streamingingestion enable",
     ".alter table claims_events policy streamingingestion enable",
@@ -296,78 +295,68 @@ KQL_COMMANDS = [
     # --- UPDATE POLICIES (auto-route from rti_all_events → typed tables) ---
     # These server-side policies fire on every ingestion batch into rti_all_events,
     # extracting rows by _table field and appending them to the target tables.
-    # Note: todatetime() is needed because event_timestamp arrives as string from Eventstream.
-    # toint()/coalesce() handle columns that may be null in the landing table.
-    # coalesce() on claim-specific fields handles the case where the Eventstream
-    # created rti_all_events before these columns were added.
+    # Every projected column is explicitly cast (tostring/toreal/toint/todatetime/tobool)
+    # so the projection schema is deterministic and matches the target table exactly,
+    # regardless of how Eventstream auto-inferred column types in rti_all_events.
     """.create-or-alter function ExtractClaimsEvents() {
         rti_all_events
         | where _table == "claims_events"
-        | project event_id,
-                  event_timestamp = todatetime(event_timestamp),
-                  event_type,
-                  claim_id = coalesce(claim_id, ""),
-                  patient_id,
-                  provider_id = coalesce(provider_id, ""),
-                  facility_id = coalesce(facility_id, ""),
-                  payer_id = coalesce(payer_id, ""),
-                  diagnosis_code = coalesce(diagnosis_code, ""),
-                  procedure_code = coalesce(procedure_code, ""),
-                  claim_type = coalesce(claim_type, ""),
-                  claim_amount = coalesce(claim_amount, 0.0),
-                  latitude,
-                  longitude,
-                  injected_fraud_flags = coalesce(injected_fraud_flags, "")
+        // Every column is explicitly cast so the projection schema is
+        // deterministic and matches claims_events table exactly, regardless
+        // of how Eventstream auto-inferred types in rti_all_events.
+        | project event_id              = tostring(event_id),
+                  event_timestamp       = todatetime(event_timestamp),
+                  event_type            = tostring(event_type),
+                  claim_id              = tostring(coalesce(claim_id, "")),
+                  patient_id            = tostring(patient_id),
+                  provider_id           = tostring(coalesce(provider_id, "")),
+                  facility_id           = tostring(coalesce(facility_id, "")),
+                  payer_id              = tostring(coalesce(payer_id, "")),
+                  diagnosis_code        = tostring(coalesce(diagnosis_code, "")),
+                  procedure_code        = tostring(coalesce(procedure_code, "")),
+                  claim_type            = tostring(coalesce(claim_type, "")),
+                  claim_amount          = toreal(coalesce(claim_amount, 0.0)),
+                  latitude              = toreal(latitude),
+                  longitude             = toreal(longitude),
+                  injected_fraud_flags  = tostring(coalesce(injected_fraud_flags, ""))
     }""",
     """.create-or-alter function ExtractAdtEvents() {
         rti_all_events
         | where _table == "adt_events"
-        | project event_id,
-                  event_timestamp = todatetime(event_timestamp),
-                  event_type, patient_id,
-                  facility_id = coalesce(facility_id, ""),
-                  facility_name = coalesce(facility_name, ""),
-                  admission_type = coalesce(admission_type, ""),
-                  primary_diagnosis = coalesce(primary_diagnosis, ""),
-                  latitude, longitude,
-                  has_open_care_gaps = coalesce(has_open_care_gaps, false),
-                  open_gap_measures = coalesce(open_gap_measures, "")
+        | project event_id            = tostring(event_id),
+                  event_timestamp     = todatetime(event_timestamp),
+                  event_type          = tostring(event_type),
+                  patient_id          = tostring(patient_id),
+                  facility_id         = tostring(coalesce(facility_id, "")),
+                  facility_name       = tostring(coalesce(facility_name, "")),
+                  admission_type      = tostring(coalesce(admission_type, "")),
+                  primary_diagnosis   = tostring(coalesce(primary_diagnosis, "")),
+                  latitude            = toreal(latitude),
+                  longitude           = toreal(longitude),
+                  has_open_care_gaps  = tobool(coalesce(has_open_care_gaps, false)),
+                  open_gap_measures   = tostring(coalesce(open_gap_measures, ""))
     }""",
     """.create-or-alter function ExtractRxEvents() {
         rti_all_events
         | where _table == "rx_events"
-        | project event_id,
-                  event_timestamp = todatetime(event_timestamp),
-                  event_type, patient_id,
-                  provider_id = coalesce(provider_id, ""),
-                  medication_code = coalesce(medication_code, ""),
-                  medication_name = coalesce(medication_name, ""),
-                  drug_class = coalesce(drug_class, ""),
-                  quantity = toint(coalesce(quantity, 0)),
-                  days_supply = toint(coalesce(days_supply, 0)),
-                  latitude, longitude
+        | project event_id          = tostring(event_id),
+                  event_timestamp   = todatetime(event_timestamp),
+                  event_type        = tostring(event_type),
+                  patient_id        = tostring(patient_id),
+                  provider_id       = tostring(coalesce(provider_id, "")),
+                  medication_code   = tostring(coalesce(medication_code, "")),
+                  medication_name   = tostring(coalesce(medication_name, "")),
+                  drug_class        = tostring(coalesce(drug_class, "")),
+                  quantity          = toint(coalesce(quantity, 0)),
+                  days_supply       = toint(coalesce(days_supply, 0)),
+                  latitude          = toreal(latitude),
+                  longitude         = toreal(longitude)
     }""",
-    """.create-or-alter function ExtractReadmissionEvents() {
-        rti_all_events
-        | where _table == "readmission_events"
-        | project event_id,
-                  event_timestamp = todatetime(event_timestamp),
-                  event_type, patient_id,
-                  provider_id = coalesce(provider_id, ""),
-                  facility_id = coalesce(facility_id, ""),
-                  current_encounter_id = coalesce(current_encounter_id, ""),
-                  prior_discharge_date = todatetime(prior_discharge_date),
-                  days_since_discharge = toint(coalesce(days_since_discharge, 0)),
-                  current_diagnosis = coalesce(current_diagnosis, ""),
-                  prior_diagnosis = coalesce(prior_diagnosis, ""),
-                  readmission_risk_score = coalesce(readmission_risk_score, 0.0),
-                  drg_code = coalesce(drg_code, ""),
-                  latitude, longitude
-    }""",
+    # ExtractReadmissionEvents() is defined once in the Phase 2 batch below.
     ".alter table claims_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractClaimsEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
     ".alter table adt_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractAdtEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
     ".alter table rx_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractRxEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
-    ".alter table readmission_events policy update @'[{\"IsEnabled\": true, \"Source\": \"rti_all_events\", \"Query\": \"ExtractReadmissionEvents()\", \"IsTransactional\": false, \"PropagateIngestionProperties\": true}]'",
+    # readmission_events update policy is applied in the Phase 2 batch below.
     # --- ONELAKE MIRRORING POLICIES (5-minute flush for demos) ---
     # OneLake Availability must be enabled on the KQL DB first (portal toggle).
     # These policies set the delta-table flush to 5 minutes instead of the
@@ -375,7 +364,7 @@ KQL_COMMANDS = [
     ".alter-merge table claims_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
     ".alter-merge table adt_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
     ".alter-merge table rx_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
-    ".alter-merge table readmission_events policy mirroring dataformat=parquet with (IsEnabled=true, TargetLatencyInMinutes=5)",
+    # readmission_events mirroring policy is applied in the Phase 2 batch below.
     # --- JSON INGESTION MAPPINGS ---
     """.create-or-alter table rti_all_events ingestion json mapping 'rti_all_events_mapping'
     '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"string"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"_table","path":"$._table","datatype":"string"},{"column":"claim_id","path":"$.claim_id","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"payer_id","path":"$.payer_id","datatype":"string"},{"column":"diagnosis_code","path":"$.diagnosis_code","datatype":"string"},{"column":"procedure_code","path":"$.procedure_code","datatype":"string"},{"column":"claim_type","path":"$.claim_type","datatype":"string"},{"column":"claim_amount","path":"$.claim_amount","datatype":"real"},{"column":"admission_type","path":"$.admission_type","datatype":"string"},{"column":"primary_diagnosis","path":"$.primary_diagnosis","datatype":"string"},{"column":"medication_code","path":"$.medication_code","datatype":"string"},{"column":"medication_name","path":"$.medication_name","datatype":"string"},{"column":"drug_class","path":"$.drug_class","datatype":"string"},{"column":"quantity","path":"$.quantity","datatype":"long"},{"column":"days_supply","path":"$.days_supply","datatype":"long"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"},{"column":"injected_fraud_flags","path":"$.injected_fraud_flags","datatype":"string"},{"column":"has_open_care_gaps","path":"$.has_open_care_gaps","datatype":"bool"},{"column":"open_gap_measures","path":"$.open_gap_measures","datatype":"string"},{"column":"current_encounter_id","path":"$.current_encounter_id","datatype":"string"},{"column":"prior_discharge_date","path":"$.prior_discharge_date","datatype":"string"},{"column":"days_since_discharge","path":"$.days_since_discharge","datatype":"long"},{"column":"current_diagnosis","path":"$.current_diagnosis","datatype":"string"},{"column":"prior_diagnosis","path":"$.prior_diagnosis","datatype":"string"},{"column":"readmission_risk_score","path":"$.readmission_risk_score","datatype":"real"},{"column":"drg_code","path":"$.drg_code","datatype":"string"}]'""",
@@ -391,8 +380,7 @@ KQL_COMMANDS = [
     '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"facility_name","path":"$.facility_name","datatype":"string"},{"column":"measure_id","path":"$.measure_id","datatype":"string"},{"column":"measure_name","path":"$.measure_name","datatype":"string"},{"column":"gap_days_overdue","path":"$.gap_days_overdue","datatype":"int"},{"column":"alert_priority","path":"$.alert_priority","datatype":"string"},{"column":"alert_text","path":"$.alert_text","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
     """.create-or-alter table highcost_alerts ingestion json mapping 'highcost_alerts_mapping'
     '[{"column":"alert_id","path":"$.alert_id","datatype":"string"},{"column":"alert_timestamp","path":"$.alert_timestamp","datatype":"datetime"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"rolling_spend_30d","path":"$.rolling_spend_30d","datatype":"real"},{"column":"rolling_spend_90d","path":"$.rolling_spend_90d","datatype":"real"},{"column":"ed_visits_30d","path":"$.ed_visits_30d","datatype":"int"},{"column":"readmission_flag","path":"$.readmission_flag","datatype":"bool"},{"column":"risk_tier","path":"$.risk_tier","datatype":"string"},{"column":"cost_trend","path":"$.cost_trend","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
-    """.create-or-alter table readmission_events ingestion json mapping 'readmission_events_mapping'
-    '[{"column":"event_id","path":"$.event_id","datatype":"string"},{"column":"event_timestamp","path":"$.event_timestamp","datatype":"datetime"},{"column":"event_type","path":"$.event_type","datatype":"string"},{"column":"patient_id","path":"$.patient_id","datatype":"string"},{"column":"provider_id","path":"$.provider_id","datatype":"string"},{"column":"facility_id","path":"$.facility_id","datatype":"string"},{"column":"current_encounter_id","path":"$.current_encounter_id","datatype":"string"},{"column":"prior_discharge_date","path":"$.prior_discharge_date","datatype":"datetime"},{"column":"days_since_discharge","path":"$.days_since_discharge","datatype":"int"},{"column":"current_diagnosis","path":"$.current_diagnosis","datatype":"string"},{"column":"prior_diagnosis","path":"$.prior_diagnosis","datatype":"string"},{"column":"readmission_risk_score","path":"$.readmission_risk_score","datatype":"real"},{"column":"drg_code","path":"$.drg_code","datatype":"string"},{"column":"latitude","path":"$.latitude","datatype":"real"},{"column":"longitude","path":"$.longitude","datatype":"real"}]'""",
+    # readmission_events_mapping is defined in the Phase 2 batch below (single source of truth, string-typed prior_discharge_date).
 
     # ========================================================================
     # PROVIDER + PAYER RTI EXTENSION (5 new typed event tables + alert outputs)
@@ -496,18 +484,21 @@ KQL_COMMANDS = [
     """.create-or-alter function ExtractReadmissionEvents() {
         rti_all_events
         | where _table == "readmission_events"
-        | project event_id, event_timestamp = todatetime(event_timestamp),
-                  event_type, patient_id,
-                  provider_id = coalesce(provider_id, ""),
-                  facility_id = coalesce(facility_id, ""),
-                  current_encounter_id = coalesce(current_encounter_id, ""),
-                  prior_discharge_date = coalesce(prior_discharge_date, ""),
-                  days_since_discharge = toint(coalesce(days_since_discharge, 0)),
-                  current_diagnosis = coalesce(current_diagnosis, ""),
-                  prior_diagnosis = coalesce(prior_diagnosis, ""),
-                  readmission_risk_score = coalesce(readmission_risk_score, 0.0),
-                  drg_code = coalesce(drg_code, ""),
-                  latitude, longitude
+        | project event_id              = tostring(event_id),
+                  event_timestamp       = todatetime(event_timestamp),
+                  event_type            = tostring(event_type),
+                  patient_id            = tostring(patient_id),
+                  provider_id           = tostring(coalesce(provider_id, "")),
+                  facility_id           = tostring(coalesce(facility_id, "")),
+                  current_encounter_id  = tostring(coalesce(current_encounter_id, "")),
+                  prior_discharge_date  = tostring(coalesce(prior_discharge_date, "")),
+                  days_since_discharge  = toint(coalesce(days_since_discharge, 0)),
+                  current_diagnosis     = tostring(coalesce(current_diagnosis, "")),
+                  prior_diagnosis       = tostring(coalesce(prior_diagnosis, "")),
+                  readmission_risk_score = toreal(coalesce(readmission_risk_score, 0.0)),
+                  drg_code              = tostring(coalesce(drg_code, "")),
+                  latitude              = toreal(latitude),
+                  longitude             = toreal(longitude)
     }""",
     """.create-or-alter function ExtractQualityMetricEvents() {
         rti_all_events
@@ -1168,18 +1159,40 @@ _POLICY_UPDATE_RE = _re.compile(
     r"\.alter\s+table\s+(\w+)\s+policy\s+update", _re.IGNORECASE
 )
 
+def _extract_function_name(cmd_clean):
+    """Pull the function name from a '.create-or-alter function [with(...)] FnName(...)' command."""
+    try:
+        s = cmd_clean.split("function", 1)[1].lstrip()
+        # Skip optional `with(...)` clause
+        if s.startswith("with"):
+            after_with = s[4:].lstrip()
+            if after_with.startswith("("):
+                depth = 1
+                i = 1
+                while i < len(after_with) and depth > 0:
+                    if after_with[i] == "(": depth += 1
+                    elif after_with[i] == ")": depth -= 1
+                    i += 1
+                s = after_with[i:].lstrip()
+        return s.split("(", 1)[0].strip()
+    except Exception:
+        return "function"
+
 def _classify(cmd_clean):
     """Return (label, is_critical, target_table_or_none)."""
     m = _POLICY_UPDATE_RE.search(cmd_clean)
     if m:
         return (f"update policy: {m.group(1)}", True, m.group(1))
     if "create-or-alter function" in cmd_clean:
-        # Extract function name for label
-        try:
-            fn = cmd_clean.split("function", 1)[1].lstrip().split("(", 1)[0].strip()
-        except Exception:
-            fn = "function"
+        fn = _extract_function_name(cmd_clean)
+        # `vw_*` are presentation views that may depend on optional shortcuts
+        # (dim_patient, dim_provider) which can be absent in fresh workspaces.
+        # Treat as non-critical so they don't block the RTI pipeline.
+        if fn.startswith("vw_"):
+            return (f"view: {fn}", False, None)
         return (f"function: {fn}", True, None)
+    if "drop table" in cmd_clean:
+        return ("drop: " + cmd_clean.split("table ")[-1].split(" ")[0], False, None)
     if "create-merge table" in cmd_clean or "create-or-alter table" in cmd_clean:
         return (cmd_clean.split("table ")[-1].split(" ")[0].split("(")[0].strip(), True, None)
     if "alter-merge table" in cmd_clean:

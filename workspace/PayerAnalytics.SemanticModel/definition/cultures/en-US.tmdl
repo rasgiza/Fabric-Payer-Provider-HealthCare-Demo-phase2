@@ -1,0 +1,145 @@
+cultureInfo en-US
+
+	linguisticMetadata = ```
+		{
+		  "Version": "1.0.0",
+		  "Language": "en-US",
+		  "DynamicImprovement": "HighConfidence",
+		  "Entities": {
+		    "fact_claim.Total Claims": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Total Claims" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "claims": {} },
+		        { "claim count": {} },
+		        { "number of claims": {} },
+		        { "total claims": {} }
+		      ]
+		    },
+		    "fact_claim.Denial Rate": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Denial Rate" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "denial rate": {} },
+		        { "denials": {} },
+		        { "denial percentage": {} },
+		        { "rejection rate": {} },
+		        { "rejected claims rate": {} }
+		      ]
+		    },
+		    "fact_claim.Total Billed": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Total Billed" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "total billed": {} },
+		        { "billed amount": {} },
+		        { "gross charges": {} },
+		        { "charges submitted": {} },
+		        { "submitted charges": {} }
+		      ]
+		    },
+		    "fact_claim.Total Paid": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Total Paid" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "total paid": {} },
+		        { "paid amount": {} },
+		        { "reimbursement": {} },
+		        { "payments received": {} },
+		        { "paid by payer": {} }
+		      ]
+		    },
+		    "agg_mlr_by_payer_month.MLR %": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_mlr_by_payer_month", "ConceptualProperty": "MLR %" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "mlr": {} },
+		        { "medical loss ratio": {} },
+		        { "loss ratio": {} },
+		        { "mlr percent": {} }
+		      ]
+		    },
+		    "agg_mlr_by_payer_month.Premium Collected": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_mlr_by_payer_month", "ConceptualProperty": "Premium Collected" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "premium": {} },
+		        { "premiums": {} },
+		        { "premium collected": {} },
+		        { "premium revenue": {} }
+		      ]
+		    },
+		    "agg_hedis_compliance.HEDIS Compliance %": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_hedis_compliance", "ConceptualProperty": "HEDIS Compliance %" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "hedis": {} },
+		        { "hedis score": {} },
+		        { "hedis compliance": {} },
+		        { "hedis rate": {} }
+		      ]
+		    },
+		    "agg_star_rating_overall.Overall Star Score": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_star_rating_overall", "ConceptualProperty": "Overall Star Score" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "star rating": {} },
+		        { "stars": {} },
+		        { "cms stars": {} },
+		        { "overall stars": {} }
+		      ]
+		    },
+		    "agg_medication_adherence.Avg PDC Score": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_medication_adherence", "ConceptualProperty": "Avg PDC Score" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "pdc": {} },
+		        { "adherence": {} },
+		        { "medication adherence": {} },
+		        { "pdc score": {} }
+		      ]
+		    },
+		    "agg_raf_score.Avg RAF Score": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_raf_score", "ConceptualProperty": "Avg RAF Score" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "raf": {} },
+		        { "raf score": {} },
+		        { "risk adjustment": {} },
+		        { "risk score": {} }
+		      ]
+		    },
+		    "dim_patient.Total Patients": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_patient", "ConceptualProperty": "Total Patients" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "patients": {} },
+		        { "members": {} },
+		        { "lives": {} },
+		        { "enrollees": {} },
+		        { "patient count": {} }
+		      ]
+		    },
+		    "fact_appeal.Total Appeals": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_appeal", "ConceptualProperty": "Total Appeals" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "appeals": {} },
+		        { "appeal count": {} },
+		        { "number of appeals": {} }
+		      ]
+		    },
+		    "fact_authorization.PA Approval Rate": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_authorization", "ConceptualProperty": "PA Approval Rate" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "pa approval rate": {} },
+		        { "prior auth approval": {} },
+		        { "auth approval rate": {} }
+		      ]
+		    }
+		  }
+		}
+		```
+		contentType: json
+

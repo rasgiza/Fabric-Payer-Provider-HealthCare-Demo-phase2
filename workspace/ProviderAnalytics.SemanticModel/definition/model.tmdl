@@ -25,3 +25,5 @@ ref table fact_diagnosis
 ref table agg_readmission_by_date
 ref table agg_medication_adherence
 ref table agg_revenue_by_drg
+
+ref culture en-US

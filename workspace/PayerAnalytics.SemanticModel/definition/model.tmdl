@@ -39,3 +39,5 @@ ref table agg_hedis_compliance
 ref table agg_star_rating
 ref table agg_star_rating_overall
 ref table agg_raf_score
+
+ref culture en-US

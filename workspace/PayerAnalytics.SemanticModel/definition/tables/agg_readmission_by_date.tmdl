@@ -6,6 +6,7 @@ table agg_readmission_by_date
 
 	/// Date the encounter occurred, as YYYYMMDD integer. Join to dim_date.
 	column encounter_date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c10c0001-0001-0001-0001-000000000011

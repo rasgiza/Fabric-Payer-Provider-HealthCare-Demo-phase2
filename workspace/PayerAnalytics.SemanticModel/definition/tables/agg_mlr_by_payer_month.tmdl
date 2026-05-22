@@ -9,11 +9,13 @@ table agg_mlr_by_payer_month
 	measure 'MLR %' = DIVIDE(SUM(agg_mlr_by_payer_month[medical_paid]), SUM(agg_mlr_by_payer_month[premium_collected]))
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: c1200001-0001-0001-0001-000000000011
+		displayFolder: Premiums & MLR
 
 	/// Sum of premium dollars collected from members in the period.
 	measure 'Premium Collected' = SUM(agg_mlr_by_payer_month[premium_collected])
 		formatString: "\$#,0;(\$#,0);\$0"
 		lineageTag: c1200001-0001-0001-0001-000000000012
+		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Sum of claims paid out by the payer in the period.
@@ -24,6 +26,7 @@ table agg_mlr_by_payer_month
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1200001-0001-0001-0001-000000000021

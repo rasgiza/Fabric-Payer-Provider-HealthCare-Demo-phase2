@@ -7,6 +7,7 @@ table fact_authorization
 	measure 'Total Auths' = COUNTROWS(fact_authorization)
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000011
+		displayFolder: Volume
 
 	/// Measure: pa approval rate.
 	measure 'PA Approval Rate' =
@@ -28,6 +29,7 @@ table fact_authorization
 	measure 'Avg Decision TAT (hrs)' = AVERAGE(fact_authorization[decision_tat_hours])
 		formatString: 0.0
 		lineageTag: c1110001-0001-0001-0001-000000000014
+		displayFolder: Utilization
 
 	/// Business key.
 	column auth_id
@@ -40,6 +42,7 @@ table fact_authorization
 
 	/// Surrogate join key.
 	column auth_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000022
@@ -50,6 +53,7 @@ table fact_authorization
 
 	/// Surrogate join key.
 	column submit_date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000023
@@ -60,6 +64,7 @@ table fact_authorization
 
 	/// Surrogate join key.
 	column decision_date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000024
@@ -70,6 +75,7 @@ table fact_authorization
 
 	/// Surrogate join key.
 	column member_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000025
@@ -80,6 +86,7 @@ table fact_authorization
 
 	/// Surrogate key for joining to dim_provider.
 	column provider_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000026
@@ -90,6 +97,7 @@ table fact_authorization
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1110001-0001-0001-0001-000000000027

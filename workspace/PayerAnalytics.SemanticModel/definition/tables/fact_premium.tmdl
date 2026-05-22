@@ -7,6 +7,7 @@ table fact_premium
 	measure 'Total Premium Revenue' = SUM(fact_premium[premium_amount])
 		formatString: "\$#,0;(\$#,0);\$0"
 		lineageTag: c1100001-0001-0001-0001-000000000011
+		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: member months.
@@ -17,16 +18,19 @@ table fact_premium
 	/// Measure: premium pmpm.
 	measure 'Premium PMPM' = DIVIDE([Total Premium Revenue], [Member Months])
 		lineageTag: c1100001-0001-0001-0001-000000000013
+		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: total subsidy.
 	measure 'Total Subsidy' = SUM(fact_premium[subsidy_amount])
 		lineageTag: c1100001-0001-0001-0001-000000000014
+		displayFolder: Volume
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: total member paid.
 	measure 'Total Member Paid' = SUM(fact_premium[member_paid])
 		lineageTag: c1100001-0001-0001-0001-000000000015
+		displayFolder: Volume
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Business key.
@@ -40,6 +44,7 @@ table fact_premium
 
 	/// Surrogate join key.
 	column premium_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1100001-0001-0001-0001-000000000022
@@ -59,6 +64,7 @@ table fact_premium
 
 	/// Surrogate join key.
 	column year_month_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1100001-0001-0001-0001-000000000024
@@ -69,6 +75,7 @@ table fact_premium
 
 	/// Surrogate join key.
 	column member_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1100001-0001-0001-0001-000000000025
@@ -79,6 +86,7 @@ table fact_premium
 
 	/// Surrogate key for joining to dim_plan.
 	column plan_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1100001-0001-0001-0001-000000000026
@@ -89,6 +97,7 @@ table fact_premium
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1100001-0001-0001-0001-000000000027

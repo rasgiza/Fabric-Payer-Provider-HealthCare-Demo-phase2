@@ -7,16 +7,19 @@ table agg_hedis_compliance
 	measure 'HEDIS Compliance %' = DIVIDE(SUM(agg_hedis_compliance[numerator_met]), SUM(agg_hedis_compliance[denominator_eligible]))
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: c1210001-0001-0001-0001-000000000011
+		displayFolder: Quality
 
 	/// Sum of denominator_eligible (members in the measure's denominator).
 	measure 'HEDIS Eligible Members' = SUM(agg_hedis_compliance[denominator_eligible])
 		formatString: #,##0
 		lineageTag: c1210001-0001-0001-0001-000000000012
+		displayFolder: Quality
 
 	/// Sum of numerator_met (members who satisfied the HEDIS measure).
 	measure 'HEDIS Numerator Met' = SUM(agg_hedis_compliance[numerator_met])
 		formatString: #,##0
 		lineageTag: c1210001-0001-0001-0001-000000000013
+		displayFolder: Quality
 
 	/// Business key.
 	column compliance_id
@@ -39,6 +42,7 @@ table agg_hedis_compliance
 
 	/// Surrogate key for joining to dim_payer.
 	column payer_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1210001-0001-0001-0001-000000000023
@@ -49,6 +53,7 @@ table agg_hedis_compliance
 
 	/// Surrogate key for joining to dim_plan.
 	column plan_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1210001-0001-0001-0001-000000000024

@@ -6,6 +6,7 @@ table dim_date
 
 	/// Date key in YYYYMMDD integer form (e.g. 20250515). Join to dim_date.
 	column date_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: c1040001-0001-0001-0001-000000000011

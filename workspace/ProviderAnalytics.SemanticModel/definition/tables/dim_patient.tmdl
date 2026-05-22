@@ -8,6 +8,7 @@ table dim_patient
 	measure 'Total Patients' = CALCULATE(COUNTROWS(dim_patient), dim_patient[is_current] = 1)
 		formatString: 0
 		lineageTag: b1020001-0001-0001-0001-000000000011
+		displayFolder: Volume
 
 	/// Distinct count of patients with at least one chronic diagnosis (dim_diagnosis.is_chronic = 1).
 	measure 'Chronic Patients' =
@@ -28,6 +29,7 @@ table dim_patient
 	/// Average age across the current patient roster.
 	measure 'Avg Patient Age' = AVERAGE(dim_patient[age])
 		lineageTag: b1020001-0001-0001-0001-000000000014
+		displayFolder: Utilization
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
@@ -214,6 +216,7 @@ table dim_patient
 
 	/// Surrogate key for joining to dim_patient. Changes across SCD2 versions.
 	column patient_key
+		isHidden: true
 		dataType: int64
 		formatString: 0
 		lineageTag: b1020001-0001-0001-0001-000000000031

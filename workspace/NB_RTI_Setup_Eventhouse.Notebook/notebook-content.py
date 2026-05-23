@@ -189,13 +189,38 @@ print("Step 3: Executing KQL schema commands...")
 
 KQL_COMMANDS = [
     # --- DEFENSIVE CLEANUP ---
-    # Drop typed tables that may have been created in a prior run with an
-    # incompatible schema (e.g. readmission_events.prior_discharge_date was
-    # historically `datetime` but is now `string` to match Eventstream's
-    # auto-inferred type). `.create-merge` cannot change existing column
-    # types, so we drop and recreate. Data is repopulated by Step 3b backfill
-    # from rti_all_events (which is the actual landing source of truth).
+    # Drop every typed table that is a *target* of an update policy below.
+    # These tables are populated entirely from rti_all_events via update
+    # policies (and re-backfilled in Step 3b), so dropping them is safe and
+    # required to guarantee a schema match.
+    #
+    # WHY: `.create-merge` can ADD columns to an existing table but cannot
+    # change column ORDER or TYPES. A prior run (or an older version of this
+    # notebook) may have left these tables with a schema that no longer
+    # matches the Extract*() projection — which causes the .alter table
+    # ... policy update to fail with
+    #   "Query schema does not match table schema. QuerySchema=(...)"
+    # because KQL update-policy validation is positional. Dropping and
+    # recreating is the only deterministic recovery.
+    #
+    # rti_all_events is intentionally NOT dropped — Eventstream's destination
+    # binding depends on its identity, and its schema is .alter-merged below.
+    ".drop table claims_events ifexists",
+    ".drop table adt_events ifexists",
+    ".drop table rx_events ifexists",
     ".drop table readmission_events ifexists",
+    ".drop table quality_metric_events ifexists",
+    ".drop table denial_adjudication_events ifexists",
+    ".drop table ar_snapshot_events ifexists",
+    ".drop table auth_lifecycle_events ifexists",
+    ".drop table clinical_deterioration_events ifexists",
+    ".drop table mortality_hai_events ifexists",
+    ".drop table net_revenue_variance_events ifexists",
+    ".drop table ops_capacity_events ifexists",
+    ".drop table staffing_acuity_events ifexists",
+    ".drop table dq_violation_events ifexists",
+    ".drop table audit_access_events ifexists",
+    ".drop table model_drift_events ifexists",
     # --- LANDING TABLE (all events from Eventstream land here) ---
     # The Eventstream writes ALL event types into this single table.
     # KQL update policies (defined below) automatically route rows

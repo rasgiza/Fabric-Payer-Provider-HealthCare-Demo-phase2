@@ -31,15 +31,7 @@ desktop.ini
 
 # Temp fix/debug scripts
 _scratch/
+_validate_synonyms.py
 
 .git-commit-msg.txt
 .pr-body.md
-
-
-.git-commit-msg.txt
-.pr-body.md
-
-
-.git-commit-msg.txt
-.pr-body.md
-

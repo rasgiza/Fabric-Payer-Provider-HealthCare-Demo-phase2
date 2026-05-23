@@ -1,0 +1,115 @@
+cultureInfo en-US
+
+	linguisticMetadata = ```
+		{
+		  "Version": "1.0.0",
+		  "Language": "en-US",
+		  "DynamicImprovement": "HighConfidence",
+		  "Entities": {
+		    "fact_claim.Total Claims": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Total Claims" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "claims": {} },
+		        { "claim count": {} },
+		        { "number of claims": {} }
+		      ]
+		    },
+		    "fact_claim.Denial Rate": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Denial Rate" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "denial rate": {} },
+		        { "denials": {} },
+		        { "rejection rate": {} }
+		      ]
+		    },
+		    "fact_claim.Total Billed": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Total Billed" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "billed": {} },
+		        { "gross charges": {} },
+		        { "charges": {} }
+		      ]
+		    },
+		    "fact_claim.Avg Denial Risk": {
+		      "Definition": { "Binding": { "ConceptualEntity": "fact_claim", "ConceptualProperty": "Avg Denial Risk" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "denial risk": {} },
+		        { "risk of denial": {} },
+		        { "average denial risk": {} }
+		      ]
+		    },
+		    "dim_patient.Total Patients": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_patient", "ConceptualProperty": "Total Patients" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "patients": {} },
+		        { "members": {} },
+		        { "lives": {} },
+		        { "patient count": {} }
+		      ]
+		    },
+		    "dim_patient.Chronic Patients": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_patient", "ConceptualProperty": "Chronic Patients" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "chronic patients": {} },
+		        { "chronic members": {} },
+		        { "patients with chronic conditions": {} }
+		      ]
+		    },
+		    "dim_provider.Total Providers": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_provider", "ConceptualProperty": "Total Providers" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "providers": {} },
+		        { "physicians": {} },
+		        { "doctors": {} },
+		        { "clinicians": {} }
+		      ]
+		    },
+		    "dim_provider.RVU Attainment %": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_provider", "ConceptualProperty": "RVU Attainment %" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "rvu attainment": {} },
+		        { "rvu performance": {} },
+		        { "productivity attainment": {} }
+		      ]
+		    },
+		    "dim_provider.Telehealth Enabled Rate": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_provider", "ConceptualProperty": "Telehealth Enabled Rate" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "telehealth": {} },
+		        { "virtual care": {} },
+		        { "telehealth adoption": {} }
+		      ]
+		    },
+		    "dim_sdoh.High Risk SDOH Patients": {
+		      "Definition": { "Binding": { "ConceptualEntity": "dim_sdoh", "ConceptualProperty": "High Risk SDOH Patients" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "sdoh": {} },
+		        { "social determinants": {} },
+		        { "high risk sdoh": {} },
+		        { "vulnerable patients": {} }
+		      ]
+		    },
+		    "agg_medication_adherence.Avg PDC Score": {
+		      "Definition": { "Binding": { "ConceptualEntity": "agg_medication_adherence", "ConceptualProperty": "Avg PDC Score" } },
+		      "State": "Generated",
+		      "Terms": [
+		        { "pdc": {} },
+		        { "adherence": {} },
+		        { "medication adherence": {} }
+		      ]
+		    }
+		  }
+		}
+		```
+		contentType: json
+

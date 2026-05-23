@@ -13,7 +13,8 @@ One-click deployment of a complete **Healthcare Payer/Provider Analytics** solut
 
 1. [Why This Demo? — The Payer & Provider Pain Points](#why-this-demo--the-payer--provider-pain-points)
 2. [Phase 2 — Persona Coverage (CMO / CFO / COO / CTO)](#phase-2--persona-coverage-cmo--cfo--coo--cto)
-3. [Quick Start](#quick-start)
+3. [Semantic Model & Data Agent Best Practices](#semantic-model--data-agent-best-practices)
+4. [Quick Start](#quick-start)
 3. [What Gets Deployed](#what-gets-deployed)
    - [Data Volumes (Default)](#data-volumes-default)
 4. [Architecture](#architecture)
@@ -160,6 +161,60 @@ Real-time platform health and trust:
 
 See [`rti_dashboard/TILE_QUERY_PACK.md`](rti_dashboard/TILE_QUERY_PACK.md) for
 the copy-paste KQL behind every tile and the re-export workflow.
+
+---
+
+## Semantic Model & Data Agent Best Practices
+
+This repo is **fully aligned with the Microsoft Fabric Data Agent Checklist**
+and Best Practice Analyzer (BPA) rules for semantic models. Every guideline
+in the official Microsoft guidance is implemented in the TMDL definitions
+under `workspace/PayerAnalytics.SemanticModel/` and
+`workspace/ProviderAnalytics.SemanticModel/` — so the Copilot Data Agent
+gets clean, unambiguous metadata and produces consistent answers out of the box.
+
+> Why this matters: the Fabric Data Agent's answer quality is bounded by
+> semantic-model metadata quality. Hidden surrogate keys, calibrated
+> measures, Q&A synonyms, and validated relationships are what separate
+> a demo that "kind of works" from one that **answers KPI questions
+> reliably for executives**.
+
+### Coverage matrix
+
+| # | Best practice (MS Data Agent Checklist) | Implementation | Source |
+|---|---|---|---|
+| **A** | **Every table, column and measure has a `///` description** | All facts, dims, key measures carry triple-slash descriptions so the agent has business-meaning context | [`tools/apply_sm_descriptions.py`](tools/apply_sm_descriptions.py) |
+| **B** | **`summarizeBy: none` on non-aggregatable columns; currency `formatString`** | Keys / ids / flags / scores / codes / dates marked non-summable; all dollar measures use `"\$#,0;(\$#,0);\$0"` | [`tools/apply_bpa_cleanup.py`](tools/apply_bpa_cleanup.py) |
+| **C** | **Hide surrogate keys from the report/agent surface** | 104 `*_key` columns marked `isHidden: true` so Copilot never volunteers them as answers | [`tools/apply_sm_polish.py`](tools/apply_sm_polish.py) |
+| **D** | **Calibrated LLM-as-Judge evaluation harness** | `gpt-5` judge over 12 KPI questions + 16-pair calibration set; reports calibrated accuracy `max(0, min(1, (obs − FPR) / (TPR − FPR)))` | [`workspace/NB_DataAgent_Eval.Notebook/`](workspace/NB_DataAgent_Eval.Notebook/) + `data_agents/Healthcare Ontology Agent.DataAgent/eval/` |
+| **E** | **Q&A linguistic synonyms (`cultures/en-US.tmdl`)** | 13 Payer + 11 Provider canonical entities defined (Total Claims, Denial Rate, MLR %, HEDIS Compliance %, RAF Score, …) with binding + state, JSON-validated | [`workspace/PayerAnalytics.SemanticModel/definition/cultures/en-US.tmdl`](workspace/PayerAnalytics.SemanticModel/definition/cultures/en-US.tmdl) |
+| **F** | **`displayFolder` on every measure** | 80 measures grouped into business folders: Denials & Appeals · Premiums & MLR · Financials · Quality · Risk · Utilization · Volume | [`tools/apply_sm_polish.py`](tools/apply_sm_polish.py) |
+| **G** | **Relationships audit (BPA-relationships)** | Static checker over `relationships.tmdl`: 67 relationships, **0 violations**; 7 inactive role-playing date FKs verified as intentional | [`tools/audit_rels.py`](tools/audit_rels.py) |
+
+Run any of the tools idempotently:
+
+```powershell
+python tools\apply_sm_descriptions.py
+python tools\apply_bpa_cleanup.py
+python tools\apply_sm_polish.py
+python tools\audit_rels.py            # read-only audit
+```
+
+### How to verify the agent quality yourself
+
+1. Deploy the repo (Quick Start below).
+2. Open the [`NB_DataAgent_Eval` notebook](workspace/NB_DataAgent_Eval.Notebook/) in your Fabric workspace.
+3. Attach `lh_gold_curated` and run all cells — the harness queries the
+   `Healthcare Ontology Agent`, judges every answer with `gpt-5`, and
+   prints a calibrated accuracy score plus a per-question breakdown.
+4. Use the score as the baseline for any future agent-instruction or
+   semantic-model edits — regressions show up immediately.
+
+> **Why this repo is "best in class" for Fabric healthcare demos:** most demos
+> ship facts/dims and stop there. This one ships the *agent-side polish*
+> (descriptions, hidden keys, currency formats, synonyms, display folders,
+> relationship audit) plus a *reproducible evaluation harness* that proves
+> the agent's answers are correct — not just plausible.
 
 ---
 

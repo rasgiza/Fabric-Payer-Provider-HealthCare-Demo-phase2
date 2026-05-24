@@ -1,35 +1,35 @@
 /// Member premium payments. Monthly grain by (payer, plan, member). Used in MLR and revenue analyses.
 table fact_premium
-	lineageTag: c1100001-0001-0001-0001-000000000001
+	lineageTag: d00635c7-567a-4aa8-8941-a45d5b1e54a7
 	sourceLineageTag: [dbo].[fact_premium]
 
 	/// Measure: total premium revenue.
 	measure 'Total Premium Revenue' = SUM(fact_premium[premium_amount])
 		formatString: "\$#,0;(\$#,0);\$0"
-		lineageTag: c1100001-0001-0001-0001-000000000011
+		lineageTag: 75429c6d-9b02-4232-a97f-7d3c161c8d6c
 		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: member months.
 	measure 'Member Months' = COUNTROWS(fact_premium)
 		formatString: #,##0
-		lineageTag: c1100001-0001-0001-0001-000000000012
+		lineageTag: 619545d3-a8be-43bc-88d5-245ebb3fe2a6
 
 	/// Measure: premium pmpm.
 	measure 'Premium PMPM' = DIVIDE([Total Premium Revenue], [Member Months])
-		lineageTag: c1100001-0001-0001-0001-000000000013
+		lineageTag: 014c6b01-3deb-478f-ba59-849919ce74c7
 		displayFolder: Premiums & MLR
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: total subsidy.
 	measure 'Total Subsidy' = SUM(fact_premium[subsidy_amount])
-		lineageTag: c1100001-0001-0001-0001-000000000014
+		lineageTag: 647950a0-aa94-4a0c-88e8-6bf9d4797203
 		displayFolder: Volume
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
 	/// Measure: total member paid.
 	measure 'Total Member Paid' = SUM(fact_premium[member_paid])
-		lineageTag: c1100001-0001-0001-0001-000000000015
+		lineageTag: c0cdb041-6ba3-4d88-9484-95568043d6a1
 		displayFolder: Volume
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 

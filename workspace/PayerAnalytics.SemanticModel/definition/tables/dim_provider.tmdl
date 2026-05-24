@@ -1,13 +1,13 @@
 /// Provider master dimension. One row per clinician (NPI). Use display_name for search and specialty / department
 /// for grouping.
 table dim_provider
-	lineageTag: c1020001-0001-0001-0001-000000000001
+	lineageTag: 5b5c8f85-00ba-4c38-b380-b53736945859
 	sourceLineageTag: [dbo].[dim_provider]
 
 	/// Provider business key.
 	column provider_id
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000011
+		lineageTag: 8e41082b-bb4e-4987-b207-03228c0e4b29
 		sourceLineageTag: provider_id
 		summarizeBy: none
 		sourceColumn: provider_id
@@ -17,7 +17,7 @@ table dim_provider
 	/// Provider first name.
 	column first_name
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000012
+		lineageTag: 67ae321a-df15-418e-87cf-213c15a2a9c5
 		sourceLineageTag: first_name
 		summarizeBy: none
 		sourceColumn: first_name
@@ -27,7 +27,7 @@ table dim_provider
 	/// Provider last name.
 	column last_name
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000013
+		lineageTag: fe8348a2-5f92-4f9c-a19a-2c064b699491
 		sourceLineageTag: last_name
 		summarizeBy: none
 		sourceColumn: last_name
@@ -37,7 +37,7 @@ table dim_provider
 	/// Provider display name (preferred field for name search).
 	column display_name
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000014
+		lineageTag: 4babf0ac-637e-429a-8fbe-c968eab77dfb
 		sourceLineageTag: display_name
 		summarizeBy: none
 		sourceColumn: display_name
@@ -47,7 +47,7 @@ table dim_provider
 	/// 10-digit National Provider Identifier.
 	column npi_number
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000015
+		lineageTag: 53d8f41b-1dcc-4a37-868b-95499166189e
 		sourceLineageTag: npi_number
 		summarizeBy: none
 		sourceColumn: npi_number
@@ -57,7 +57,7 @@ table dim_provider
 	/// Clinical specialty (Cardiology, Endocrinology, Internal Medicine, ...).
 	column specialty
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000016
+		lineageTag: 6727c1bf-6d55-4d3c-97ed-a331b8fb6c02
 		sourceLineageTag: specialty
 		summarizeBy: none
 		sourceColumn: specialty
@@ -67,7 +67,7 @@ table dim_provider
 	/// Hospital department or service line.
 	column department
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000017
+		lineageTag: 6c3b90ab-8729-4d01-83b2-82cb2bcbf487
 		sourceLineageTag: department
 		summarizeBy: none
 		sourceColumn: department
@@ -77,7 +77,7 @@ table dim_provider
 	/// Business key.
 	column facility_id
 		dataType: string
-		lineageTag: c1020001-0001-0001-0001-000000000018
+		lineageTag: bbd2d1ad-8829-44c0-82db-0658c9276350
 		sourceLineageTag: facility_id
 		summarizeBy: none
 		sourceColumn: facility_id
@@ -88,7 +88,7 @@ table dim_provider
 	column is_active
 		dataType: int64
 		formatString: 0
-		lineageTag: c1020001-0001-0001-0001-000000000019
+		lineageTag: 69b70e7a-3aec-4203-9b53-2e30d29fa8ed
 		sourceLineageTag: is_active
 		summarizeBy: none
 		sourceColumn: is_active
@@ -100,7 +100,7 @@ table dim_provider
 		isHidden: true
 		dataType: int64
 		formatString: 0
-		lineageTag: c1020001-0001-0001-0001-00000000001a
+		lineageTag: 72e353c2-910d-4323-8bee-d9214355f200
 		sourceLineageTag: provider_key
 		summarizeBy: none
 		sourceColumn: provider_key
@@ -111,7 +111,7 @@ table dim_provider
 	column is_current
 		dataType: int64
 		formatString: 0
-		lineageTag: c1020001-0001-0001-0001-00000000001b
+		lineageTag: f065289c-a84d-4eae-8670-2ab487da2135
 		sourceLineageTag: is_current
 		summarizeBy: none
 		sourceColumn: is_current
@@ -122,7 +122,7 @@ table dim_provider
 	column _load_timestamp
 		dataType: dateTime
 		formatString: General Date
-		lineageTag: c1020001-0001-0001-0001-00000000001c
+		lineageTag: 8f0c9f36-6b27-4fb9-a555-2d426f7f9f65
 		sourceLineageTag: _load_timestamp
 		summarizeBy: none
 		sourceColumn: _load_timestamp

@@ -189,14 +189,50 @@ alerts_union
 _cols, _rows = _kql_query(_mttr_query)
 print(f"  MTTR rows computed: {len(_rows)}")
 
-if _rows:
-    df_mttr = spark.createDataFrame([dict(zip(_cols, r)) for r in _rows])
+# Explicit schema — KQL percentile/diff columns are all-null until any
+# alert_closure_events rows arrive from Power Automate, so Spark schema
+# inference would fail with CANNOT_DETERMINE_TYPE. Lock the types here.
+from pyspark.sql.types import (
+    StructType, StructField, StringType, LongType, DoubleType
+)
+_mttr_schema = StructType([
+    StructField("persona",           StringType(), True),
+    StructField("alert_type",        StringType(), True),
+    StructField("open_count",        LongType(),   True),
+    StructField("ack_count",         LongType(),   True),
+    StructField("resolved_count",    LongType(),   True),
+    StructField("p50_ack_minutes",   DoubleType(), True),
+    StructField("p90_ack_minutes",   DoubleType(), True),
+    StructField("p50_close_minutes", DoubleType(), True),
+    StructField("p90_close_minutes", DoubleType(), True),
+    StructField("avg_close_minutes", DoubleType(), True),
+])
+
+def _coerce(_v, _t):
+    if _v is None: return None
+    if isinstance(_t, LongType):   return int(_v)
+    if isinstance(_t, DoubleType): return float(_v)
+    return _v
+
+_field_by_name = {f.name: f.dataType for f in _mttr_schema.fields}
+_typed_rows = [
+    tuple(_coerce(dict(zip(_cols, r)).get(f.name), f.dataType) for f in _mttr_schema.fields)
+    for r in _rows
+]
+
+if _typed_rows:
+    df_mttr = spark.createDataFrame(_typed_rows, schema=_mttr_schema)
     df_mttr = df_mttr.withColumn("computed_at", F.current_timestamp())
     df_mttr.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_alert_mttr")
     print(f"  rti_alert_mttr (Delta): {df_mttr.count()} rows written")
     df_mttr.show(50, truncate=False)
 else:
-    print("  No alerts in last 24h — MTTR table empty.")
+    # Still write an empty Delta table so downstream tiles don't break.
+    df_mttr = spark.createDataFrame([], schema=_mttr_schema).withColumn(
+        "computed_at", F.current_timestamp()
+    )
+    df_mttr.write.format("delta").mode("overwrite").saveAsTable("lh_gold_curated.rti_alert_mttr")
+    print("  No alerts in last 24h — wrote empty rti_alert_mttr Delta table.")
 
 # METADATA **{"language":"python"}**
 

@@ -139,6 +139,7 @@ relationship c1000001-0001-0001-0001-00000000003c
 	toColumn: dim_plan.plan_key
 
 relationship c1000001-0001-0001-0001-00000000003d
+	isActive: false
 	fromColumn: fact_appeal.claim_key
 	toColumn: fact_claim.claim_key
 

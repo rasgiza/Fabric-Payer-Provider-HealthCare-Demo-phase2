@@ -889,6 +889,123 @@
           ]
         },
         {
+          "id": "96484ac2-5a1c-4504-9f7e-50cd46eeef26",
+          "is_selected": true,
+          "display_name": "dim_medication",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "7bd1e9e9-d161-4deb-80ae-2eb64ddba8bd",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "03182339-e81c-4444-a312-5bb5ffd857dd",
+              "is_selected": true,
+              "display_name": "drug_class",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "8b877877-95a9-439b-8d74-d87b1a8f5e3b",
+              "is_selected": true,
+              "display_name": "form",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "79a90f8a-e9d6-4e31-980a-5e39180fd09b",
+              "is_selected": true,
+              "display_name": "generic_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "13589881-594a-45b6-9e91-e61e6f6eb83f",
+              "is_selected": true,
+              "display_name": "is_active",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b8da5bf0-e177-49dd-8ae8-21fa569ecac4",
+              "is_selected": true,
+              "display_name": "is_chronic",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "dc864826-34e6-4d50-b82c-20cbfbaad572",
+              "is_selected": true,
+              "display_name": "medication_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "0f5870e9-b008-41c4-9113-28c0fbaa4ae3",
+              "is_selected": true,
+              "display_name": "medication_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "9dafdb2c-4c0a-4795-baa3-6c33f404310a",
+              "is_selected": true,
+              "display_name": "route",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "5c2f5a16-00b3-4995-8ef2-28511226b069",
+              "is_selected": true,
+              "display_name": "rxnorm_code",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "58f4ba69-1af7-44b4-880a-f76a29cdb266",
+              "is_selected": true,
+              "display_name": "strength",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "d07376fb-a7f7-4a61-a4c2-779def625bc5",
+              "is_selected": true,
+              "display_name": "therapeutic_area",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
           "id": "de59e97a-3d93-4276-8b91-874871a68329",
           "is_selected": true,
           "display_name": "dim_payer",

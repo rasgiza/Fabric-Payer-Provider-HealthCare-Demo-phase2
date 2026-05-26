@@ -2,10 +2,956 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
   "artifactId": "d4000004-0004-0004-0004-000000000020",
   "workspaceId": "00000000-0000-0000-0000-000000000000",
-  "dataSourceInstructions": "PayerAnalytics is a Direct Lake semantic model over lh_gold_curated, scoped to the revenue-cycle / CFO persona. It exposes pre-defined DAX measures for denials, collections, days-in-AR, appeals, payer mix, and member economics. PREFER measures over raw SQL aggregations.\n\nQUERY LANGUAGE: DAX via EVALUATE / SUMMARIZECOLUMNS / CALCULATETABLE. NOT SQL.\n\n=== CRITICAL: TABLES YOU MAY USE (backed by Delta in lh_gold_curated) ===\nfact_claim, fact_encounter, fact_prescription, fact_diagnosis,\nagg_appeal_outcomes, agg_days_in_ar, agg_medication_adherence, agg_readmission_by_date, agg_revenue_by_drg,\ndim_payer, dim_patient, dim_provider, dim_diagnosis, dim_medication, dim_sdoh, dim_date\n\n=== DO NOT QUERY THESE TABLES Ã¢â‚¬â€ TMDL definitions exist but Delta backing has NOT been deployed yet ===\nfact_appeal, fact_authorization, fact_capitation, fact_premium,\nagg_hedis_compliance, agg_mlr_by_payer_month, agg_raf_score, agg_star_rating, agg_star_rating_overall,\nbridge_provider_contract, dim_plan\nIf a user asks for HEDIS / MLR / RAF / Star Ratings / authorizations / capitation / premium / plan-level questions, respond that those data sources are not yet available in this environment and suggest the closest backed alternative (e.g., denial rate by payer for revenue questions).\n\n=== KEY MEASURES ===\n\nfact_claim (the workhorse table for the CFO):\n- [Total Claims], [Total Billed], [Total Paid], [Collection Rate], [Net Collection Rate]\n- [Denial Rate], [Provider Denial Count], [Avg Denial Risk], [High Risk Denials], [At Risk Revenue]\n- [Avg Days to Payment], [MTD Claims], [Paid by Payment Date]\n- [Appeal Success Rate], [Total Appeal Recovery]\n\nfact_encounter (use for case-mix / DRG margin questions):\n- [Total Encounters], [Total Charges], [Total Cost], [Avg Cost Per Encounter], [Total Expected Reimbursement]\n- [Avg DRG Weight], [Inpatient Encounters], [Emergency Encounters]\n- [Readmission Rate], [Avg Length of Stay]\n- [PY Charges], [YoY Charge Growth], [YTD Charges]\n\nfact_prescription:\n- [Total Fills], [Total Rx Cost], [Avg Rx Cost Per Fill], [Generic Fill Rate], [Payer Rx Cost], [Patient Copay Total]\n\nfact_diagnosis:\n- [Unique Diagnoses], [Chronic Diagnoses], [Patients with Chronic Conditions]\n\nagg_medication_adherence:\n- [Adherent Rate], [Avg PDC Score]\n\ndim_payer (SCD2 Ã¢â‚¬â€ measures pre-filter is_active = 1):\n- [Total Payers], [Avg Reimbursement Rate], [Large Network Payers], [Commercial Payers], [Government Payers]\n\ndim_patient (SCD2 Ã¢â‚¬â€ measures pre-filter is_current = 1):\n- [Total Patients], [Chronic Patients], [Avg Patient Age]\n\nFor agg_appeal_outcomes and agg_days_in_ar (no pre-defined measures yet), use SUM/AVERAGE over their numeric columns:\n- agg_appeal_outcomes: appeal_count, appeal_outcome ('Won'/'Lost'/'Pending'), total_amount_recovered, avg_amount_recovered, by payer_name and denial_reason\n- agg_days_in_ar: days_in_ar_bucket, claim_count, billed_amount, by payer_name and age_bucket ('0-30','31-60','61-90','91-120','120+')\n\n=== DAX PATTERNS ===\n1. Single KPI:               EVALUATE { [Denial Rate] }\n2. Sliced by dimension:       EVALUATE SUMMARIZECOLUMNS(dim_payer[payer_name], \"Rate\", [Denial Rate])\n3. With filter:               EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(dim_payer[payer_name], \"Risk $\", [At Risk Revenue]), dim_payer[payer_type] = \"Commercial\")\n4. Time-intelligence:         EVALUATE SUMMARIZECOLUMNS(dim_date[year], dim_date[month_name], \"Billed\", [Total Billed], \"Paid\", [Total Paid], \"Collection %\", [Collection Rate])\n5. TopN:                      EVALUATE TOPN(10, SUMMARIZECOLUMNS(dim_payer[payer_name], \"Denial %\", [Denial Rate]), [Denial Rate], DESC)\n\n=== ROUTING TO LAKEHOUSE INSTEAD ===\nFall back to the lh_gold_curated lakehouse (SQL) when:\n- Question needs row-level detail (\"list the 50 highest-dollar denied claims\")\n- Question needs a column not exposed as a measure (e.g., specific denial_reason_codes, claim_number)\n- Question requires a JOIN pattern not pre-baked into model relationships\n- Question references one of the NOT-YET-BACKED tables listed above (and the user confirms a SQL workaround is OK)\n\n=== BENCHMARKS (CFO context) ===\nDenial Rate: <10% is healthy (industry median ~12%) | Collection Rate: >95% target | Days to Payment: <30 days target | Appeal Success Rate: 40-60% typical | Generic Fill Rate: >85% | Readmission Rate: <15%",
+  "dataSourceInstructions": "PayerAnalytics is a Direct Lake semantic model over lh_gold_curated, scoped to the revenue-cycle / CFO persona. It exposes pre-defined DAX measures for denials, collections, days-in-AR, appeals, payer mix, and member economics. PREFER measures over raw SQL aggregations.\n\nQUERY LANGUAGE: DAX via EVALUATE / SUMMARIZECOLUMNS / CALCULATETABLE. NOT SQL.\n\n=== CRITICAL: TABLES YOU MAY USE (backed by Delta in lh_gold_curated) ===\nfact_claim, fact_encounter, fact_prescription, fact_diagnosis,\nagg_appeal_outcomes, agg_days_in_ar, agg_medication_adherence, agg_readmission_by_date, agg_revenue_by_drg,\ndim_payer, dim_patient, dim_provider, dim_diagnosis, dim_medication, dim_sdoh, dim_date\n\n=== DO NOT QUERY THESE TABLES \u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac\u009d TMDL definitions exist but Delta backing has NOT been deployed yet ===\nfact_appeal, fact_authorization, fact_capitation, fact_premium,\nagg_hedis_compliance, agg_mlr_by_payer_month, agg_raf_score, agg_star_rating, agg_star_rating_overall,\nbridge_provider_contract, dim_plan\nIf a user asks for HEDIS / MLR / RAF / Star Ratings / authorizations / capitation / premium / plan-level questions, respond that those data sources are not yet available in this environment and suggest the closest backed alternative (e.g., denial rate by payer for revenue questions).\n\n=== KEY MEASURES ===\n\nfact_claim (the workhorse table for the CFO):\n- [Total Claims], [Total Billed], [Total Paid], [Collection Rate], [Net Collection Rate]\n- [Denial Rate], [Provider Denial Count], [Avg Denial Risk], [High Risk Denials], [At Risk Revenue]\n- [Avg Days to Payment], [MTD Claims], [Paid by Payment Date]\n- [Appeal Success Rate], [Total Appeal Recovery]\n\nfact_encounter (use for case-mix / DRG margin questions):\n- [Total Encounters], [Total Charges], [Total Cost], [Avg Cost Per Encounter], [Total Expected Reimbursement]\n- [Avg DRG Weight], [Inpatient Encounters], [Emergency Encounters]\n- [Readmission Rate], [Avg Length of Stay]\n- [PY Charges], [YoY Charge Growth], [YTD Charges]\n\nfact_prescription:\n- [Total Fills], [Total Rx Cost], [Avg Rx Cost Per Fill], [Generic Fill Rate], [Payer Rx Cost], [Patient Copay Total]\n\nfact_diagnosis:\n- [Unique Diagnoses], [Chronic Diagnoses], [Patients with Chronic Conditions]\n\nagg_medication_adherence:\n- [Adherent Rate], [Avg PDC Score]\n\ndim_payer (SCD2 \u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac\u009d measures pre-filter is_active = 1):\n- [Total Payers], [Avg Reimbursement Rate], [Large Network Payers], [Commercial Payers], [Government Payers]\n\ndim_patient (SCD2 \u00c3\u00a2\u00e2\u201a\u00ac\u00e2\u20ac\u009d measures pre-filter is_current = 1):\n- [Total Patients], [Chronic Patients], [Avg Patient Age]\n\nFor agg_appeal_outcomes and agg_days_in_ar (no pre-defined measures yet), use SUM/AVERAGE over their numeric columns:\n- agg_appeal_outcomes: appeal_count, appeal_outcome ('Won'/'Lost'/'Pending'), total_amount_recovered, avg_amount_recovered, by payer_name and denial_reason\n- agg_days_in_ar: days_in_ar_bucket, claim_count, billed_amount, by payer_name and age_bucket ('0-30','31-60','61-90','91-120','120+')\n\n=== DAX PATTERNS ===\n1. Single KPI:               EVALUATE { [Denial Rate] }\n2. Sliced by dimension:       EVALUATE SUMMARIZECOLUMNS(dim_payer[payer_name], \"Rate\", [Denial Rate])\n3. With filter:               EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(dim_payer[payer_name], \"Risk $\", [At Risk Revenue]), dim_payer[payer_type] = \"Commercial\")\n4. Time-intelligence:         EVALUATE SUMMARIZECOLUMNS(dim_date[year], dim_date[month_name], \"Billed\", [Total Billed], \"Paid\", [Total Paid], \"Collection %\", [Collection Rate])\n5. TopN:                      EVALUATE TOPN(10, SUMMARIZECOLUMNS(dim_payer[payer_name], \"Denial %\", [Denial Rate]), [Denial Rate], DESC)\n\n=== ROUTING TO LAKEHOUSE INSTEAD ===\nFall back to the lh_gold_curated lakehouse (SQL) when:\n- Question needs row-level detail (\"list the 50 highest-dollar denied claims\")\n- Question needs a column not exposed as a measure (e.g., specific denial_reason_codes, claim_number)\n- Question requires a JOIN pattern not pre-baked into model relationships\n- Question references one of the NOT-YET-BACKED tables listed above (and the user confirms a SQL workaround is OK)\n\n=== BENCHMARKS (CFO context) ===\nDenial Rate: <10% is healthy (industry median ~12%) | Collection Rate: >95% target | Days to Payment: <30 days target | Appeal Success Rate: 40-60% typical | Generic Fill Rate: >85% | Readmission Rate: <15%",
   "displayName": "PayerAnalytics",
   "type": "semantic_model",
   "userDescription": "Direct Lake semantic model over lh_gold_curated scoped to the revenue-cycle / CFO persona. Contains DAX measures for denials, collections, days-in-AR, appeals, payer mix, and case-mix economics. Some TMDL tables are aspirational and not yet backed (see dataSourceInstructions).",
   "metadata": {},
-  "elements": []
+  "elements": [
+    {
+      "id": "6ee75989-dd35-4039-bebb-ea454b503963",
+      "is_selected": false,
+      "display_name": "dbo",
+      "type": "lakehouse_tables.schema",
+      "description": null,
+      "children": [
+        {
+          "id": "e06c557a-6510-4720-bbc1-f7f5603b073d",
+          "is_selected": true,
+          "display_name": "fact_claim",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "dfcf6960-4346-4b18-81e2-a65abda7536f",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "09b4622c-43d3-40ff-bfac-39d0631c6eb7",
+              "is_selected": true,
+              "display_name": "allowed_amount",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "33b1270f-b197-4b08-8817-c0613698beac",
+              "is_selected": true,
+              "display_name": "billed_amount",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3ea39e1d-d0ab-4226-aa49-e87bff89175b",
+              "is_selected": true,
+              "display_name": "claim_date_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "55d21ba0-3044-4046-a13c-22828ed8005f",
+              "is_selected": true,
+              "display_name": "claim_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "e9261985-cd35-49ad-8795-3b7ad40784a6",
+              "is_selected": true,
+              "display_name": "claim_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "245b11ac-2219-4de7-a9a9-5544e3bf92eb",
+              "is_selected": true,
+              "display_name": "claim_status",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "87231fe1-0551-49d1-8718-84d69e5ef4db",
+              "is_selected": true,
+              "display_name": "claim_type",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b9f9da1f-2873-484d-96bc-1b375dc74cb6",
+              "is_selected": true,
+              "display_name": "denial_flag",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "21e39a74-b627-4525-9149-0bb250d365c0",
+              "is_selected": true,
+              "display_name": "denial_risk_category",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "290304fd-524a-4255-a057-eab26ae1a824",
+              "is_selected": true,
+              "display_name": "denial_risk_score",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "4a2844d8-3f30-471c-8593-c564171e5070",
+              "is_selected": true,
+              "display_name": "encounter_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b483d519-5334-42fa-8fbe-c8f92b96a4ef",
+              "is_selected": true,
+              "display_name": "facility_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b63f8459-653b-4be0-973b-2ba8a258f91c",
+              "is_selected": true,
+              "display_name": "paid_amount",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "566bfba5-ec10-4888-8820-85c05c9c51e2",
+              "is_selected": true,
+              "display_name": "patient_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "575dc55d-99e4-4f75-992c-5edc142e64c1",
+              "is_selected": true,
+              "display_name": "payer_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "aff1d7a8-6e2a-4fe6-87b7-378c2dab0290",
+              "is_selected": true,
+              "display_name": "payment_date_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b6cc8dcb-16b7-4726-87c4-2f2b62211c54",
+              "is_selected": true,
+              "display_name": "primary_denial_reason",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "eb7e53e7-6189-4de9-b29b-a2fc2595cb4a",
+              "is_selected": true,
+              "display_name": "provider_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "c24c7d9b-aaa6-4179-9098-eeb45e37ca62",
+              "is_selected": true,
+              "display_name": "recommended_action",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "d33dbfc3-f67b-48ce-bd22-ecca5d4af580",
+          "is_selected": true,
+          "display_name": "dim_patient",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "2986b3a8-a193-41f2-8f9f-b8bf6c3cae59",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "98e98ec2-1820-4784-b425-1d1efcc998db",
+              "is_selected": true,
+              "display_name": "address",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "bf48e606-dd28-4685-aaed-450b890e9b0c",
+              "is_selected": true,
+              "display_name": "age",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "336b50eb-bb02-4ae7-85e5-8532756357a4",
+              "is_selected": true,
+              "display_name": "age_group",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "faa06b33-f874-4abe-b0e7-7b8f51479516",
+              "is_selected": true,
+              "display_name": "city",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "af015f98-a129-4ca0-976b-c03bac339c40",
+              "is_selected": true,
+              "display_name": "date_of_birth",
+              "type": "lakehouse_tables.column",
+              "data_type": "date",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "4d4943c9-f389-4d8c-a635-3c455b2ff005",
+              "is_selected": true,
+              "display_name": "effective_end_date",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "c481659a-049d-4016-ab8e-f291f7b65ba3",
+              "is_selected": true,
+              "display_name": "effective_start_date",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3862e4bd-b967-46cc-95cd-ee6f58e05c5b",
+              "is_selected": true,
+              "display_name": "email",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "a2baef9d-cec8-456f-91f9-fe98b63685e3",
+              "is_selected": true,
+              "display_name": "first_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "87abd450-f609-4cc0-b713-1e704aab95f1",
+              "is_selected": true,
+              "display_name": "gender",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "95e7d679-18f3-4305-8cd3-72253dfb83a8",
+              "is_selected": true,
+              "display_name": "insurance_policy_number",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "e5a2b2bb-bd52-4e07-90c4-89acdedc8cfb",
+              "is_selected": true,
+              "display_name": "insurance_provider",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "1e9a385a-3cf6-4057-9c31-1d7bd478ecb1",
+              "is_selected": true,
+              "display_name": "insurance_type",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "4a91f593-054b-4e25-aa2c-697bfb8fa6b5",
+              "is_selected": true,
+              "display_name": "is_current",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "a6f6bfdb-4fc5-4c38-9054-66ae9d277733",
+              "is_selected": true,
+              "display_name": "last_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "2f99c801-d1ec-49a7-8fd6-96f3703c7337",
+              "is_selected": true,
+              "display_name": "patient_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "89bcf715-bb1f-4f80-b75d-0622df8221e8",
+              "is_selected": true,
+              "display_name": "patient_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "53201d81-4ff7-419d-bf74-a65a0bddc36d",
+              "is_selected": true,
+              "display_name": "phone",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "048a4128-8cf2-4334-aa4a-7177563d10fd",
+              "is_selected": true,
+              "display_name": "state",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "20f69b20-a8db-4c76-8051-33a9ecb50312",
+              "is_selected": true,
+              "display_name": "zip_code",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "09855ad2-560b-4526-97e9-c968ab8de616",
+          "is_selected": true,
+          "display_name": "dim_date",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "4ed2c5c8-36b0-47fc-8b36-96fc6e17b623",
+              "is_selected": true,
+              "display_name": "date_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "9d5475fb-bf83-4d1c-bd2f-bd9d1b1e1289",
+              "is_selected": true,
+              "display_name": "day_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "afe5bd9b-657f-4b4c-927e-218893e739a1",
+              "is_selected": true,
+              "display_name": "day_of_month",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b0f5c689-31de-4256-8463-163692f05006",
+              "is_selected": true,
+              "display_name": "day_of_week",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "e23bbac4-35c9-4260-9f1d-a0a6ec39f9a1",
+              "is_selected": true,
+              "display_name": "day_of_year",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "d4eac38b-0e7b-4c3a-bf25-584346730a20",
+              "is_selected": true,
+              "display_name": "fiscal_quarter",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "13b5683e-9495-4daf-bbf0-b03709d77292",
+              "is_selected": true,
+              "display_name": "fiscal_year",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "587628d1-3ce9-43f5-ae1b-ebafa1ca7c5c",
+              "is_selected": true,
+              "display_name": "full_date",
+              "type": "lakehouse_tables.column",
+              "data_type": "date",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "aa65134d-07bf-48a4-9a1a-2ba49fb6d784",
+              "is_selected": true,
+              "display_name": "is_holiday",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "9098e66e-8229-42f6-8ddc-478c8fb26c74",
+              "is_selected": true,
+              "display_name": "is_weekend",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3b09ac86-7d04-4c8f-bf7c-bc2b9dcdb687",
+              "is_selected": true,
+              "display_name": "month_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "03c4e846-6734-45b8-9ad0-328be23d9d3d",
+              "is_selected": true,
+              "display_name": "month_number",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "f2fcb1fa-e270-493a-b162-6c5d17b4d482",
+              "is_selected": true,
+              "display_name": "quarter",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "2e431ce8-07fe-4db9-b12b-4e20e2a3cf7f",
+              "is_selected": true,
+              "display_name": "week_of_year",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "e354a8bd-ce58-4b20-a701-c9e725f8ac7b",
+              "is_selected": true,
+              "display_name": "year",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "5ea8c6f0-277b-4b76-ab1a-4855aca3d2b4",
+          "is_selected": true,
+          "display_name": "dim_provider",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "89906166-902d-49b5-95fc-b168ada56587",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3c105913-da80-4489-bf71-9475daf9c60e",
+              "is_selected": true,
+              "display_name": "department",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "4c7b84e5-6995-4ecc-88ca-7e4a51e27c03",
+              "is_selected": true,
+              "display_name": "display_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "83373e5a-cb59-4008-a708-62ddf8946082",
+              "is_selected": true,
+              "display_name": "effective_end_date",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "5ebe26e9-db3d-4fec-aa6a-1631f7d3e6a0",
+              "is_selected": true,
+              "display_name": "effective_start_date",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "fb381562-9f60-4959-9b3b-a071517009c4",
+              "is_selected": true,
+              "display_name": "facility_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "6a6e6723-5533-4561-9e1b-3e5ea719de8d",
+              "is_selected": true,
+              "display_name": "first_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "7115b1b8-a028-43c2-b738-2c831728ef6e",
+              "is_selected": true,
+              "display_name": "is_active",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "ed18db63-5111-43e8-8743-6711484ac437",
+              "is_selected": true,
+              "display_name": "is_current",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "33fdff13-9148-40d6-abfb-2684b6b4c8b6",
+              "is_selected": true,
+              "display_name": "last_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "b4d0fe54-d192-44ec-983a-fe5d11ef098f",
+              "is_selected": true,
+              "display_name": "npi_number",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "6364501a-0960-4180-ae91-cdaefd767ee0",
+              "is_selected": true,
+              "display_name": "provider_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "2e5b648b-e046-47ef-8fa9-2167e3192b08",
+              "is_selected": true,
+              "display_name": "provider_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "41cc546f-e747-43c2-a6ca-893bb10b2e3c",
+              "is_selected": true,
+              "display_name": "specialty",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "d0467667-2fa7-427c-87fb-2410343d7a56",
+          "is_selected": true,
+          "display_name": "fact_prescription",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "8025e9a5-1813-4c86-b830-0c78bf758dbd",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3891709f-021a-4330-8dab-44badb11cb4a",
+              "is_selected": true,
+              "display_name": "days_supply",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "981732bd-90c3-40b7-83d1-fc86a11ad1d7",
+              "is_selected": true,
+              "display_name": "encounter_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "0e27d22e-22b8-40fc-97d7-ba12216466ac",
+              "is_selected": true,
+              "display_name": "facility_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "f1f43c79-fb97-42f1-ba24-9ff0e8e1048e",
+              "is_selected": true,
+              "display_name": "fill_date_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "52b2cf05-fe03-4be6-aca6-c8796cea4210",
+              "is_selected": true,
+              "display_name": "fill_number",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "56602dfb-5126-436e-8dfc-98d38b43f743",
+              "is_selected": true,
+              "display_name": "is_chronic_medication",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "c9e359c5-1bc4-45f5-a873-6d8c184ecd77",
+              "is_selected": true,
+              "display_name": "is_generic",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "bf3fe670-6f98-4fe4-b8f5-21479396bb1c",
+              "is_selected": true,
+              "display_name": "medication_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3ddaf69b-86a2-4222-b43f-a0facce6bab9",
+              "is_selected": true,
+              "display_name": "patient_copay",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "28f4453b-4119-45b3-98e7-20a761c377d0",
+              "is_selected": true,
+              "display_name": "patient_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "d3646436-cd1d-4449-bc40-071651220e19",
+              "is_selected": true,
+              "display_name": "payer_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "2625ef4a-534a-47fc-9d3a-8f56f8de5773",
+              "is_selected": true,
+              "display_name": "payer_paid",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "81ca00e7-c334-4238-b2dd-7387a5951ce1",
+              "is_selected": true,
+              "display_name": "pharmacy_type",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "098c6ab8-00d2-48d9-83bb-0579a0a852c0",
+              "is_selected": true,
+              "display_name": "prescribing_reason_code",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "f5e707c5-d4d6-466e-afbf-4a59a0137841",
+              "is_selected": true,
+              "display_name": "prescription_group_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3f8b8739-9330-447b-bc80-fc1ddb7eff26",
+              "is_selected": true,
+              "display_name": "prescription_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "43e6673f-1de9-4dcc-aa73-4923e2f07496",
+              "is_selected": true,
+              "display_name": "prescription_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "3856fa61-38eb-4354-a7d8-88c7fb87deb1",
+              "is_selected": true,
+              "display_name": "provider_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "376a4e4c-1493-49e4-a804-15ba246cbc71",
+              "is_selected": true,
+              "display_name": "quantity_dispensed",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "0979941d-214b-4c5f-b546-8fabb8a2381d",
+              "is_selected": true,
+              "display_name": "refills_authorized",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "fd89ef64-9a78-4d5a-90d4-549b6834ed73",
+              "is_selected": true,
+              "display_name": "total_cost",
+              "type": "lakehouse_tables.column",
+              "data_type": "float",
+              "description": null,
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "de59e97a-3d93-4276-8b91-874871a68329",
+          "is_selected": true,
+          "display_name": "dim_payer",
+          "type": "lakehouse_tables.table",
+          "description": null,
+          "children": [
+            {
+              "id": "384b3358-28af-4b2a-8a0a-7cd5112eefdf",
+              "is_selected": true,
+              "display_name": "_load_timestamp",
+              "type": "lakehouse_tables.column",
+              "data_type": "datetime2",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "a8ff604c-f2cc-41ef-b0dd-456e38216979",
+              "is_selected": true,
+              "display_name": "is_active",
+              "type": "lakehouse_tables.column",
+              "data_type": "int",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "094ea7b2-5c56-41e7-bdc9-1e4c3c1bf39f",
+              "is_selected": true,
+              "display_name": "payer_id",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "75c8c39d-00a3-40e0-be59-21f2d7cfe7be",
+              "is_selected": true,
+              "display_name": "payer_key",
+              "type": "lakehouse_tables.column",
+              "data_type": "bigint",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "73ad0495-ea4b-4419-aadb-d08386efe1d5",
+              "is_selected": true,
+              "display_name": "payer_name",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            },
+            {
+              "id": "288ab300-c9f7-4f45-96d8-52a4a3185ebf",
+              "is_selected": true,
+              "display_name": "payer_type",
+              "type": "lakehouse_tables.column",
+              "data_type": "varchar",
+              "description": null,
+              "children": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }

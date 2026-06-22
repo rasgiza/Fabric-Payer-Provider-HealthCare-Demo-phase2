@@ -135,7 +135,7 @@ table agg_medication_adherence
 
 		annotation SummarizationSetBy = Automatic
 
-	/// Model-produced score.
+	/// Proportion of Days Covered (0.0-1.0). Adherent threshold is >= 0.80. Use adherence_category for grouping/filtering, not the raw pdc_score.
 	column pdc_score
 		dataType: double
 		lineageTag: b10c0001-0001-0001-0001-00000000002b
@@ -147,7 +147,7 @@ table agg_medication_adherence
 
 		annotation PBI_FormatHint = {"isGeneralNumber":true}
 
-	/// Adherence category.
+	/// Adherence band: Adherent (PDC >= 0.80), Partial (0.50-0.79), Non-Adherent (< 0.50). Preferred filter for adherence questions.
 	column adherence_category
 		dataType: string
 		lineageTag: b10c0001-0001-0001-0001-00000000002c

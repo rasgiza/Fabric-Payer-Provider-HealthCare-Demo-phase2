@@ -216,6 +216,112 @@ python tools\audit_rels.py            # read-only audit
 > relationship audit) plus a *reproducible evaluation harness* that proves
 > the agent's answers are correct — not just plausible.
 
+### Prep-for-AI playbook — manual one-time setup (Layers C & D)
+
+The Data Agent's quality has **four layers**. Two are 100% in this repo and
+deployed by the Git sync; two are UI-only (no public API yet) and must be
+done by hand in the Fabric portal / Power BI Desktop, once per environment.
+
+| Layer | Where it lives | In this repo? | Who owns it |
+|---|---|---|---|
+| **A — Agent system prompt** | `workspace/<Agent>.DataAgent/Files/Config/{draft,published}/stage_config.json` → `aiInstructions` | yes (deployed by Git sync) | Repo |
+| **B — Per-source `dataSourceInstructions`** + pre-selected tables/columns | `…/Config/{draft,published}/<source>/datasource.json` | yes (deployed by Git sync) | Repo |
+| **C — Model-level "AI instructions" on each semantic model** | Fabric portal → Semantic model → Settings → **Q&A / AI instructions** | **no — UI only** | You (one-time) |
+| **D — Verified answers (NL → DAX)** | Power BI Desktop → Modeling → **Q&A setup → Suggest questions / Teach Q&A** → save back to the model | **no — Desktop UI only** | You (one-time) |
+
+> **Why Layer A is now lean.** When a Data Agent answers from a semantic
+> model, the DAX-generation tool **ignores `aiInstructions`** — it reads only
+> the model's `///` descriptions, Q&A synonyms, Layer C instructions, and
+> Layer D verified answers. So we moved schema/measure catalogs and DAX
+> recipes **down into `dataSourceInstructions`** (Layer B) and left Layer A
+> as: persona, cross-source routing, scope guardrails, response shape, and
+> general rules only. The trim dropped each `stage_config.json` by ~75%.
+
+#### Step 1 — confirm the table mirror in Fabric
+
+Open each agent in Fabric → **Datasources** → tick the same set the repo
+already pre-selects in `datasource.json`. If you re-ran Git sync, the boxes
+should already be ticked; this is just a visual confirm.
+
+**RevenueCycleAgent** — 7 tables each on **PayerAnalytics** SM **and** `lh_gold_curated`:
+`fact_claim`, `fact_prescription`, `dim_payer`, `dim_patient`, `dim_provider`, `dim_medication`, `dim_date`
+
+**ClinicalOpsAgent** — 10 tables each on **ProviderAnalytics** SM **and** `lh_gold_curated`:
+`fact_encounter`, `fact_diagnosis`, `agg_readmission_by_date`, `agg_medication_adherence`, `dim_patient`, `dim_provider`, `dim_medication`, `dim_diagnosis`, `dim_sdoh`, `dim_date`
+
+#### Step 2 — paste model-level AI instructions (Layer C)
+
+Open the semantic model in Fabric (not the agent), go to **Settings →
+Q&A → AI instructions**, and paste the paragraph below. Save.
+
+**PayerAnalytics:**
+> This model is the revenue-cycle / CFO source. Prefer pre-built DAX
+> measures over raw column aggregations. Always filter `dim_patient`,
+> `dim_provider`, and `dim_payer` on `is_current = 1` / `is_active = 1`
+> (SCD Type 2). For risk questions, filter on `denial_risk_category`
+> ("High" / "Medium" / "Low"), never on the raw `denial_risk_score`.
+> For SDOH, filter on `dim_sdoh[risk_tier]`, not raw
+> `social_vulnerability_index`. Tables `fact_appeal`, `fact_authorization`,
+> `fact_capitation`, `fact_premium`, `agg_hedis_compliance`,
+> `agg_mlr_by_payer_month`, `agg_raf_score`, `agg_star_rating*`,
+> `bridge_provider_contract`, and `dim_plan` are defined but NOT yet
+> backed by Delta — do not query them; say the data is unavailable and
+> suggest the closest backed alternative (e.g. denial rate by payer).
+> Currency uses USD. Benchmarks: denial rate < 8%, collection rate > 95%,
+> days-to-payment < 30, appeal success > 50%.
+
+**ProviderAnalytics:**
+> This model is the clinical-operations / CMO source. Prefer pre-built
+> DAX measures over raw column aggregations. Always filter `dim_patient`
+> and `dim_provider` on `is_current = 1` (SCD Type 2). For risk
+> questions, filter on `readmission_risk_category` ("High" / "Medium" /
+> "Low"), never on the raw `readmission_risk_score`. For adherence,
+> filter on `agg_medication_adherence[adherence_category]`
+> ("Adherent" / "Partial" / "Non-Adherent"), not raw `pdc_score`.
+> For SDOH, filter on `dim_sdoh[risk_tier]`. For proactive intervention
+> questions ("who should we outreach to?"), look at high-risk cohorts
+> that have NOT yet had the bad event (e.g. `readmission_risk_category
+> = "High" AND readmission_flag = 0`). Benchmarks: readmission rate
+> < 15%, PDC adherent ≥ 0.80, LOS inpatient 4–6 days, RVU attainment
+> ≥ 95%, board-certified rate ≥ 85%.
+
+#### Step 3 — author verified answers in Power BI Desktop (Layer D)
+
+Connect Power BI Desktop to the published semantic model, open **Modeling
+→ Q&A setup → Teach Q&A**, paste each natural-language question, accept
+or paste the DAX, then **Save** back to the model. These become "verified
+answers" the Data Agent will reuse verbatim instead of re-generating DAX.
+
+**PayerAnalytics — 8 verified answers**
+
+| # | Natural-language question | DAX | Source table(s) | Expected shape |
+|---|---|---|---|---|
+| 1 | What's our overall claim denial rate? | `EVALUATE { [Denial Rate] }` | `fact_claim` | single % scalar |
+| 2 | What's the denial rate by payer? | `EVALUATE SUMMARIZECOLUMNS(dim_payer[payer_name], "Denial Rate", [Denial Rate])` | `fact_claim` + `dim_payer` | 1 row / payer |
+| 3 | How much revenue is at risk from pending high-risk claims? | `EVALUATE { [At Risk Revenue] }` | `fact_claim` | single $ scalar |
+| 4 | What's our collection rate? | `EVALUATE { [Collection Rate] }` | `fact_claim` | single % scalar |
+| 5 | Show the top 5 payers by total billed amount. | `EVALUATE TOPN(5, SUMMARIZECOLUMNS(dim_payer[payer_name], "Total Billed", [Total Billed]), [Total Billed], DESC)` | `fact_claim` + `dim_payer` | 5-row Top-N |
+| 6 | What's our appeal success rate? | `EVALUATE { [Appeal Success Rate] }` | `fact_claim` | single % scalar |
+| 7 | Average days to payment by payer. | `EVALUATE SUMMARIZECOLUMNS(dim_payer[payer_name], "Avg Days to Pay", [Avg Days to Payment])` | `fact_claim` + `dim_payer` | 1 row / payer |
+| 8 | Generic prescription fill rate by payer type. | `EVALUATE SUMMARIZECOLUMNS(dim_payer[payer_type], "Generic Rate", [Generic Fill Rate])` | `fact_prescription` + `dim_payer` | 1 row / payer type |
+
+**ProviderAnalytics — 8 verified answers**
+
+| # | Natural-language question | DAX | Source table(s) | Expected shape |
+|---|---|---|---|---|
+| 1 | What's our 30-day readmission rate? | `EVALUATE { [Readmission Rate] }` | `fact_encounter` | single % scalar |
+| 2 | Average length of stay by encounter type. | `EVALUATE SUMMARIZECOLUMNS(fact_encounter[encounter_type], "Avg LOS", [Avg Length of Stay])` | `fact_encounter` | 1 row / encounter type |
+| 3 | What's our medication adherence rate? | `EVALUATE { [Adherent Rate] }` | `agg_medication_adherence` | single % scalar |
+| 4 | How many chronic patients are we managing? | `EVALUATE { [Chronic Patients] }` | `dim_patient` | single count scalar |
+| 5 | Encounter volume by month this year. | `EVALUATE CALCULATETABLE(SUMMARIZECOLUMNS(dim_date[month_name], "Encounters", [Total Encounters]), dim_date[year] = YEAR(TODAY()))` | `fact_encounter` + `dim_date` | 1 row / month |
+| 6 | Drug classes with worst PDC (bottom 10). | `EVALUATE TOPN(10, SUMMARIZECOLUMNS(agg_medication_adherence[drug_class], "Avg PDC", [Avg PDC Score]), [Avg PDC Score], ASC)` | `agg_medication_adherence` | 10-row Top-N |
+| 7 | Readmission rate by SDOH risk tier. | `EVALUATE SUMMARIZECOLUMNS(dim_sdoh[risk_tier], "Readmission Rate", [Readmission Rate])` | `fact_encounter` ↔ `dim_patient` ↔ `dim_sdoh` | 1 row / tier |
+| 8 | Inpatient vs Emergency vs Outpatient encounter mix. | `EVALUATE SUMMARIZECOLUMNS(fact_encounter[encounter_type], "Encounters", [Total Encounters])` | `fact_encounter` | 1 row / encounter type |
+
+> **One-time only.** Layers C and D persist with the semantic model — you do
+> not redo them on every deploy. Re-run only when you add a new measure
+> or want to teach the agent a new question pattern.
+
 ---
 
 ## Quick Start
